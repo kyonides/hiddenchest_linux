@@ -192,7 +192,10 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
     - `close_icon` no es más que el ícono donde hacen clic para cerrar la ventana!
     - `contents` representa al contenedor de todos los mensajes de textos impresos en ella!
 * Módulo `Graphics` tiene tres propiedades adicionales: `fullscreen` representa al modo actual de pantalla completa (`true` = pantalla completa, `false` = en ventana), `show_cursor` esconde el cursor del Sistema Operativo de estar dentro de la ventana de juego si se fija en `false` y `block_fullscreen` (`true` o `false`) impedirá o permitirá que el jugador entre en modo de pantalla completa incluso si cambian la configuración en el archivo de configuración hiddenchest.conf.
-* Módulo `Graphics` también permite hacer capturas de pantalla al llamar al método `save_screenshot` (guardado en la carpeta Screenshots) u obtener su ancho y su altura en un arreglo con `dimensions`.
+* Módulo `Graphics` también permite hacer capturas de pantalla:
+    - `screenshot` o `save_screenshot` o `save_snapshot`
+         - Lo guarda en la carpeta Screenshots
+    - `dimensions` permite obtener su ancho y su altura en un arreglo o lista.
 * Módulo `Settings` permite personalizar las configuraciones de su juego via llamados a script.
     - `image_format` y `image_format=` permiten verificar o asignar el formato preferido de imágenes para sus capturas. Opciones disponibles:
          - :jpg o 0 para formato JPG - opción por defecto
@@ -206,7 +209,9 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
     - `gray_bitmap` - Versión en Gris de su mapa
     - `sepia_bitmap` - Versión en Sepia de su mapa
     - `blur_bitmap` - Versión Borrosa de su mapa
-    - `color_bitmap` - Escojan un color para teñir su mapa. Opciones:  :red, :green, :blue, :yellow, :sepia and :gray (rojo, verde, azul, amarillo, sepia y gris)
+    - `color_bitmap` - Escojan un color para teñir su mapa.
+         - Opciones:  :red, :green, :blue, :yellow, :sepia y :gray
+           (rojo, verde, azul, amarillo, sepia y gris)
 * Sprites ahora soportan versiones en gris y tono sepia de sus bitmaps! Usen un booleano (true o false) para activar o desactivarlos efectos de color.
     - `gray_out = booleano` - gris
     - `turn_sepia = booleano` - sepia
@@ -229,8 +234,10 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
 * Funciones adicionales:
     - `mouse_x` y `mouse_y` para preguntar por la posición del puntero del ratón relativo a la pantalla de juego
     - `dir4?` y `dir8?` para evitarles el uso de 4 u 8 condicionales en fila.
-    - `press_all?` y `trigger_any?` para evitarles el uso de varias condicionales en fila.
+    - `press_all?` y `trigger_buttons?` para evitarles el uso de varias condicionales en fila.
          - Pueden pasar un argumento tras otro o pasar un Array alias arreglo.
+    - `trigger_up_down?` y `trigger_left_right?` para las direcciones opuestas.
+    - `press_any?` y `trigger_any?` se ejecuta cuando un botón envía un valor distinto a cero.
     - `left_click?`, `middle_click?` y `right_click?`
 * Se pueden usar :símbolos en todas las versiones de RGSS.
 

@@ -192,7 +192,10 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
     - `close_icon` is nothing but the icon where you can click to close the box!
     - `contents` stands for the actual container of all of your text messages printed on it!
 * The `Graphics` module has three additional properties: `fullscreen` represents the current fullscreen mode (`true` = fullscreen, `false` = windowed), `show_cursor` hides the system cursor inside the game window when `false` and `block_fullscreen` (`true` or `false`) will prevent the player from entering fullscreen mode or not even if they change the configuration file settings.
-* `Graphics` module also lets you take snapshots by calling the `save_screenshot` method (stored in Screenshots directory) or get its width and height as an array with `dimensions`.
+* `Graphics` module also lets you take snapshots by calling:
+   -  `screenshot` or `save_screenshot` or `save_snapshot`
+         - The image is stored in the Screenshots directory by default.
+   - `dimensions` lets you get its width and height as an array.
 * `Settings` module lets you customize your game settings via script calls.
     - `image_format` and `image_format=` let you check out or assign a preferred image format for your screenshots. Available options are:
          - :jpg or 0 for JPG format - default option
@@ -205,7 +208,8 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
     - `gray_bitmap` - Grayish version of your map.
     - `sepia_bitmap` - Sepia colored version of your map.
     - `blur_bitmap` - Blurred version of your map.
-    - `color_bitmap` - Pick a single color to taint your map. options are:  :red, :green, :blue, :yellow, :sepia and :gray
+    - `color_bitmap` - Pick a single color to taint your map.
+         - Options are:  :red, :green, :blue, :yellow, :sepia and :gray
 * Sprites now support grayed out and sepia colored versions of their bitmaps! Use a boolean (true or false) to toggle the color effect.
     - `gray_out = boolean`
     - `turn_sepia = boolean`
@@ -228,8 +232,10 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
 * Additional functions:
     - `mouse_x` and `mouse_y` to query the mouse pointer position relative to the game screen.
     - `dir4?` and `dir8?` to prevent you from using 4 or even 8 conditional statements in a row.
-    - `press_all?` and `trigger_any?` to save you the effort of typing many conditional statements in a row.
+    - `press_all?` and `trigger_buttons?` to save you the effort of typing many conditional statements in a row.
          - You can pass them one argument after another or pass an array.
+    - `trigger_up_down?` and `trigger_left_right?` are very self evident.
+    - `press_any?` and `trigger_any?` treats any non zero value as a valid button trigger.
     - `left_click?`, `middle_click?` and `right_click?`
 * You can now use :symbols in any RGSS version.
 
