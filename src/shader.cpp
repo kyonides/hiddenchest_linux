@@ -168,7 +168,7 @@ void Shader::init(const unsigned char *vert, int vertSize,
   gl.GetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
   if (!success) {
     printShaderLog(vertShader);
-    throw Exception(Exception::HIDDENCHESTError,
+    throw Exception(Exception::HiddenChestError,
       "GLSL: An error occured while compiling vertex shader '%s' in program '%s'",
       vertName, programName);
   }// Compile fragment shader
@@ -177,7 +177,7 @@ void Shader::init(const unsigned char *vert, int vertSize,
   gl.GetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
   if (!success) {
     printShaderLog(fragShader);
-    throw Exception(Exception::HIDDENCHESTError,
+    throw Exception(Exception::HiddenChestError,
       "GLSL: An error occured while compiling fragment shader '%s' in program '%s'",
       fragName, programName);
   }// Link shader program
@@ -190,7 +190,7 @@ void Shader::init(const unsigned char *vert, int vertSize,
   gl.GetProgramiv(program, GL_LINK_STATUS, &success);
   if (!success) {
     printProgramLog(program);
-    throw Exception(Exception::HIDDENCHESTError,
+    throw Exception(Exception::HiddenChestError,
       "GLSL: An error occured while linking program '%s' (vertex '%s', fragment '%s')",
       programName, vertName, fragName);
   }

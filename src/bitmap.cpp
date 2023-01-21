@@ -42,6 +42,9 @@
 #include "eventthread.h"
 #include "debugwriter.h"
 #include "app_logo.png.xxd"
+#include "app_logo_s01.png.xxd"
+#include "app_logo_s02.png.xxd"
+#include "app_logo_s03.png.xxd"
 
 /*ifdef GLES2_HEADER// I added these lines
 include <SDL_opengles2.h>
@@ -53,9 +56,24 @@ else*/
 #define GUARD_MEGA \
 { \
   if (p->megaSurface) \
-    throw Exception(Exception::HIDDENCHESTError, \
+    throw Exception(Exception::HiddenChestError, \
                     "Operation not supported for mega surfaces"); \
 }
+
+struct IntBitmap
+{
+  const char *name;
+  unsigned char *mem;
+  unsigned int size;
+};
+
+static IntBitmap assets[] =
+{
+  { "app_logo_s01", assets_app_logo_s01_png, assets_app_logo_s01_png_len },
+  { "app_logo_s02", assets_app_logo_s02_png, assets_app_logo_s02_png_len },
+  { "app_logo_s03", assets_app_logo_s03_png, assets_app_logo_s03_png_len },
+  { "app_logo",     assets_app_logo_png,     assets_app_logo_png_len     },
+};
 
 // Normalize (= ensure width and height are positive)
 static IntRect normalizedRect(const IntRect &rect)
@@ -247,6 +265,27 @@ Bitmap::Bitmap(const char *filename)
     TEX::uploadImage(p->gl.width, p->gl.height, imgSurf->pixels, GL_RGBA);
     SDL_FreeSurface(imgSurf);
   }
+  p->addTaintedArea(rect());
+}
+
+Bitmap::Bitmap(const char *filename, int none)
+{
+  IntBitmap ib;
+  for (int n = 0; n < 4; n++) {
+    ib = assets[n];
+    if (!strcmp(ib.name, filename)) break;
+  }
+  SDL_RWops *src = SDL_RWFromConstMem(ib.mem, ib.size);
+  if (!src) Debug() << "No source!";
+  SDL_Surface *surface = IMG_Load_RW(src, SDL_TRUE);
+  if (!surface) Debug() << "No surface";
+  p = new BitmapPrivate(this);
+  p->ensureFormat(surface, SDL_PIXELFORMAT_ABGR8888);
+  TEXFBO tex = shState->texPool().request(surface->w, surface->h);
+  p->gl = tex;
+  TEX::bind(p->gl.tex);
+  TEX::uploadImage(p->gl.width, p->gl.height, surface->pixels, GL_RGBA);
+  SDL_FreeSurface(surface);
   p->addTaintedArea(rect());
 }
 

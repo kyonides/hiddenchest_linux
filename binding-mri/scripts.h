@@ -25,7 +25,6 @@
 void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt);
 void scripts_error_handling();
 extern const char scene_hc[];
-extern const char main_hc[];
 
 static VALUE scripts_main_index_set(VALUE self, VALUE pos)
 {
@@ -34,7 +33,7 @@ static VALUE scripts_main_index_set(VALUE self, VALUE pos)
 
 static VALUE find_main_script_index(VALUE self)
 {
-  VALUE ary, name, main_section = rb_iv_get(self, "@main_section_name");
+  VALUE ary, name, main_section = rb_iv_get(self, "@main_name");
   VALUE scripts = rb_gv_get("$RGSS_SCRIPTS");
   int pos = 89, max = RARRAY_LEN(scripts);
   for (int n = 0; n < max; n++) {

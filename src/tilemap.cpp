@@ -355,7 +355,7 @@ struct TilemapPrivate
     atlas.efTilesetH = tsH - (tsH % 32);
     atlas.size = TileAtlas::minSize(atlas.efTilesetH, glState.caps.maxTexSize);
     if (atlas.size.x < 0)
-      throw Exception(Exception::HIDDENCHESTError,
+      throw Exception(Exception::HiddenChestError,
         "Cannot allocate big enough texture for tileset atlas");
   }
 

@@ -53,10 +53,14 @@ static VALUE bitmapInitialize(int argc, VALUE* argv, VALUE self)
   } else if (argc == 1) {
     GUARD_EXC( b = new Bitmap(StringValueCStr(argv[0])); )
   } else {
-    int width = RB_FIX2INT(argv[0]), height = RB_FIX2INT(argv[1]);
-    GUARD_EXC( b = new Bitmap(width, height); )
+    if (RB_NIL_P(argv[1])) {
+      GUARD_EXC( b = new Bitmap(StringValueCStr(argv[0]), 0); )
+    } else {
+      int width = RB_FIX2INT(argv[0]), height = RB_FIX2INT(argv[1]);
+      GUARD_EXC( b = new Bitmap(width, height); )
+    }
   }
-  setPrivateData(self, b);
+  RTYPEDDATA_DATA(self) = b;
   bitmapInitProps(b, self);
   return self;
 }

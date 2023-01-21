@@ -272,6 +272,9 @@ set(EMBEDDED_INPUT
   assets/FreeSans.ttf
   assets/icon.png
   assets/app_logo.png
+  assets/app_logo_s01.png
+  assets/app_logo_s02.png
+  assets/app_logo_s03.png
 )
 
 if (RGSS2)

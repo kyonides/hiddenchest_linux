@@ -27,6 +27,9 @@
 #include <ruby/intern.h>
 #include "hcextras.h"
 
+extern void hc_rb_splash(VALUE exception);
+static VALUE eFileError;
+
 void safe_mkdir(VALUE dir)
 {
   if (!rb_funcall(rb_cDir, rb_intern("exist?"), 1, dir))
@@ -57,7 +60,7 @@ static VALUE fileIntForPath(const char *path, bool rubyExc)
   }
   VALUE klass = rb_const_get(rb_cObject, rb_intern("FileInt"));
   VALUE obj = rb_obj_alloc(klass);
-  setPrivateData(obj, ops);
+  RTYPEDDATA_DATA(obj) = ops;
   return obj;
 }
 
@@ -107,24 +110,25 @@ static VALUE fileInt_exist(VALUE self, VALUE name)
   return shState->fileSystem().exists_ext(fn) ? Qtrue : Qfalse;
 }
 
-VALUE no_file_error(const char *filename)
+static bool file_do_exist(const char *fname)
 {
-  VALUE klass = rb_const_get(rb_mErrno, rb_intern("ENOENT"));
-  rb_raise(klass, "%s.\nNo such file or directory", filename);
-  return Qnil;
+  return shState->fileSystem().exists_ext(fname);
 }
 
-VALUE kernelLoadDataInt(const char *filename, bool rubyExc)
+VALUE kernelLoadDataInt(const char *fname, bool rubyExc)
 {
   rb_gc_start();
-  if (!shState->fileSystem().exists_ext(filename))
-    return no_file_error(filename);
-  VALUE port = fileIntForPath(filename, rubyExc);
-  if (RB_NIL_P(port))
-    return no_file_error(filename);
+  if ( !file_do_exist(fname) ) {
+    const char *cause = "No such file or directory.";
+    rb_raise(rb_eIOError, "Unable to open file '%s'.\n%s", fname, cause);
+    return Qnil;
+  }
+  VALUE port = fileIntForPath(fname, rubyExc);
+  if (RB_NIL_P(port)) return Qnil;
   VALUE marsh = rb_const_get(rb_cObject, rb_intern("Marshal"));
   // FIXME need to catch exceptions here with begin rescue
-  VALUE result = rb_funcall2(marsh, rb_intern("load"), 1, &port);
+  VALUE result;
+  result = rb_funcall2(marsh, rb_intern("load"), 1, &port);
   rb_funcall2(port, rb_intern("close"), 0, NULL);
   return result;
 }

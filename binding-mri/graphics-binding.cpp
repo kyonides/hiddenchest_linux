@@ -27,6 +27,8 @@
 #include "binding-types.h"
 #include "exception.h"
 
+extern VALUE rect_from_ary(VALUE ary);
+
 static VALUE graphicsUpdate(VALUE self)
 {
   shState->graphics().update();
@@ -72,6 +74,15 @@ static VALUE graphics_dimensions(VALUE self)
   VALUE width = RB_INT2NUM( shState->graphics().width() );
   VALUE height = RB_INT2NUM( shState->graphics().height() );
   return rb_ary_new3(2, width, height);
+}
+
+static VALUE graphics_screen_rect(VALUE self)
+{
+  VALUE ary, width, height, zero = RB_INT2FIX(0);
+  width = RB_INT2NUM( shState->graphics().width() );
+  height = RB_INT2NUM( shState->graphics().height() );
+  ary = rb_ary_new3(4, zero, zero, width, height);
+  return rect_from_ary(ary);
 }
 
 RB_METHOD(graphicsWait)
@@ -292,6 +303,7 @@ void graphicsBindingInit()
   rb_define_module_function(module, "height", RMF(graphicsHeight), 0);
   rb_define_module_function(module, "dimensions", RMF(graphics_dimensions), 0);
   rb_define_module_function(module, "size", RMF(graphics_dimensions), 0);
+  rb_define_module_function(module, "screen_rect", RMF(graphics_screen_rect), 0);
   rb_define_module_function(module, "wait", RMF(graphicsWait), -1);
   rb_define_module_function(module, "fadeout", RMF(graphicsFadeout), -1);
   rb_define_module_function(module, "fadein", RMF(graphicsFadein), -1);

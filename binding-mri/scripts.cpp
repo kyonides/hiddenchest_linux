@@ -11,6 +11,7 @@
 #include "eventthread.h"
 #include "hcextras.h"
 #include "scripts.h"
+#include "debugwriter.h"
 
 #define CRMF(func) ((int (*)(ANYARGS))(func))
 
@@ -87,14 +88,14 @@ static VALUE scripts_main_index_get(VALUE self)
   return rb_iv_get(self, "@main_index");
 }
 
-static VALUE scripts_main_section_name_get(VALUE self)
+static VALUE scripts_main_name_get(VALUE self)
 {
-  return rb_iv_get(self, "@main_section_name");
+  return rb_iv_get(self, "@main_name");
 }
 
-static VALUE scripts_main_section_name_set(VALUE self, VALUE name)
+static VALUE scripts_main_name_set(VALUE self, VALUE name)
 {
-  return rb_iv_set(self, "@main_section_name", name);
+  return rb_iv_set(self, "@main_name", name);
 }
 
 void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
@@ -103,21 +104,33 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
   rb_iv_set(mod, "@show_backdrop", Qtrue);
   rb_iv_set(mod, "@error_type", klass);
   rb_iv_set(mod, "@error_msg", msg);
-  if (bt == Qnil) {
-    printf("Backtrace is empty!\n");
-    return;
-  }
-  rb_ary_pop(bt);
-  int max = RARRAY_LEN(bt);
-  printf("No. of lines: %i\n", max);
-  VALUE ary, pos, line;
   VALUE file = rb_file_open("error.log", "w");
+  if ( RARRAY_LEN(bt) > 0 ) rb_ary_pop(bt);
+  int max = RARRAY_LEN(bt);
+  VALUE fn = rb_iv_get(hidden, "@filename");
+  if (fn != Qnil)
+    Debug() << "Unable to open file " << RSTRING_PTR(fn) << ".";
+  Debug() << "Backtrace Lines:" << max;
   VALUE btr[max + 2];
   btr[0] = rb_str_plus(rstr("Error Type: "), klass);
   btr[1] = rb_str_plus(msg, rstr("\n"));
   rb_io_write(file, btr[0]);
   rb_io_write(file, rstr("\n"));
   rb_io_write(file, btr[1]);
+  if (bt == Qnil) {
+    if (names != Qnil) {
+      VALUE name = rb_iv_get(hidden, "@script_name");
+      Debug() << RSTRING_PTR(name);
+      rb_io_write(file, rstr("Script "));
+      rb_io_write(file, name);
+      rb_io_write(file, rstr("\n"));
+    }
+    rb_io_close(file);
+    rb_io_puts(2, btr, rb_stdout);
+    return;
+  }
+  //printf("No. of lines: %i\n", max);
+  VALUE ary, pos, line;
   const char* str = "\\d+";
   const char* eval_str = "eval:";
   if (max < 2) {
@@ -141,7 +154,6 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
     for (int n = 0; n < max; n++) {
       line = rb_ary_entry(bt, n);
       btr[n + 2] = line;
-      regex_digit = rb_reg_new(str, strlen(str), 0);
       ary = rb_funcall(line, rb_intern("scan"), 1, regex_digit);
       ary = rb_ary_entry(ary, 0);
       pos = rb_funcall(ary, rb_intern("to_i"), 0);
@@ -164,11 +176,9 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
 
 void scripts_error_handling()
 {
-  int state;
-  rb_eval_string_protect(main_hc, &state);
   VALUE rb_error = rb_gv_get("$!");
-  if (!state || rb_obj_class(rb_error) != getRbData()->exc[Reset]) return;
-  shState->rtData().rqReset.clear();
+  if (rb_obj_class(rb_error) == getRbData()->exc[Reset])
+    shState->rtData().rqReset.clear();
 }
 
 static VALUE scripts_log(VALUE self)
@@ -185,12 +195,12 @@ static VALUE scripts_log(VALUE self)
 
 void init_scripts()
 {
-  hidden = rb_define_module("HIDDENCHEST");
+  hidden = rb_define_module("HiddenChest");
   scripts = rb_define_module("Scripts");
   rb_iv_set(scripts, "@sections", rb_ary_new());
   rb_iv_set(scripts, "@list", rb_ary_new());
   rb_iv_set(scripts, "@pack", rb_hash_new());
-  rb_iv_set(scripts, "@main_section_name", rb_str_new_cstr("Main"));
+  rb_iv_set(scripts, "@main_name", rstr("Main"));
   rb_iv_set(scripts, "@main_index", RB_INT2FIX(0));
   rb_define_module_function(scripts, "sections", RMF(scripts_sections), 0);
   rb_define_module_function(scripts, "list", RMF(scripts_list), 0);
@@ -201,8 +211,8 @@ void init_scripts()
   rb_define_module_function(scripts, "[]=", RMF(scripts_set), 2);
   rb_define_module_function(scripts, "main_index", RMF(scripts_main_index_get), 0);
   rb_define_module_function(scripts, "main_index=", RMF(scripts_main_index_set), 1);
-  rb_define_module_function(scripts, "main_section_name", RMF(scripts_main_section_name_get), 0);
-  rb_define_module_function(scripts, "main_section_name=", RMF(scripts_main_section_name_set), 1);
+  rb_define_module_function(scripts, "main_name", RMF(scripts_main_name_get), 0);
+  rb_define_module_function(scripts, "main_name=", RMF(scripts_main_name_set), 1);
   rb_define_module_function(scripts, "scene", RMF(scripts_scene_get), 0);
   rb_define_module_function(scripts, "scene=", RMF(scripts_scene_set), 1);
   rb_define_module_function(scripts, "log", RMF(scripts_log), 0);

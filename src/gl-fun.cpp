@@ -59,7 +59,7 @@ static void parseExtensionsCompat(_PFNGLGETSTRINGPROC GetString, BoostSet<std::s
 	gl.name = (type) SDL_GL_GetProcAddress("gl" #name EXT_SUFFIX);
 
 #define EXC(msg) \
-	Exception(Exception::HIDDENCHESTError, "%s", msg)
+	Exception(Exception::HiddenChestError, "%s", msg)
 
 void initGLFunctions()
 {

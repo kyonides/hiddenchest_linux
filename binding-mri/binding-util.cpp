@@ -38,7 +38,7 @@ struct
   const char *name;
 } static customExc[] =
 {
-  { HIDDENCHEST, "HIDDENCHESTError" },
+  { HiddenChest, "HiddenChestError" },
   { PHYSFS, "PHYSFSError" },
   { SDL,    "SDLError"    }
 };
@@ -49,7 +49,7 @@ RbData::RbData()
     exc[customExc[i].id] = rb_define_class(customExc[i].name, rb_eException);
   exc[RGSS]  = rb_define_class("RGSSError", rb_eStandardError);
   exc[Reset] = rb_define_class(rgssVer >= 3 ? "RGSSReset" : "Reset", rb_eException);
-  exc[ErrnoENOENT] = rb_const_get(rb_const_get(rb_cObject, rb_intern("Errno")), rb_intern("ENOENT"));
+  exc[ErrnoENOENT] = rb_const_get(rb_mErrno, rb_intern("ENOENT"));
   exc[IOError] = rb_eIOError;
   exc[TypeError] = rb_eTypeError;
   exc[ArgumentError] = rb_eArgError;
@@ -67,7 +67,7 @@ static const RbException excToRbExc[] =
   ArgumentError,
   PHYSFS,      /* PHYSFSError */
   SDL,         /* SDLError    */
-  HIDDENCHEST  /* HIDDENCHESTError */
+  HiddenChest  /* HiddenChestError */
 };
 
 void raiseRbExc(const Exception &exc)

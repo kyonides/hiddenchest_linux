@@ -99,7 +99,41 @@ RB_METHOD(Klass##Initialize) \
 
 INIT_FUN(Color, double, "fff|f", 255)
 INIT_FUN(Tone, double, "fff|f", 0)
-INIT_FUN(Rect, int, "iiii", 0)
+//INIT_FUN(Rect, int, "iiii", 0)
+
+static VALUE rect_initialize(int argc, VALUE* argv, VALUE self)
+{
+  Rect *r;
+  if (argc == 0) {
+    r = new Rect();
+  } else if (argc == 1) {
+    VALUE ary = argv[0];
+    if ( ARRAY_TYPE_P(ary) ) {
+      int x, y, w, h;
+      x = RB_FIX2INT( rb_ary_entry(ary, 0) );
+      y = RB_FIX2INT( rb_ary_entry(ary, 1) );
+      w = RB_FIX2INT( rb_ary_entry(ary, 2) );
+      h = RB_FIX2INT( rb_ary_entry(ary, 3) );
+      r = new Rect(x, y, w, h);
+    } else {
+      r = new Rect();
+    }
+  } else {
+    int p1, p2, p3, p4 = 0;
+    rb_get_args(argc, argv, "iiii", &p1, &p2, &p3, &p4 RB_ARG_END);
+    r = new Rect(p1, p2, p3, p4);
+  }
+  RTYPEDDATA_DATA(self) = r;
+  return self;
+}
+
+VALUE rect_from_ary(VALUE ary)
+{
+  VALUE c_ary[1] = { ary };
+  VALUE rect = rb_define_class("Rect", rb_cObject);
+  rect = rb_obj_alloc(rect);
+  return rect_initialize(1, c_ary, rect);
+}
 
 #define SET_FUN(Klass, param_type, param_t_s, last_param_def) \
 	RB_METHOD(Klass##Set) \
@@ -209,7 +243,7 @@ void etcBindingInit()
   rb_define_alloc_func(RRect, classAllocate<&RectType>);
   rb_define_singleton_method(RRect, "_load", RMF(RectLoad), -1);
   serializableBindingInit<Rect>(RRect);
-  rb_define_method(RRect, "initialize", RMF(RectInitialize), -1);
+  rb_define_method(RRect, "initialize", RMF(rect_initialize), -1);
   rb_define_method(RRect, "initialize_copy", RMF(RectInitializeCopy), -1);
   rb_define_method(RRect, "set", RMF(RectSet), -1);
   rb_define_method(RRect, "==", RMF(RectEqual), -1);

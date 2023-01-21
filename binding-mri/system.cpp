@@ -28,17 +28,18 @@ static VALUE system_user_lang_get(VALUE self)
 void init_system()
 {
   locales = SDL_GetPreferredLocales();
-  VALUE sys = rb_define_module("System");
+  VALUE sys, hidden;
+  sys = rb_define_module("System");
   rb_iv_set(sys, "user_language", rstr(locales[0].language));
   rb_define_const(sys, "NAME", rstr(SYSTEM_REAL_STRING));
   rb_define_const(sys, "FAMILY_NAME", rstr(SYSTEM_STRING));
   rb_define_module_function(sys, "platform", RMF(system_platform_get), 0);
   rb_define_module_function(sys, "user_language", RMF(system_user_lang_get), 0);
-  VALUE mod = rb_define_module("HIDDENCHEST");
-  rb_define_const(mod, "LOGO", rstr("app_logo"));
-  rb_define_const(mod, "AUTHOR", rstr(HIDDENAUTHOR));
-  rb_define_const(mod, "VERSION", rstr(HIDDENVERSION));
-  rb_define_const(mod, "RELEASE_DATE", rstr(HIDDENDATE));
-  rb_define_const(mod, "DESCRIPTION",
+  hidden = rb_define_module("HiddenChest");
+  rb_define_const(hidden, "LOGO", rstr("app_logo"));
+  rb_define_const(hidden, "AUTHOR", rstr(HIDDENAUTHOR));
+  rb_define_const(hidden, "VERSION", rstr(HIDDENVERSION));
+  rb_define_const(hidden, "RELEASE_DATE", rstr(HIDDENDATE));
+  rb_define_const(hidden, "DESCRIPTION",
     rstr("An RGSS based engine derived from mkxp developed by Ancurio"));
 }

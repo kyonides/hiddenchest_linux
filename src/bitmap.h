@@ -38,6 +38,7 @@ class Bitmap : public Disposable
 {
 public:
   Bitmap(const char *filename);
+  Bitmap(const char *filename, int none);
   Bitmap(int none);
   Bitmap(int width, int height);
   // Clone constructor

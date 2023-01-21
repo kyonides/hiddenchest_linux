@@ -39,7 +39,7 @@ struct Exception
     /* New types introduced in mkxp */
     PHYSFSError,
     SDLError,
-    HIDDENCHESTError
+    HiddenChestError
   };
 
   Type type;

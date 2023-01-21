@@ -31,7 +31,7 @@ enum RbException
   Reset,
   PHYSFS,
   SDL,
-  HIDDENCHEST,
+  HiddenChest,
   ErrnoENOENT,
   IOError,
   TypeError,

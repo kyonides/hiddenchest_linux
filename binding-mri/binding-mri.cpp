@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** 2019 Extended by Kyonides Arkanthes <kyonides@gmail.com>
+** Copyright (C) 2019-2023 Extended by Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** HiddenChest is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -40,6 +40,8 @@
 #include <SDL_filesystem.h>
 #include "scripts.h"
 
+#define ch const char*
+
 extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
@@ -52,7 +54,7 @@ void init_terms();
 void init_system();
 void init_settings();
 void init_backdrop();
-static VALUE script_ary;
+static VALUE hidden, script_ary;
 
 ScriptBinding scriptBindingImpl =
 {
@@ -91,21 +93,36 @@ RB_METHOD(mriRgssMain);
 RB_METHOD(mriRgssStop);
 RB_METHOD(_kernelCaller);
 
-static void hc_c_splash(const char *error)
+void hc_c_splash(ch error, int code, ch type)
 {
-  VALUE hidden = rb_define_module("HIDDENCHEST");
+  rb_iv_set(hidden, "@error_type", rstr(type));
   rb_iv_set(hidden, "@error_msg", rstr(error));
+  int state;
+  if (code == 1)
+    rb_eval_string_protect(module_hc, &state);
+  else
+    rb_eval_string_protect(scene_hc, &state);
+  if (state) {
+    rb_p(rb_errinfo());
+    Debug() << "C_Splash - Error Type:" << code << "- State:" << state;
+  }
   scripts_error_handling();
 }
 
-static void hc_rb_splash(VALUE exception)
+void hc_rb_splash(VALUE exception)
 {
-  VALUE hidden, klass, message, backtrace;
-  hidden = rb_define_module("HIDDENCHEST");
+  Debug() << "Rb_Splash";
+  VALUE klass, message, backtrace;
   klass = rb_obj_as_string(rb_obj_class(exception));
   message = rb_funcall(exception, rb_intern("message"), 0);
   backtrace = rb_funcall(exception, rb_intern("backtrace"), 0);
   scripts_open_log(hidden, klass, message, backtrace);
+  int state;
+  rb_eval_string_protect(scene_hc, &state);
+  //if (state) {
+  //  rb_p(rb_errinfo());
+  //  Debug() << "Rb_Splash - Error Type:" << 2 << "- State:" << state;
+  //}
   scripts_error_handling();
 }
 
@@ -147,11 +164,11 @@ static void mriBindingInit()
     rb_define_alias(rb_singleton_class(rb_mKernel), "_HC_kernel_caller_alias", "caller");
     rb_define_module_function(rb_mKernel, "caller", RMF(_kernelCaller), -1);
   }
-  VALUE mod = rb_define_module("HIDDENCHEST");
-  rb_define_module_function(mod, "data_directory", RMF(HCDataDirectory), -1);
-  rb_define_module_function(mod, "puts", RMF(HCPuts), -1);
-  rb_define_module_function(mod, "raw_key_states", RMF(HCRawKeyStates), -1);
-  rb_define_module_function(mod, "mouse_in_window", RMF(HCMouseInWindow), 0);
+  hidden = rb_define_module("HiddenChest");
+  rb_define_module_function(hidden, "data_directory", RMF(HCDataDirectory), -1);
+  rb_define_module_function(hidden, "puts", RMF(HCPuts), -1);
+  rb_define_module_function(hidden, "raw_key_states", RMF(HCRawKeyStates), -1);
+  rb_define_module_function(hidden, "mouse_in_window", RMF(HCMouseInWindow), 0);
   if (rgssVer == 1) {
     rb_eval_string(module_rpg1);
     audio_setup_custom_se();
@@ -159,16 +176,9 @@ static void mriBindingInit()
     rb_eval_string(module_rpg2);
   } else if (rgssVer == 3) {
     rb_eval_string(module_rpg3);
-  } else {
-    int state;
-    VALUE result = rb_eval_string_protect(module_hc, &state);
-    if (state) {
-      hc_rb_splash(rb_errinfo());
-      return;
-    }
   }
   // Load global constants
-  rb_gv_set("HIDDENCHEST", Qtrue);
+  rb_gv_set("HiddenChest", Qtrue);
   VALUE debug = shState->config().editor.debug ? Qtrue : Qfalse;
   if (rgssVer == 1) {
     rb_gv_set("DEBUG", debug);
@@ -177,8 +187,8 @@ static void mriBindingInit()
   }
   rb_gv_set("BTEST", shState->config().editor.battleTest ? Qtrue : Qfalse);
   VALUE game = rb_define_module("Game");
-  const char* title = shState->config().game.title.c_str();
-  const char* version = shState->config().game.version.c_str();
+  ch title = shState->config().game.title.c_str();
+  ch version = shState->config().game.version.c_str();
   rb_define_const(game, "TITLE", rstr(title));
   rb_define_const(game, "VERSION", rstr(version));
 }
@@ -188,7 +198,7 @@ static void showMsg(const std::string &msg)
   shState->eThread().showMessageBox(msg.c_str());
 }
 
-static void printP(int argc, VALUE *argv, const char *convMethod, const char *sep)
+static void printP(int argc, VALUE *argv, ch convMethod, ch sep)
 {
   VALUE dispString = rb_str_buf_new(128);
   ID conv = rb_intern(convMethod);
@@ -197,7 +207,16 @@ static void printP(int argc, VALUE *argv, const char *convMethod, const char *se
     rb_str_buf_append(dispString, str);
     if (i < argc) rb_str_buf_cat2(dispString, sep);
   }
-  showMsg(RSTRING_PTR(dispString));
+  ch msg = RSTRING_PTR(dispString);
+  Debug() << msg;
+  VALUE error = rb_errinfo();
+  if (error != Qnil)
+    hc_rb_splash( error );
+  if (rb_iv_get(hidden, "@error_found") == Qtrue)
+    hc_rb_splash( rb_iv_get(hidden, "@exception") );
+  //if (rb_iv_get(hidden, "@error_found") == Qtrue)
+    //hc_c_splash("No such file or directory", 2, "Errno::ENOENT");
+  showMsg(msg);
 }
 
 static VALUE mriPrint(int argc, VALUE* argv, VALUE self)
@@ -253,7 +272,7 @@ static VALUE rgssMainRescue(VALUE arg, VALUE exc)
   return Qnil;
 }
 
-static VALUE newStringUTF8(const char *string, long length)
+static VALUE newStringUTF8(ch string, long length)
 {
   return rb_enc_str_new(string, length, rb_utf8_encoding());
 }
@@ -337,9 +356,11 @@ RB_METHOD(_kernelCaller)
 
 static void runCustomScript(const std::string &filename)
 {
+  Debug() << "Running Custom Scripts";
   std::string scriptData;
   if (!readFileSDL(filename.c_str(), scriptData)) {
-    showMsg(std::string("Unable to open '") + filename + "'");
+    std::string error = "Unable to open '" + filename + "'";
+    hc_c_splash(error.c_str(), 2, "Errno::ENOENT");
     return;
   }
   evalString(newStringUTF8(scriptData.c_str(), scriptData.size()),
@@ -355,40 +376,36 @@ struct BacktraceData
 
 #define SCRIPT_SECTION_FMT (rgssVer >= 3 ? "Section%04ld" : "Section%03ld")
 
-static void runRMXPScripts(BacktraceData &btData)
+static void runRGSSscripts(BacktraceData &btData)
 {
   if (rgssVer == 0) {
-    const char *error = "No game file was found!";
-    Debug() << "LoadError:" << error;
-    VALUE hidden = rb_define_module("HIDDENCHEST");
-    rb_iv_set(hidden, "@error_type", rstr("LoadError"));
-    hc_c_splash(error);
+    hc_c_splash("No game file was found!", 1, "LoadError");
     return;
   }
   const Config &conf = shState->rtData().config;
   const std::string &scriptPack = conf.game.scripts;
   if (scriptPack.empty()) {
-    const char *error = "No game scripts specified (missing Game.ini?)";
+    ch error = "No game scripts specified (missing Game.ini?)";
     Debug() << error;
     showMsg(error);
     return;
   }
   if (!shState->fileSystem().exists(scriptPack.c_str())) {
-    std::string error = "Unable to open '";
-    error += scriptPack + std::string("'");
-    Debug() << "Errno::ENOENT" << error;
-    showMsg("Unable to open '" + scriptPack + "'");
+    std::string error = "Unable to open '" + scriptPack + "'";
+    hc_c_splash(error.c_str(), 2, "Errno::ENOENT");
     return;
   }
   // We checked if Scripts.rxdata exists, but something might still go wrong
   try {
     script_ary = kernelLoadDataInt(scriptPack.c_str(), false);
   } catch (const Exception &e) {
-    showMsg(std::string("Failed to read script data: ") + e.msg);
+    std::string error = "Failed to read script data: " + e.msg;
+    hc_c_splash(error.c_str(), 2, "IOError");
     return;
   }
   if (!RB_TYPE_P(script_ary, RUBY_T_ARRAY)) {
-    showMsg("Failed to read script data");
+    ch error = "Wrong File Format.\nFailed to read script data.";
+    hc_c_splash(error, 2, "TypeError");
     return;
   }
   rb_gv_set("$RGSS_SCRIPTS", script_ary);
@@ -398,6 +415,7 @@ static void runRMXPScripts(BacktraceData &btData)
     names = rb_ary_new();
     rb_iv_set(scripts_mod, "@sections", names);
   }
+  Debug() << "Searching for the Main Index...";
   scripts_main_index_set(scripts_mod, find_main_script_index(scripts_mod));
   Debug() << "Loading Scripts now";
   long scriptCount = RARRAY_LEN(script_ary);
@@ -426,7 +444,7 @@ static void runRMXPScripts(BacktraceData &btData)
       static char buffer[256];
       snprintf(buffer, sizeof(buffer), "Error decoding script %ld: '%s'",
                 i, RSTRING_PTR(scriptName));
-      showMsg(buffer);
+      hc_c_splash(buffer, 2, "DecodeError");
       break;
     }
     rb_ary_store(script, 3, rstr(decodeBuffer.c_str()));
@@ -442,7 +460,7 @@ static void runRMXPScripts(BacktraceData &btData)
     section = rb_ary_entry(script_ary, i);
     script = rb_ary_entry(section, script_pos);
     string = newStringUTF8(RSTRING_PTR(script), RSTRING_LEN(script));
-    const char *scriptName = RSTRING_PTR(rb_ary_entry(section, name_pos));
+    ch scriptName = RSTRING_PTR(rb_ary_entry(section, name_pos));
     char buf[1024];
     int len;
     len = snprintf(buf, sizeof(buf), "Section%04ld:%s", i, scriptName);
@@ -451,11 +469,13 @@ static void runRMXPScripts(BacktraceData &btData)
     int state;
     evalString(string, fname, &state);
     if (state) break;
+    if (rb_iv_get(hidden, "@not_found") == Qtrue) break;
   }
   if (rb_obj_class(rb_gv_get("$!")) != getRbData()->exc[Reset]) return;
   while (true) {
     if (rb_gv_get("$scene") == Qnil) break;
     if (rb_obj_class(rb_gv_get("$!")) != getRbData()->exc[Reset]) break;
+    if (rb_iv_get(hidden, "@not_found") == Qtrue) break;
     process_main_script_reset();
   }
   shState->rtData().rqReset.clear();
@@ -478,11 +498,9 @@ static void showExc(VALUE exc, const BacktraceData &btData)
     char *message = StringValueCStr(msg);
     std::string ms(640, '\0');
     snprintf(&ms[0], ms.size(), "HiddenChestError: %s", message);
-    
     showMsg(ms);
     return;
   }
-  //else { //bt0 = rb_funcall(bt0, rb_intern("to_s"), 0);  }
   char *s = StringValueCStr(bt0);
   char line[16];
   std::string file(512, '\0');
@@ -524,7 +542,7 @@ static void mriBindingExecute()
   ruby_init();
   rb_enc_set_default_external(rb_enc_from_encoding(rb_utf8_encoding()));
   VALUE rversion = rb_const_get(rb_cObject, rb_intern("RUBY_VERSION"));
-  const char* version = StringValueCStr(rversion);
+  ch version = StringValueCStr(rversion);
   Debug() << "Ruby Version: " << version;
   Config &conf = shState->rtData().config;
   if (!conf.rubyLoadpaths.empty()) {
@@ -544,7 +562,7 @@ static void mriBindingExecute()
   if (!customScript.empty())
     runCustomScript(customScript);
   else
-    runRMXPScripts(btData);
+    runRGSSscripts(btData);
   VALUE exc = rb_errinfo();
   if (rb_obj_class(exc) == getRbData()->exc[Reset]) {
     exc = Qnil;

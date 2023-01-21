@@ -136,7 +136,7 @@ struct MidiReadHandler
 static void
 badMidiFormat()
 {
-	throw Exception(Exception::HIDDENCHESTError, "Midi: Bad format");
+	throw Exception(Exception::HiddenChestError, "Midi: Bad format");
 }
 
 /* File-like interface to a read-only memory buffer */
@@ -175,7 +175,7 @@ struct MemChunk
 
 	void endOfFile()
 	{
-		throw Exception(Exception::HIDDENCHESTError, "Midi: EOF");
+		throw Exception(Exception::HiddenChestError, "Midi: EOF");
 	}
 };
 
@@ -625,7 +625,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 		if (SDL_RWread(&ops, &data[0], 1, dataLen) < dataLen)
 		{
 			SDL_RWclose(&ops);
-			throw Exception(Exception::HIDDENCHESTError, "Reading midi data failed");
+			throw Exception(Exception::HiddenChestError, "Reading midi data failed");
 		}
 
 		try
@@ -755,13 +755,13 @@ struct MidiSource : ALDataSource, MidiReadHandler
 	void onMidiHeader(uint16_t midiType, uint16_t trackCount, uint16_t division)
 	{
 		if (midiType != 0 && midiType != 1)
-			throw Exception(Exception::HIDDENCHESTError, "Midi: Type 2 not supported");
+			throw Exception(Exception::HiddenChestError, "Midi: Type 2 not supported");
 
 		tracks.resize(trackCount);
 
 		// SMTP unhandled
 		if (division & 0x8000)
-			throw Exception(Exception::HIDDENCHESTError, "Midi: SMTP parameters not supported");
+			throw Exception(Exception::HiddenChestError, "Midi: SMTP parameters not supported");
 		else
 			dpb = division;
 	}

@@ -78,7 +78,7 @@ struct VorbisSource : ALDataSource
     int error = ov_open_callbacks(&src, &vf, 0, 0, OvCallbacks);
     if (error) {
       SDL_RWclose(&src);
-      throw Exception(Exception::HIDDENCHESTError, "Vorbisfile: Cannot read ogg file");
+      throw Exception(Exception::HiddenChestError, "Vorbisfile: Cannot read ogg file");
     }
     /* Extract bitstream info */
     info.channels = vf.vi->channels;
@@ -86,7 +86,7 @@ struct VorbisSource : ALDataSource
     if (info.channels > 2) {
       ov_clear(&vf);
       SDL_RWclose(&src);
-      throw Exception(Exception::HIDDENCHESTError, "Cannot handle audio with more than 2 channels");
+      throw Exception(Exception::HiddenChestError, "Cannot handle audio with more than 2 channels");
     }
     info.alFormat = chooseALFormat(sizeof(int16_t), info.channels);
     info.frameSize = sizeof(int16_t) * info.channels;
