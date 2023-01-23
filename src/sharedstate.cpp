@@ -192,6 +192,16 @@ SDL_Window* SharedState::sdlWindow() const
   return p->sdlWindow;
 }
 
+const char* SharedState::get_title()
+{
+  return SDL_GetWindowTitle(p->sdlWindow);
+}
+
+void SharedState::set_title(const char *title)
+{
+  SDL_SetWindowTitle(p->sdlWindow, title);
+}
+
 Scene* SharedState::screen() const
 {
   return p->screen;

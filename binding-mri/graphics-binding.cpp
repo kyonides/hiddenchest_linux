@@ -284,6 +284,17 @@ static VALUE graphics_get_delta(VALUE self)
   return RB_INT2FIX(shState->graphics().getDelta());
 }
 
+static VALUE graphics_get_title(VALUE self)
+{
+  return rstr(shState->get_title());
+}
+
+static VALUE graphics_set_title(VALUE self, VALUE title)
+{
+  shState->set_title(RSTRING_PTR(title));
+  return title;
+}
+
 void graphicsBindingInit()
 {
   VALUE module = rb_define_module("Graphics");
@@ -329,4 +340,6 @@ void graphicsBindingInit()
   rb_define_module_function(module, "show_cursor", RMF(graphics_get_show_cursor), 0);
   rb_define_module_function(module, "show_cursor=", RMF(graphics_set_show_cursor), 1);
   rb_define_module_function(module, "delta", RMF(graphics_get_delta), 0);
+  rb_define_module_function(module, "title", RMF(graphics_get_title), 0);
+  rb_define_module_function(module, "title=", RMF(graphics_set_title), 1);
 }

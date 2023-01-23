@@ -34,10 +34,10 @@ public:
     None = 0,
     Down = 2, Left = 4, Right = 6, Up = 8,
     A = 11, B = 12, C = 13, X = 14, Y = 15, Z = 16, L = 17, R = 18,
-    Shift = 21, Ctrl = 22, Alt = 23,
+    Shift = 19, Ctrl = 20, Alt = 21,
     // Non-standard extensions
-    F3 = 20, F4 = 24, F5 = 25, F6 = 26, F7 = 27, F8 = 28, F9 = 29,
-    F10 = 30, F11 = 31, F12 = 32,
+    F1 = 10, F2 = 22, F3 = 23, F4 = 24, F5 = 25, F6 = 26, F7 = 27,
+    F8 = 28, F9 = 29, F10 = 30, F11 = 31, F12 = 32,
     KeyA = 33, KeyB = 34, KeyC = 35, KeyD = 36, KeyE = 37, KeyF = 38,
     KeyG = 39, KeyH = 40, KeyI = 41, KeyJ = 42, KeyK = 43, KeyL = 44,
     KeyM = 45, KeyN = 46, KeyO = 47, KeyP = 48, KeyQ = 49, KeyR = 50,

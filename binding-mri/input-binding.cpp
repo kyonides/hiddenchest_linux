@@ -266,6 +266,8 @@ static buttonCodes[] =
   { "Period",         Input::Period         },
   { "Slash",          Input::Slash          },
   { "Tab",            Input::Tab            },
+  { "F1",             Input::F1             },
+  { "F2",             Input::F2             },
   { "F3",             Input::F3             },
   { "F4",             Input::F4             },
   { "F5",             Input::F5             },

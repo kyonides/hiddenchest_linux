@@ -113,6 +113,9 @@ struct SharedState
 	void checkShutdown();
 
 	void checkReset();
+  
+  const char* get_title();
+  void set_title(const char *title);
 
 	static SharedState *instance;
 	static int rgssVersion;
