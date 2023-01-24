@@ -69,8 +69,38 @@ DEF_PROP_I(Viewport, OX)
 DEF_PROP_I(Viewport, OY)
 DEF_PROP_I(Viewport, X)
 DEF_PROP_I(Viewport, Y)
-DEF_PROP_I(Viewport, Width)
-DEF_PROP_I(Viewport, Height)
+//DEF_PROP_I(Viewport, Width)
+//DEF_PROP_I(Viewport, Height)
+
+static VALUE viewport_get_width(VALUE self)
+{
+  Viewport *v = static_cast<Viewport*>(RTYPEDDATA_DATA(self));
+  int w;
+  GUARD_EXC( w = v->getWidth(); )
+  return RB_INT2FIX(w);
+}
+
+static VALUE viewport_set_width(VALUE self, VALUE width)
+{
+  Viewport *v = static_cast<Viewport*>(RTYPEDDATA_DATA(self));
+  GUARD_EXC( v->setWidth( RB_FIX2INT(width) ); )
+  return RB_INT2FIX( v->getWidth() );
+}
+
+static VALUE viewport_get_height(VALUE self)
+{
+  Viewport *v = static_cast<Viewport*>(RTYPEDDATA_DATA(self));
+  int h;
+  GUARD_EXC( h = v->getHeight(); )
+  return RB_INT2FIX(h);
+}
+
+static VALUE viewport_set_height(VALUE self, VALUE height)
+{
+  Viewport *v = static_cast<Viewport*>(RTYPEDDATA_DATA(self));
+  GUARD_EXC( v->setHeight( RB_FIX2INT(height) ); )
+  return RB_INT2FIX( v->getHeight() );
+}
 
 void viewportBindingInit()
 {
@@ -85,9 +115,13 @@ void viewportBindingInit()
   INIT_PROP_BIND( Viewport, OY,     "oy"    );
   INIT_PROP_BIND( Viewport, X,      "x"     );
   INIT_PROP_BIND( Viewport, Y,      "y"     );
-  INIT_PROP_BIND( Viewport, Width,  "width" );
-  INIT_PROP_BIND( Viewport, Height, "height");
+  //INIT_PROP_BIND( Viewport, Width,  "width" );
+  //INIT_PROP_BIND( Viewport, Height, "height");
   INIT_PROP_BIND( Viewport, Color,  "color" );
   INIT_PROP_BIND( Viewport, Tone,   "tone"  );
+  rb_define_method(klass, "width", viewport_get_width, 0);
+  rb_define_method(klass, "width=", viewport_set_width, 1);
+  rb_define_method(klass, "height", viewport_get_height, 0);
+  rb_define_method(klass, "height=", viewport_set_height, 1);
 }
 

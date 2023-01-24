@@ -54,7 +54,7 @@ static const int autotileCount = 7;
 static const int atAreaW = autotileW * 4;
 static const int atAreaH = autotileH * autotileCount;
 static const int tsLaneW = tilesetW / 2;
-/* Map viewport size - Original Width: 21, Original Height: 16 (Add 1 to some XP Max W or H Coord)*/
+// Map viewport size - Original Width: 21, Original Height: 16 (Add 1 to XP Max W or H Coord)
 /* Vocabulary:
  *
  * Atlas: A texture containing both the tileset and all
@@ -64,7 +64,7 @@ static const int tsLaneW = tilesetW / 2;
  *   of all Bitmaps that make up the atlas, and update it
  *   as required during runtime.
  *   The atlas is tightly packed, with the autotiles located
- *   in the top left corener and the tileset image filing the
+ *   in the top left corner and the tileset image filing the
  *   remaining open space (below the autotiles as well as
  *   besides it). The tileset is vertically cut in half, where
  *   the first half fills available texture space, and then the
@@ -334,10 +334,18 @@ struct TilemapPrivate
   {
     vw = tw / 32 + 1;
     vh = th / 32 + 1;
+    int old_zmax = zlayersMax;
     zlayersMax = vh + 5;
     size_t zlayerBases[zlayersMax + 1];
     zlayerVert->resize(zlayersMax);
-    elem.zlayers.resize(zlayersMax);
+    //
+    int new_layers = zlayersMax - old_zmax;
+    if (new_layers > 0) {
+      for (size_t i = zlayersMax - new_layers - 1; i < zlayersMax; ++i)
+        elem.zlayers.push_back(new ZLayer(this, viewport));
+    } else if (new_layers < 0) {
+      elem.zlayers.resize(zlayersMax);
+    }
   }
 
   void updateFlashMapViewport()
@@ -472,7 +480,7 @@ struct TilemapPrivate
         GLMeta::subRectImageEnd();
         glState.viewport.pop();
         glState.blend.pop();
-      } else {/* Clean implementation */
+      } else {// Clean implementation
         TEX::bind(atlas.gl.tex);
         for (size_t i = 0; i < blits.size(); ++i) {
           const TileAtlas::Blit &blitOp = blits[i];
@@ -482,7 +490,7 @@ struct TilemapPrivate
         GLMeta::subRectImageEnd();
       }
     } else {
-      /* Regular tileset */
+      // Regular tileset
       GLMeta::blitBegin(atlas.gl);
       GLMeta::blitSource(tileset->getGLTypes());
       for (size_t i = 0; i < blits.size(); ++i) {
@@ -634,7 +642,7 @@ struct TilemapPrivate
 
   void updateSceneElements()
   {
-    /* Only allocate elements for non-emtpy zlayers */
+    // Only allocate elements for non-empty zlayers
     std::vector<int> zlayerInd;
     for (size_t i = 0; i < zlayersMax; ++i)
       if (zlayerVert[i].size() > 0) zlayerInd.push_back(i);

@@ -85,13 +85,19 @@ void audio_setup_custom_se();
 
 RB_METHOD(mriPrint);
 RB_METHOD(mriP);
-RB_METHOD(HCDataDirectory);
 RB_METHOD(HCPuts);
 RB_METHOD(HCRawKeyStates);
 static VALUE HCMouseInWindow(VALUE self);
 RB_METHOD(mriRgssMain);
 RB_METHOD(mriRgssStop);
 RB_METHOD(_kernelCaller);
+
+static VALUE hc_data_dir(VALUE self)
+{
+  const std::string &path = shState->config().customDataPath;
+  const char *s = path.empty() ? "." : path.c_str();
+  return rstr(s);
+}
 
 void hc_c_splash(ch error, int code, ch type)
 {
@@ -104,14 +110,13 @@ void hc_c_splash(ch error, int code, ch type)
     rb_eval_string_protect(scene_hc, &state);
   if (state) {
     rb_p(rb_errinfo());
-    Debug() << "C_Splash - Error Type:" << code << "- State:" << state;
+    Debug() << "C Splash - Error Type:" << code << "- State:" << state;
   }
   scripts_error_handling();
 }
 
 void hc_rb_splash(VALUE exception)
 {
-  Debug() << "Rb_Splash";
   VALUE klass, message, backtrace;
   klass = rb_obj_as_string(rb_obj_class(exception));
   message = rb_funcall(exception, rb_intern("message"), 0);
@@ -119,10 +124,6 @@ void hc_rb_splash(VALUE exception)
   scripts_open_log(hidden, klass, message, backtrace);
   int state;
   rb_eval_string_protect(scene_hc, &state);
-  //if (state) {
-  //  rb_p(rb_errinfo());
-  //  Debug() << "Rb_Splash - Error Type:" << 2 << "- State:" << state;
-  //}
   scripts_error_handling();
 }
 
@@ -165,10 +166,12 @@ static void mriBindingInit()
     rb_define_module_function(rb_mKernel, "caller", RMF(_kernelCaller), -1);
   }
   hidden = rb_define_module("HiddenChest");
-  rb_define_module_function(hidden, "data_directory", RMF(HCDataDirectory), -1);
+  rb_define_module_function(hidden, "data_directory", RMF(hc_data_dir), 0);
   rb_define_module_function(hidden, "puts", RMF(HCPuts), -1);
   rb_define_module_function(hidden, "raw_key_states", RMF(HCRawKeyStates), -1);
   rb_define_module_function(hidden, "mouse_in_window", RMF(HCMouseInWindow), 0);
+  VALUE sys = rb_define_module("System");
+  rb_define_module_function(sys, "data_directory", RMF(hc_data_dir), 0);
   if (rgssVer == 1) {
     rb_eval_string(module_rpg1);
     audio_setup_custom_se();
@@ -229,13 +232,6 @@ static VALUE mriP(int argc, VALUE* argv, VALUE self)
 {
   printP(argc, argv, "inspect", "\n");
   return Qnil;
-}
-
-static VALUE HCDataDirectory(int argc, VALUE* argv, VALUE self)
-{
-  const std::string &path = shState->config().customDataPath;
-  const char *s = path.empty() ? "." : path.c_str();
-  return rstr(s);
 }
 
 static VALUE HCPuts(int argc, VALUE* argv, VALUE self)
