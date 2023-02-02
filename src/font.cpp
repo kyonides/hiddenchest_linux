@@ -33,7 +33,7 @@
 #include <SDL_ttf.h>
 #include "debugwriter.h"
 
-unsigned int reduce_factor = 2;
+unsigned int reduce_size = 2;
 
 #define BUNDLED_FONT FreeSans
 extern unsigned char assets_FreeSans_ttf[];
@@ -140,12 +140,11 @@ void SharedFontState::init_system_font(const std::string &filename)
 _TTF_Font *SharedFontState::getFont(std::string family, int size)
 {
   TTF_Font *font;
-  FontKey key(family, size - reduce_factor);
+  FontKey key(family, size); //reduced
   if (family.size() > 0) {
     font = p->pool.value(key);
     if (font) return font;
   }
-  //Debug() << "Family size == 0 ?" << family << size;
   std::string famreg = family + " Regular";
   // Check for substitutions
   if (p->subs.contains(family))
@@ -153,14 +152,12 @@ _TTF_Font *SharedFontState::getFont(std::string family, int size)
   else if (p->subs.contains(famreg))
     family = p->subs[famreg];
   // Find out if the font asset exists
-  //Debug() << "Get" << family;//reg;
   BoostHash<std::string, std::string> sysf = p->sys_fonts;
-  //Debug() << sysf[family];Debug() << sysf[famreg];
   std::string loadf = sysf[family];
   //if (sysf.contains(family)) loadf;
   //if (sysf.contains(famreg)) loadf = sysf[famreg];
   if (!loadf.empty() ) {
-    key = FontKey(family, size - reduce_factor);
+    key = FontKey(family, size); //reduced
     //if (family.size() > 0) {
     font = p->pool.value(key);
     if (font) return font;
@@ -170,7 +167,7 @@ _TTF_Font *SharedFontState::getFont(std::string family, int size)
     if (f) {
       SDL_RWseek(f, 0, RW_SEEK_SET);
       //Debug() << "Font was loaded successfully";
-      font = TTF_OpenFontRW(f, 1, size - reduce_factor);
+      font = TTF_OpenFontRW(f, 1, size - reduce_size); //reduced
       p->pool.insert(key, font);
       if (font) return font;
       //Debug() << "Font loaded!?";
@@ -202,7 +199,7 @@ _TTF_Font *SharedFontState::getFont(std::string family, int size)
   // FIXME 0.9 is guesswork at this point
   //	float gamma = (96.0/45.0)*(5.0/14.0)*(size-5);
   //	font = TTF_OpenFontRW(ops, 1, gamma /** .90*/);
-  font = TTF_OpenFontRW(ops, 1, size - reduce_factor);//* 0.90f);
+  font = TTF_OpenFontRW(ops, 1, size - reduce_size);//* 0.90f);
   //Debug() << (font ? "Reading font" : "Failed to read font!");
   if (!font)
     throw Exception(Exception::SDLError, "%s", SDL_GetError());
@@ -221,7 +218,7 @@ bool SharedFontState::fontPresent(std::string family) const
 _TTF_Font *SharedFontState::openBundled(int size)
 {
   SDL_RWops *ops = openBundledFont();
-  return TTF_OpenFontRW(ops, 1, size - reduce_factor);
+  return TTF_OpenFontRW(ops, 1, size - reduce_size);
 }
 
 void pickExistingFontName(const std::vector<std::string> &names,
@@ -647,6 +644,11 @@ void Font::set_vflip(bool value)
   p->sdlFont = 0;
 }
 
+int Font::get_reduce_size()
+{
+  return reduce_size;
+}
+
 void Font::set_default_size(int value)
 {
   guardDisposed();
@@ -791,19 +793,19 @@ void Font::initDefaults(const SharedFontState &sfs)
   std::vector<std::string> &names = FontPrivate::initialDefaultNames;
   if (rgssVer < 2) {
     FontPrivate::default_size = 22;
-    reduce_factor = 3;
+    reduce_size = 2;
     names.push_back("Arial");
     names.push_back("Verdana");
     names.push_back("Courier New");
   } else if (rgssVer == 2) {
     FontPrivate::default_size = 20;
-    reduce_factor = 3;
+    reduce_size = 3;
     names.push_back("Verdana");
     names.push_back("Arial");
     names.push_back("Courier New");
   } else if (rgssVer == 3) {
     FontPrivate::default_size = 24;
-    reduce_factor = 4;
+    reduce_size = 5;
     names.push_back("VL Gothic");
     names.push_back("MS Gothic");
     names.push_back("UmePlus Gothic");

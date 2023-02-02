@@ -62,6 +62,7 @@ public:
   static Color& get_default_out_color();
   static Color& get_default_shadow_color();
   static std::string get_default_name();
+  static int  get_reduce_size();
   static int  get_default_size();
   static bool get_default_bold();
   static bool get_default_italic();
