@@ -443,14 +443,22 @@ static VALUE bitmapSnowFillRect(VALUE self)
   return self;
 }
 
-static VALUE bitmap_write(VALUE self, VALUE filename)
+static VALUE bitmap_write(int argc, VALUE* argv, VALUE self)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
-  if (!b) return Qnil;
-  const char *str = objAsStringPtr(filename);
+  if (!b || argc == 0) return Qfalse;
+  const char *ext;
+  const char *str = objAsStringPtr(argv[0]);
+  if (argc == 1) {
+    VALUE settings = rb_define_module("Settings");
+    VALUE fmt = rb_iv_get(settings, "@shot_format");
+    ext = objAsStringPtr(fmt);
+  } else if (argc == 2) {
+    ext = objAsStringPtr(argv[1]);
+  }
   bool result = false;
   try {
-    result = b->write(str);
+    result = b->write(str, ext);
   } catch (const Exception &exc) {
     raiseRbExc(exc);
   }
@@ -495,5 +503,5 @@ void bitmapBindingInit()
   rb_define_method(klass, "radial_blur", RMF(bitmapRadialBlur), 2);
   rb_define_method(klass, "font", RMF(bitmapGetFont), 0);
   rb_define_method(klass, "font=", RMF(bitmapSetFont), 1);
-  rb_define_method(klass, "write", RMF(bitmap_write), 1);
+  rb_define_method(klass, "write", RMF(bitmap_write), -1);
 }

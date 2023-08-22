@@ -66,7 +66,7 @@ public:
   void clear();
   void makeSurface() const;
   bool is_alpha_pixel(int x, int y) const;
-  bool write(const char *fn) const;
+  bool write(const char *fn, const char *ext) const;
   Color getPixel(int x, int y) const;
   void setPixel(int x, int y, const Color &color);
   void invert_colors();

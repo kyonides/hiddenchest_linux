@@ -1106,15 +1106,13 @@ void Bitmap::taintArea(const IntRect &rect)
   p->addTaintedArea(rect);
 }
 
-bool Bitmap::write(const char *fn) const
+bool Bitmap::write(const char *fn, const char *ext) const
 {
-  int format_index = shState->graphics().get_screenshot_format_index();
-  std::string format = shState->graphics().get_screenshot_format();
   char str[200];
-  sprintf(str, "%s.%s", fn, format.c_str());
+  sprintf(str, "%s.%s", fn, ext);
   SDL_LockSurface(surface());
   bool failed = false;
-  if (format_index == 0) {
+  if (!strcmp(ext, "jpg")) {
     if ( IMG_SaveJPG(surface(), str, 95) != 0 ) {
       Debug() << "Freeing JPG surface after failure";
       failed = true;

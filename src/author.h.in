@@ -1,5 +1,5 @@
 #define HIDDENAUTHOR "Kyonides Arkanthes"
-#define HIDDENVERSION "1.1.50"
-#define HIDDENDATE "2023-08-21"
+#define HIDDENVERSION "1.1.51"
+#define HIDDENDATE "2023-08-22"
 #cmakedefine SYSTEM_STRING "@SYSTEM_STRING@"
 #cmakedefine SYSTEM_REAL_STRING "@SYSTEM_REAL_STRING@"
