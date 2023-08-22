@@ -49,7 +49,12 @@ public:
   void setFrameRate(int);
   void setFrameCount(int);
   void setBrightness(int);
-  void set_screenshot_format(int);
+  int get_screenshot_format_index() const;
+  std::string get_screenshot_format() const;
+  std::string get_screenshot_dir() const;
+  std::string get_screenshot_fn() const;
+  void set_screenshot_format_index(int);
+  void set_screenshot_format(const std::string);
   void set_screenshot_dir(const std::string);
   void set_screenshot_fn(const std::string);
   void wait(int duration);
@@ -88,8 +93,8 @@ public:
   void call_delay();
 
 private:
-  int screenshot_format;
-  std::string screenshot_dir, screenshot_fn;
+  int screenshot_format_index;
+  std::string screenshot_format, screenshot_dir, screenshot_fn;
   Graphics(RGSSThreadData *data);
   ~Graphics();
   void addDisposable(Disposable *);

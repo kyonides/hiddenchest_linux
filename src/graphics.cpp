@@ -720,7 +720,10 @@ struct GraphicsPrivate
 };
 
 Graphics::Graphics(RGSSThreadData *data) :
-  screenshot_format(0), screenshot_dir(""), screenshot_fn("")
+  screenshot_format_index(0),
+  screenshot_format(""),
+  screenshot_dir(""),
+  screenshot_fn("")
 {
   p = new GraphicsPrivate(data);
   if (data->config.syncToRefreshrate) {
@@ -738,8 +741,34 @@ Graphics::~Graphics()
   delete p;
 }
 
-void Graphics::set_screenshot_format(int format)
+int Graphics::get_screenshot_format_index() const
 {
+  return screenshot_format_index;
+}
+
+std::string Graphics::get_screenshot_format() const
+{
+  return screenshot_format;
+}
+
+std::string Graphics::get_screenshot_dir() const
+{
+  return screenshot_dir;
+}
+
+std::string Graphics::get_screenshot_fn() const
+{
+  return screenshot_fn;
+}
+
+void Graphics::set_screenshot_format_index(int index)
+{
+  screenshot_format_index = index;
+}
+
+void Graphics::set_screenshot_format(const std::string format)
+{
+  screenshot_format_index = format.compare("jpg") == 0 ? 0 : 1;
   screenshot_format = format;
 }
 
@@ -1005,16 +1034,16 @@ bool Graphics::save_screenshot()
   time_t rt = time(NULL);
   tm *tmp = localtime(&rt);
   char str[500];
-  std::string format = screenshot_format == 0 ? "jpg" : "png";
   sprintf(str, "%s/%s_%d-%02d-%02d_%02dh%02dm%02ds.%s",
           screenshot_dir.c_str(), screenshot_fn.c_str(),
           tmp->tm_year+1900, tmp->tm_mon+1, tmp->tm_mday,
-          tmp->tm_hour, tmp->tm_min, tmp->tm_sec, format.c_str());
+          tmp->tm_hour, tmp->tm_min, tmp->tm_sec,
+          screenshot_format.c_str());
   Bitmap *bmp = snapToBitmap();
   SDL_Surface *surf = bmp->surface();//Fast
   SDL_LockSurface(surf);
   bool failed = false;
-  if (screenshot_format == 0) {
+  if (screenshot_format_index == 0) {
     if ( IMG_SaveJPG(surf, str, 95) != 0 ) {
       Debug() << "Freeing JPG surface after failure";
       failed = true;

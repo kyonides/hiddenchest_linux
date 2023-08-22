@@ -1106,6 +1106,29 @@ void Bitmap::taintArea(const IntRect &rect)
   p->addTaintedArea(rect);
 }
 
+bool Bitmap::write(const char *fn) const
+{
+  int format_index = shState->graphics().get_screenshot_format_index();
+  std::string format = shState->graphics().get_screenshot_format();
+  char str[200];
+  sprintf(str, "%s.%s", fn, format.c_str());
+  SDL_LockSurface(surface());
+  bool failed = false;
+  if (format_index == 0) {
+    if ( IMG_SaveJPG(surface(), str, 95) != 0 ) {
+      Debug() << "Freeing JPG surface after failure";
+      failed = true;
+    }
+  } else {
+    if ( IMG_SavePNG(surface(), str) != 0 ) {
+      Debug() << "Freeing PNG surface after failure";
+      failed = true;
+    }
+  }
+  SDL_FreeSurface(surface());
+  return !failed;
+}
+
 void Bitmap::releaseResources()
 {
   if (p->megaSurface)

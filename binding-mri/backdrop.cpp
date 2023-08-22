@@ -160,24 +160,44 @@ void init_backdrop()
   backdrop = rb_define_module("Backdrop");
   graphics = rb_define_module("Graphics");
   rb_iv_set(backdrop, "@bitmap", Qnil);
-  rb_define_module_function(backdrop, "keep_bitmap", RMF(backdrop_keep_bitmap), 0);
-  rb_define_module_function(backdrop, "invert_colors", RMF(backdrop_invert_colors), 0);
-  rb_define_module_function(backdrop, "gray_bitmap", RMF(backdrop_gray_bitmap), 0);
-  rb_define_module_function(backdrop, "sepia_bitmap", RMF(backdrop_sepia_bitmap), 0);
-  rb_define_module_function(backdrop, "color_bitmap", RMF(backdrop_color_bitmap), 1);
-  rb_define_module_function(backdrop, "gradient_bitmap", RMF(backdrop_gradient_bitmap), 3);
-  rb_define_module_function(backdrop, "pos_gradient_bitmap", RMF(backdrop_pos_gradient_bitmap), 4);
-  rb_define_module_function(backdrop, "map_gradient_bitmap", RMF(backdrop_map_gradient_bitmap), 5);
-  rb_define_module_function(backdrop, "vignette_bitmap", RMF(backdrop_vignette_bitmap), 1);
-  rb_define_module_function(backdrop, "blur_bitmap", RMF(backdrop_blur_bitmap), 0);
-  rb_define_module_function(backdrop, "bitmap", RMF(backdrop_bitmap), 0);
-  rb_define_module_function(backdrop, "bitmap_dup", RMF(backdrop_bitmap_dup), 0);
-  rb_define_module_function(backdrop, "clear_bitmap", RMF(backdrop_clear_bitmap), 0);
-  rb_define_module_function(graphics, "snap_to_gray_bitmap", RMF(backdrop_gray_bitmap), 0);
-  rb_define_module_function(graphics, "snap_to_sepia_bitmap", RMF(backdrop_sepia_bitmap), 0);
-  rb_define_module_function(graphics, "snap_to_color_bitmap", RMF(backdrop_color_bitmap), 1);
-  rb_define_module_function(graphics, "gradient_bitmap", RMF(backdrop_gradient_bitmap), 3);
-  rb_define_module_function(graphics, "pos_gradient_bitmap", RMF(backdrop_pos_gradient_bitmap), 4);
-  rb_define_module_function(graphics, "map_gradient_bitmap", RMF(backdrop_map_gradient_bitmap), 5);
-  rb_define_module_function(graphics, "vignette_bitmap", RMF(backdrop_vignette_bitmap), 1);
+  rb_define_module_function(backdrop, "keep_bitmap",
+                            RMF(backdrop_keep_bitmap), 0);
+  rb_define_module_function(backdrop, "invert_colors",
+                            RMF(backdrop_invert_colors), 0);
+  rb_define_module_function(backdrop, "gray_bitmap",
+                            RMF(backdrop_gray_bitmap), 0);
+  rb_define_module_function(backdrop, "sepia_bitmap",
+                            RMF(backdrop_sepia_bitmap), 0);
+  rb_define_module_function(backdrop, "color_bitmap",
+                            RMF(backdrop_color_bitmap), 1);
+  rb_define_module_function(backdrop, "gradient_bitmap",
+                            RMF(backdrop_gradient_bitmap), 3);
+  rb_define_module_function(backdrop, "pos_gradient_bitmap",
+                            RMF(backdrop_pos_gradient_bitmap), 4);
+  rb_define_module_function(backdrop, "map_gradient_bitmap",
+                            RMF(backdrop_map_gradient_bitmap), 5);
+  rb_define_module_function(backdrop, "vignette_bitmap",
+                            RMF(backdrop_vignette_bitmap), 1);
+  rb_define_module_function(backdrop, "blur_bitmap",
+                            RMF(backdrop_blur_bitmap), 0);
+  rb_define_module_function(backdrop, "bitmap",
+                            RMF(backdrop_bitmap), 0);
+  rb_define_module_function(backdrop, "bitmap_dup",
+                            RMF(backdrop_bitmap_dup), 0);
+  rb_define_module_function(backdrop, "clear_bitmap",
+                            RMF(backdrop_clear_bitmap), 0);
+  rb_define_module_function(graphics, "snap_to_gray_bitmap",
+                            RMF(backdrop_gray_bitmap), 0);
+  rb_define_module_function(graphics, "snap_to_sepia_bitmap",
+                            RMF(backdrop_sepia_bitmap), 0);
+  rb_define_module_function(graphics, "snap_to_color_bitmap",
+                            RMF(backdrop_color_bitmap), 1);
+  rb_define_module_function(graphics, "gradient_bitmap",
+                            RMF(backdrop_gradient_bitmap), 3);
+  rb_define_module_function(graphics, "pos_gradient_bitmap",
+                            RMF(backdrop_pos_gradient_bitmap), 4);
+  rb_define_module_function(graphics, "map_gradient_bitmap",
+                            RMF(backdrop_map_gradient_bitmap), 5);
+  rb_define_module_function(graphics, "vignette_bitmap",
+                            RMF(backdrop_vignette_bitmap), 1);
 }

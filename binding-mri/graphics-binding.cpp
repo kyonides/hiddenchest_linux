@@ -230,7 +230,7 @@ static VALUE graphics_get_block_fullscreen(VALUE self)
 
 static VALUE graphics_set_block_fullscreen(VALUE self, VALUE boolean)
 {
-  shState->graphics().set_block_fullscreen(boolean == Qtrue ? true : false);
+  shState->graphics().set_block_fullscreen(boolean == Qtrue);
   return rb_iv_set(self, "@block_fullscreen", boolean);
 }
 
@@ -241,7 +241,7 @@ static VALUE graphics_get_block_ftwelve(VALUE self)
 
 static VALUE graphics_set_block_ftwelve(VALUE self, VALUE boolean)
 {
-  shState->graphics().set_block_ftwelve(boolean == Qtrue ? true : false);
+  shState->graphics().set_block_ftwelve(boolean == Qtrue);
   return rb_iv_set(self, "@block_f12", boolean);
 }
 
@@ -252,7 +252,7 @@ static VALUE graphics_get_block_fone(VALUE self)
 
 static VALUE graphics_set_block_fone(VALUE self, VALUE boolean)
 {
-  shState->graphics().set_block_fone(boolean == Qtrue ? true : false);
+  shState->graphics().set_block_fone(boolean == Qtrue);
   return rb_iv_set(self, "@block_f1", boolean);
 }
 
@@ -264,7 +264,7 @@ static VALUE graphicsGetFullscreen(VALUE self)
 static VALUE graphicsSetFullscreen(VALUE self, VALUE boolean)
 {
   if (rb_iv_get(self, "@block_fullscreen") == Qtrue) return Qfalse;
-  shState->graphics().set_fullscreen(boolean == Qtrue ? true : false);
+  shState->graphics().set_fullscreen(boolean == Qtrue);
   return shState->graphics().get_fullscreen() ? Qtrue : Qfalse;
 }
 
@@ -275,7 +275,7 @@ static VALUE graphics_get_show_cursor(VALUE self)
 
 static VALUE graphics_set_show_cursor(VALUE self, VALUE boolean)
 {
-  shState->graphics().set_show_cursor(boolean == Qtrue ? true : false);
+  shState->graphics().set_show_cursor(boolean == Qtrue);
   return boolean;
 }
 
@@ -301,50 +301,50 @@ void graphicsBindingInit()
   rb_iv_set(graph, "@block_fullscreen", Qfalse);
   rb_iv_set(graph, "@block_f12", Qfalse);
   rb_iv_set(graph, "@block_f1", Qfalse);
-  rb_define_module_function(graph, "update", RMF(graphicsUpdate), 0);
-  rb_define_module_function(graph, "freeze", RMF(graphicsFreeze), 0);
-  rb_define_module_function(graph, "transition", RMF(graphicsTransition), -1);
-  rb_define_module_function(graph, "frame_reset", RMF(graphicsFrameReset), 0);
-  rb_define_module_function(graph, "__reset__", RMF(graphicsReset), 0);
-  rb_define_module_function(graph, "frame_rate", RMF(graphicsGetFrameRate), 0);
-  rb_define_module_function(graph, "frame_rate=", RMF(graphicsSetFrameRate), 1);
-  rb_define_module_function(graph, "frame_count", RMF(graphicsGetFrameCount), 0);
-  rb_define_module_function(graph, "frame_count=", RMF(graphicsSetFrameCount), 1);
-  rb_define_module_function(graph, "width", RMF(graphicsWidth), 0);
-  rb_define_module_function(graph, "height", RMF(graphicsHeight), 0);
-  rb_define_module_function(graph, "dimensions", RMF(graphics_dimensions), 0);
-  rb_define_module_function(graph, "size", RMF(graphics_dimensions), 0);
-  rb_define_module_function(graph, "screen_rect", RMF(graphics_screen_rect), 0);
-  rb_define_module_function(graph, "wait", RMF(graphicsWait), -1);
-  rb_define_module_function(graph, "fadeout", RMF(graphicsFadeout), -1);
-  rb_define_module_function(graph, "fadein", RMF(graphicsFadein), -1);
-  rb_define_module_function(graph, "snap_to_bitmap", RMF(graphicsSnapToBitmap), 0);
-  rb_define_module_function(graph, "snap_to_gray_bitmap", RMF(graphics_snap2gray_bitmap), 0);
-  rb_define_module_function(graph, "snap_to_sepia_bitmap", RMF(graphics_snap2sepia_bitmap), 0);
-  rb_define_module_function(graph, "snap_to_color_bitmap", RMF(graphics_snap2color_bitmap), 1);
-  rb_define_module_function(graph, "save_screenshot", RMF(graphics_save_screenshot), 0);
-  rb_define_module_function(graph, "screenshot", RMF(graphics_save_screenshot), 0);
-  rb_define_module_function(graph, "resize_screen", RMF(graphicsResizeScreen), 2);
-  rb_define_module_function(graph, "brightness", RMF(graphicsGetBrightness), 0);
-  rb_define_module_function(graph, "brightness=", RMF(graphicsSetBrightness), 1);
-  rb_define_module_function(graph, "play_movie", RMF(graphicsPlayMovie), 1);
-  rb_define_module_function(graph, "block_fullscreen", RMF(graphics_get_block_fullscreen), 0);
-  rb_define_module_function(graph, "block_fullscreen=", RMF(graphics_set_block_fullscreen), 1);
-  rb_define_module_function(graph, "block_f12", RMF(graphics_get_block_ftwelve), 0);
-  rb_define_module_function(graph, "block_f12=", RMF(graphics_set_block_ftwelve), 1);
-  rb_define_module_function(graph, "block_f1", RMF(graphics_get_block_fone), 0);
-  rb_define_module_function(graph, "block_f1=", RMF(graphics_set_block_fone), 1);
-  rb_define_module_function(graph, "fullscreen", RMF(graphicsGetFullscreen), 0);
-  rb_define_module_function(graph, "fullscreen=", RMF(graphicsSetFullscreen), 1);
-  rb_define_module_function(graph, "show_cursor", RMF(graphics_get_show_cursor), 0);
-  rb_define_module_function(graph, "show_cursor=", RMF(graphics_set_show_cursor), 1);
-  rb_define_module_function(graph, "delta", RMF(graphics_get_delta), 0);
-  rb_define_module_function(graph, "title", RMF(graphics_get_title), 0);
-  rb_define_module_function(graph, "title=", RMF(graphics_set_title), 1);
+  module_func(graph, "update", graphicsUpdate, 0);
+  module_func(graph, "freeze", graphicsFreeze, 0);
+  module_func(graph, "transition", graphicsTransition, -1);
+  module_func(graph, "frame_reset", graphicsFrameReset, 0);
+  module_func(graph, "__reset__", graphicsReset, 0);
+  module_func(graph, "frame_rate", graphicsGetFrameRate, 0);
+  module_func(graph, "frame_rate=", graphicsSetFrameRate, 1);
+  module_func(graph, "frame_count", graphicsGetFrameCount, 0);
+  module_func(graph, "frame_count=", graphicsSetFrameCount, 1);
+  module_func(graph, "width", graphicsWidth, 0);
+  module_func(graph, "height", graphicsHeight, 0);
+  module_func(graph, "dimensions", graphics_dimensions, 0);
+  module_func(graph, "size", graphics_dimensions, 0);
+  module_func(graph, "screen_rect", graphics_screen_rect, 0);
+  module_func(graph, "wait", graphicsWait, -1);
+  module_func(graph, "fadeout", graphicsFadeout, -1);
+  module_func(graph, "fadein", graphicsFadein, -1);
+  module_func(graph, "snap_to_bitmap", graphicsSnapToBitmap, 0);
+  module_func(graph, "snap_to_gray_bitmap", graphics_snap2gray_bitmap, 0);
+  module_func(graph, "snap_to_sepia_bitmap", graphics_snap2sepia_bitmap, 0);
+  module_func(graph, "snap_to_color_bitmap", graphics_snap2color_bitmap, 1);
+  module_func(graph, "save_screenshot", graphics_save_screenshot, 0);
+  module_func(graph, "screenshot", graphics_save_screenshot, 0);
+  module_func(graph, "resize_screen", graphicsResizeScreen, 2);
+  module_func(graph, "brightness", graphicsGetBrightness, 0);
+  module_func(graph, "brightness=", graphicsSetBrightness, 1);
+  module_func(graph, "play_movie", graphicsPlayMovie, 1);
+  module_func(graph, "block_fullscreen", graphics_get_block_fullscreen, 0);
+  module_func(graph, "block_fullscreen=", graphics_set_block_fullscreen, 1);
+  module_func(graph, "block_f12", graphics_get_block_ftwelve, 0);
+  module_func(graph, "block_f12=", graphics_set_block_ftwelve, 1);
+  module_func(graph, "block_f1", graphics_get_block_fone, 0);
+  module_func(graph, "block_f1=", graphics_set_block_fone, 1);
+  module_func(graph, "fullscreen", graphicsGetFullscreen, 0);
+  module_func(graph, "fullscreen=", graphicsSetFullscreen, 1);
+  module_func(graph, "show_cursor", graphics_get_show_cursor, 0);
+  module_func(graph, "show_cursor=", graphics_set_show_cursor, 1);
+  module_func(graph, "delta", graphics_get_delta, 0);
+  module_func(graph, "title", graphics_get_title, 0);
+  module_func(graph, "title=", graphics_set_title, 1);
   VALUE sys = rb_define_module("System");
-  rb_define_module_function(sys, "delta", RMF(graphics_get_delta), 0);
-  rb_define_module_function(sys, "uptime", RMF(graphics_get_delta), 0);
-  rb_define_module_function(sys, "set_window_title", RMF(graphics_set_title), 1);
-  rb_define_module_function(sys, "window_title", RMF(graphics_get_title), 0);
-  rb_define_module_function(sys, "window_title=", RMF(graphics_set_title), 1);
+  module_func(sys, "delta", graphics_get_delta, 0);
+  module_func(sys, "uptime", graphics_get_delta, 0);
+  module_func(sys, "set_window_title", graphics_set_title, 1);
+  module_func(sys, "window_title", graphics_get_title, 0);
+  module_func(sys, "window_title=", graphics_set_title, 1);
 }

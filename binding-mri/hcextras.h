@@ -28,6 +28,9 @@
 #define rstr(x) rb_str_new_cstr(x)
 #define rb_ary_c_ary(a) RARRAY(a)->as.heap.ptr
 
+#define module_func(mod, name, func, args) \
+  rb_define_module_function(mod, name, RMF(func), args)
+
 #define ARRAY_TYPE_P(obj) (!RB_SPECIAL_CONST_P(obj) && \
   RB_BUILTIN_TYPE(obj) == RUBY_T_ARRAY)
 

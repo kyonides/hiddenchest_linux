@@ -141,9 +141,9 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
     for (int n = 0; n < max; n++) {
       line = rb_ary_entry(bt, n);
       btr[n + 2] = line;
-      rb_io_write(file, rstr("Script "));
-      rb_io_write(file, name);
-      rb_io_write(file, rstr(" in "));
+      //rb_io_write(file, rstr("Script "));
+      //rb_io_write(file, name);
+      rb_io_write(file, rstr("in "));
       rb_io_write(file, line);
       rb_io_write(file, rstr("\n"));
     }
@@ -163,9 +163,9 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
       } else {
         ary = rb_ary_new3(2, rstr(""), rstr("eval"));
       }
-      rb_io_write(file, rstr("Script "));
-      rb_io_write(file, rb_ary_entry(ary, 1));
-      rb_io_write(file, rstr(" in "));
+      //rb_io_write(file, rstr("Script "));
+      //rb_io_write(file, rb_ary_entry(ary, 1));
+      rb_io_write(file, rstr("in "));
       rb_io_write(file, line);
       rb_io_write(file, rstr("\n"));
     }
@@ -202,18 +202,18 @@ void init_scripts()
   rb_iv_set(scripts, "@pack", rb_hash_new());
   rb_iv_set(scripts, "@main_name", rstr("Main"));
   rb_iv_set(scripts, "@main_index", RB_INT2FIX(0));
-  rb_define_module_function(scripts, "sections", RMF(scripts_sections), 0);
-  rb_define_module_function(scripts, "list", RMF(scripts_list), 0);
-  rb_define_module_function(scripts, "names", RMF(scripts_names), 0);
-  rb_define_module_function(scripts, "dependencies", RMF(scripts_dependencies), 0);
-  rb_define_module_function(scripts, "include?", RMF(scripts_is_included), 1);
-  rb_define_module_function(scripts, "[]", RMF(scripts_get), 1);
-  rb_define_module_function(scripts, "[]=", RMF(scripts_set), 2);
-  rb_define_module_function(scripts, "main_index", RMF(scripts_main_index_get), 0);
-  rb_define_module_function(scripts, "main_index=", RMF(scripts_main_index_set), 1);
-  rb_define_module_function(scripts, "main_name", RMF(scripts_main_name_get), 0);
-  rb_define_module_function(scripts, "main_name=", RMF(scripts_main_name_set), 1);
-  rb_define_module_function(scripts, "scene", RMF(scripts_scene_get), 0);
-  rb_define_module_function(scripts, "scene=", RMF(scripts_scene_set), 1);
-  rb_define_module_function(scripts, "log", RMF(scripts_log), 0);
+  module_func(scripts, "sections", scripts_sections, 0);
+  module_func(scripts, "list", scripts_list, 0);
+  module_func(scripts, "names", scripts_names, 0);
+  module_func(scripts, "dependencies", scripts_dependencies, 0);
+  module_func(scripts, "include?", scripts_is_included, 1);
+  module_func(scripts, "[]", scripts_get, 1);
+  module_func(scripts, "[]=", scripts_set, 2);
+  module_func(scripts, "main_index", scripts_main_index_get, 0);
+  module_func(scripts, "main_index=", scripts_main_index_set, 1);
+  module_func(scripts, "main_name", scripts_main_name_get, 0);
+  module_func(scripts, "main_name=", scripts_main_name_set, 1);
+  module_func(scripts, "scene", scripts_scene_get, 0);
+  module_func(scripts, "scene=", scripts_scene_set, 1);
+  module_func(scripts, "log", scripts_log, 0);
 }
