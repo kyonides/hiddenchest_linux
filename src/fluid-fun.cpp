@@ -12,6 +12,7 @@
 
 #if __LINUX__ || __ANDROID__
 #define FLUID_LIB "libfluidsynth.so.1"
+#define FLUID_LIB3 "libfluidsynth.so.3"
 #elif __MACOSX__
 #define FLUID_LIB "libfluidsynth.1.dylib"
 #elif __WINDOWS__
@@ -36,7 +37,8 @@ void initFluidFunctions()
 
 #else
 	so = SDL_LoadObject(FLUID_LIB);
-
+  if (!so)
+		so = SDL_LoadObject(FLUID_LIB3);
 	if (!so)
 		goto fail;
 
@@ -58,8 +60,8 @@ FLUID_FUNCS2
 
 #ifndef SHARED_FLUID
 fail:
-	Debug() << "Failed to load " FLUID_LIB ". Midi playback is disabled.";
-
+	Debug() << "Failed to load " FLUID_LIB " or " FLUID_LIB3 ".";
+	Debug() << "Midi playback is disabled.";
 	memset(&fluid, 0, sizeof(fluid));
 	SDL_UnloadObject(so);
 	so = 0;

@@ -184,8 +184,8 @@ namespace Source
 }
 
 }
-
-inline uint8_t formatSampleSize(int sdlFormat)
+// Changed from uint8_t to uint16_t in SDL2_Sound
+inline uint16_t formatSampleSize(int sdlFormat)
 {
   switch (sdlFormat)
   {

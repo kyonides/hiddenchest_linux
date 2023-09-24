@@ -70,7 +70,7 @@ This binding only exists for testing purposes and does nothing (the engine quits
 * SDL2*
 * SDL2_image
 * SDL2_ttf
-* [Ancurio's SDL_sound fork](https://github.com/Ancurio/SDL_sound)
+* [icculus's SDL_sound repo](https://github.com/icculus/SDL_sound)
 * vorbisfile
 * pixman
 * zlib (only Ruby bindings)
@@ -113,7 +113,7 @@ By default, HiddenChest switches into the directory where its binary is containe
 
 To auto detect the encoding of the game title in `Game.ini` and auto convert it to UTF-8, build with `CONFIG+=INI_ENCODING`. Requires iconv implementation and libguess. If the encoding is wrongly detected, you can set the "titleLanguage" hint in hiddenchest.conf.
 
-**MRI-Binding**: pkg-config will look for `ruby-2.6.pc`, but you can override the version with `MRIVERSION=2.2` ('2.2' being an example). This is the default binding, so no arguments to qmake needed (`BINDING=MRI` to be explicit).
+**MRI-Binding**: pkg-config will look for `ruby-2.7.pc`, but you can override the version with `MRIVERSION=2.2` ('2.2' being an example). This is the default binding, so no arguments to qmake needed (`BINDING=MRI` to be explicit).
 
 **MRuby-Binding**: place the "mruby" folder into the project folder and build it first. Add `BINDING=MRUBY` to qmake's arguments.
 

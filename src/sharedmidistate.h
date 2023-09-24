@@ -55,16 +55,14 @@ struct SharedMidiState
 	{
 		/* We might have initialized, but if the consecutive libfluidsynth
 		 * load failed, no resources will have been allocated */
-		if (!inited || !HAVE_FLUID)
-			return;
-
-		fluid.delete_settings(flSettings);
-
-		for (size_t i = 0; i < synths.size(); ++i)
-		{
+		if (!inited || !HAVE_FLUID) return;
+		for (size_t i = 0; i < synths.size(); ++i) {
 			assert(!synths[i].inUse);
 			fluid.delete_synth(synths[i].synth);
 		}
+		// FluidSynth 2.x Fix: https://github.com/FluidSynth/fluidsynth/issues/748
+		// Settings should be the very last thing the developer has to free.
+		fluid.delete_settings(flSettings);
 	}
 
 	void initIfNeeded(const Config &conf)
@@ -93,23 +91,16 @@ struct SharedMidiState
 	{
 		assert(HAVE_FLUID);
 		assert(inited);
-
 		size_t i;
-
 		for (i = 0; i < synths.size(); ++i)
 			if (!synths[i].inUse)
 				break;
-
-		if (i < synths.size())
-		{
+		if (i < synths.size()) {
 			fluid_synth_t *syn = synths[i].synth;
 			fluid.synth_system_reset(syn);
 			synths[i].inUse = true;
-
 			return syn;
-		}
-		else
-		{
+		} else {
 			return addSynth(true);
 		}
 	}
@@ -117,13 +108,10 @@ struct SharedMidiState
 	void releaseSynth(fluid_synth_t *synth)
 	{
 		size_t i;
-
 		for (i = 0; i < synths.size(); ++i)
 			if (synths[i].synth == synth)
 				break;
-
 		assert(i < synths.size());
-
 		synths[i].inUse = false;
 	}
 
@@ -131,17 +119,14 @@ private:
 	fluid_synth_t *addSynth(bool usedNow)
 	{
 		fluid_synth_t *syn = fluid.new_synth(flSettings);
-
 		if (!soundFont.empty())
 			fluid.synth_sfload(syn, soundFont.c_str(), 1);
 		else
 			Debug() << "Warning: No soundfont specified, sound might be mute";
-
 		Synth synth;
 		synth.inUse = usedNow;
 		synth.synth = syn;
 		synths.push_back(synth);
-
 		return syn;
 	}
 };

@@ -70,7 +70,7 @@ Este binding solo existe para propósito de pruebas y no hace nada (el engine se
 * SDL2*
 * SDL2_image
 * SDL2_ttf
-* [SDL_sound fork de Ancurio](https://github.com/Ancurio/SDL_sound)
+* [icculus's SDL_sound repo](https://github.com/icculus/SDL_sound)
 * vorbisfile
 * pixman
 * zlib (solo bindings de Ruby)
@@ -113,7 +113,7 @@ Por defecto HiddenChest cambia a la carpeta donde su binario se halla y entonces
 
 Para detectar automáticamente el encoding del título del juego en `Game.ini` y convertirlo automáticamente a UTF-8, compilen con `CONFIG+=INI_ENCODING`. Requiere de una implementación de iconv y libguess. Si el encoding es detectado incorrectamente, pueden fijar la seña "titleLanguage" en el archivo hiddenchest.conf.
 
-**Binding de MRI**: pkg-config buscará `ruby-2.6.pc`, pero puede ser reemplazado por otra versión con `MRIVERSION=2.2` ('2.2' sería el ejemplo). Este es el binding por defecto, así que no se necesitan argumentos para qmake (`BINDING=MRI` para ser más claros).
+**Binding de MRI**: pkg-config buscará `ruby-2.7.pc`, pero puede ser reemplazado por otra versión con `MRIVERSION=2.2` ('2.2' sería el ejemplo). Este es el binding por defecto, así que no se necesitan argumentos para qmake (`BINDING=MRI` para ser más claros).
 
 **Binding de MRuby**: coloque la carpeta "mruby" dentro del proyecto y compílenlo primero. Agreguen `BINDING=MRUBY` a los argumentos de qmake.
 
@@ -133,7 +133,7 @@ Para simplificar el hackeo, Ancurio ha ensamblado un paquete que contiene todas 
 
 HiddenChest lee los datos de configuración del archivo "hiddenchest.conf". El formato es de tipo ini. *No* usen comillas alrededor de las rutas de archivos (los espacios no lo interrumpen). Las líneas que comienzan con '#' son simples comentarios. Vean 'hiddenchest.conf.sample' para una lista de entradas aceptables.
 
-All option entries can alternatively be specified as command line options. Any options that are not arrays (eg. RTP paths) specified as command line options will override entries in hiddenchest.conf. Note that you will have to wrap values containing spaces in quotes (unlike in hiddenchest.conf).
+Alternativamente, cualquiera de las opciones pueden ser especificadas como argumentos en la terminal. Cualquier opción que no sea una lista, como las rutas del RTP, y que sea especificada como un argumento sobreescribirá en la memoria a las entradas halladas en hiddenchest.conf. Nótese que si los valores ingresados contienen espacios, todo el valor debe quedar comprendido dentro de un par de "comillas"  (a diferencia de hiddenchest.conf).
 
 La síntaxis es: `--<option>=<value>`
 
