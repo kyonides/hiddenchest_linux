@@ -127,6 +127,7 @@ static void printRgssVersion(int ver)
   Debug() << "HiddenChest The RGSS 1 2 & 3 Player Engine";
   Debug() << "Developer:                  " << HIDDENAUTHOR;
   Debug() << "HiddenChest Engine Version: " << HIDDENVERSION;
+  Debug() << "Code Name:                  " << CODENAME;
   Debug() << "Release Date:               " << HIDDENDATE;
   const char *const makers[] = { "HiddenChest", "XP", "VX", "VX Ace" };
   //char buf[128];snprintf(buf, sizeof(buf),  %d (%s)", ver, makers[ver]);

@@ -93,14 +93,14 @@ if (EXTERNAL_LIB_PATH)
   endif()
 endif()
 
-pkg_check_modules(SIGCXX        REQUIRED sigc++-2.0)
-pkg_check_modules(PIXMAN        REQUIRED pixman-1)
-pkg_check_modules(PHYSFS        REQUIRED physfs>=2.1)
-pkg_check_modules(VORBISFILE    REQUIRED vorbisfile)
-pkg_check_modules(SDL2          REQUIRED sdl2)
-pkg_check_modules(SDL2_TTF      REQUIRED SDL2_ttf)
-pkg_check_modules(SDL2_IMAGE    REQUIRED SDL2_image)
-pkg_check_modules(SDL2_SOUND    REQUIRED SDL2_sound)
+pkg_check_modules(SIGCXX       REQUIRED sigc++-2.0)
+pkg_check_modules(PIXMAN       REQUIRED pixman-1)
+pkg_check_modules(PHYSFS       REQUIRED physfs>=2.1)
+pkg_check_modules(VORBISFILE   REQUIRED vorbisfile)
+pkg_check_modules(SDL2         REQUIRED sdl2)
+pkg_check_modules(SDL2_TTF     REQUIRED SDL2_ttf)
+pkg_check_modules(SDL2_IMAGE   REQUIRED SDL2_image)
+pkg_check_modules(SDL_SOUND    REQUIRED SDL_sound)
 
 find_package(Boost 1.49 COMPONENTS program_options filesystem REQUIRED)
 find_package(OpenAL REQUIRED)
@@ -451,7 +451,7 @@ target_link_libraries(${PROJECT_NAME}
   ${SDL2_LIBRARIES}
   ${SDL2_IMAGE_LIBRARIES}
   ${SDL2_TTF_LIBRARIES}
-  ${SDL2_SOUND_LIBRARIES}
+  ${SDL_SOUND_LIBRARIES}
   ${PHYSFS_LIBRARIES}
   ${PIXMAN_LIBRARIES}
   ${Boost_LIBRARIES}

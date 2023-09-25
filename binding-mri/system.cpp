@@ -40,6 +40,7 @@ void init_system()
   rb_define_const(hidden, "AUTHOR", rstr(HIDDENAUTHOR));
   rb_define_const(hidden, "VERSION", rstr(HIDDENVERSION));
   rb_define_const(hidden, "RELEASE_DATE", rstr(HIDDENDATE));
+  rb_define_const(sys, "CODENAME", rstr(CODENAME));
   rb_define_const(hidden, "DESCRIPTION",
     rstr("An RGSS based engine derived from mkxp developed by Ancurio"));
 }

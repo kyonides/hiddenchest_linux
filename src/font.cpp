@@ -791,14 +791,19 @@ void Font::initDefaultDynAttribs()
 void Font::initDefaults(const SharedFontState &sfs)
 {
   std::vector<std::string> &names = FontPrivate::initialDefaultNames;
+  FontPrivate::default_outline = true;
+  FontPrivate::default_shadow  = false;
   if (rgssVer < 2) {
     FontPrivate::default_size = 22;
+    FontPrivate::default_outline = false;
     reduce_size = 2;
     names.push_back("Arial");
     names.push_back("Verdana");
     names.push_back("Courier New");
   } else if (rgssVer == 2) {
     FontPrivate::default_size = 20;
+    FontPrivate::default_outline = false;
+    FontPrivate::default_shadow  = true;
     reduce_size = 3;
     names.push_back("Verdana");
     names.push_back("Arial");
@@ -812,8 +817,6 @@ void Font::initDefaults(const SharedFontState &sfs)
   }
   names.push_back(DEFAULT_FONT);
   if (names.size() > 0) set_default_name(names, sfs);
-  FontPrivate::default_outline = true;
-  FontPrivate::default_shadow  = false;
 }
 
 void Font::init_system_fonts(const std::vector<std::string> &names)

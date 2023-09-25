@@ -1,29 +1,16 @@
 /** \file SDL_sound.h */
 
 /*
- * SDL_sound -- An abstract sound format decoding API.
- * Copyright (C) 2001  Ryan C. Gordon.
+ * SDL_sound; An abstract sound format decoding API.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Please see the file LICENSE.txt in the source's root directory.
  */
 
 /**
  * \mainpage SDL_sound
  *
  * The latest version of SDL_sound can be found at:
- *     http://icculus.org/SDL_sound/
+ *     https://icculus.org/SDL_sound/
  *
  * The basic gist of SDL_sound is that you use an SDL_RWops to get sound data
  *  into this library, and SDL_sound will take that data, in one of several
@@ -37,16 +24,15 @@
  *
  * As the name implies, this library depends on SDL: Simple Directmedia Layer,
  *  which is a powerful, free, and cross-platform multimedia library. It can
- *  be found at http://www.libsdl.org/
+ *  be found at https://www.libsdl.org/
  *
  * Support is in place or planned for the following sound formats:
  *   - .WAV  (Microsoft WAVfile RIFF data, internal.)
  *   - .VOC  (Creative Labs' Voice format, internal.)
  *   - .MP3  (MPEG-1 Layer 3 support, via libmpg123.)
  *   - .MID  (MIDI music converted to Waveform data, internal.)
- *   - .MOD  (MOD files, via MikMod and ModPlug.)
- *   - .OGG  (Ogg files, via Ogg Vorbis libraries.)
- *   - .SPX  (Speex files, via libspeex.)
+ *   - .MOD  (MOD files, via internal copy of libModPlug.)
+ *   - .OGG  (Ogg files, via internal copy of stb_vorbis.)
  *   - .SHN  (Shorten files, internal.)
  *   - .RAW  (Raw sound data in any format, internal.)
  *   - .AU   (Sun's Audio format, internal.)
@@ -65,7 +51,10 @@
 #define _INCLUDE_SDL_SOUND_H_
 
 #include "SDL.h"
-#include "SDL_endian.h"
+
+#if SDL_MAJOR_VERSION < 2
+#error SDL2_sound requires SDL 2.0.0 or later.
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,21 +62,17 @@ extern "C" {
 
 #ifndef DOXYGEN_SHOULD_IGNORE_THIS
 
-#ifndef SDLCALL  /* may not be defined with older SDL releases. */
-#define SDLCALL
-#endif
-
-#ifdef SDL_SOUND_DLL_EXPORTS
+#if defined(SDL_SOUND_DLL_EXPORTS) && (defined(_WIN32) || defined(__OS2__))
 #  define SNDDECLSPEC __declspec(dllexport)
-#elif (__GNUC__ >= 3)
+#elif ((defined(__GNUC__) && (__GNUC__ >= 4)) || defined(__clang__)) && !(defined(_WIN32) || defined(__OS2__))
 #  define SNDDECLSPEC __attribute__((visibility("default")))
 #else
 #  define SNDDECLSPEC
 #endif
 
-#define SOUND_VER_MAJOR 1
+#define SOUND_VER_MAJOR 2
 #define SOUND_VER_MINOR 0
-#define SOUND_VER_PATCH 1
+#define SOUND_VER_PATCH 3
 #endif
 
 
@@ -454,7 +439,7 @@ SNDDECLSPEC Sound_Sample * SDLCALL Sound_NewSample(SDL_RWops *rw,
                                                    Uint32 bufferSize);
 
 /**
- * \fn Sound_Sample *Sound_NewSampleFromMem(const Uint8 *data, Sound_AudioInfo *desired, Uint32 bufferSize)
+ * \fn Sound_Sample *Sound_NewSampleFromMem(const Uint8 *data, Uint32 size, const char *ext, Sound_AudioInfo *desired, Uint32 bufferSize)
  * \brief Start decoding a new sound sample from a file on disk.
  *
  * This is identical to Sound_NewSample(), but it creates an SDL_RWops for you
@@ -463,7 +448,10 @@ SNDDECLSPEC Sound_Sample * SDLCALL Sound_NewSample(SDL_RWops *rw,
  * This can pool RWops structures, so it may fragment the heap less over time
  *  than using SDL_RWFromMem().
  *
- *    \param filename file containing sound data.
+ *    \param data Buffer of data holding contents of an audio file to decode.
+ *    \param size Size, in bytes, of buffer pointed to by (data).
+ *    \param ext File extension normally associated with a data format.
+ *               Can usually be NULL.
  *    \param desired Format to convert sound data into. Can usually be NULL,
  *                   if you don't need conversion.
  *    \param bufferSize size, in bytes, of initial read buffer.
@@ -708,8 +696,8 @@ SNDDECLSPEC int SDLCALL Sound_Rewind(Sound_Sample *sample);
  *
  * This function can be emulated in the application with Sound_Rewind()
  *  and predecoding a specific amount of the sample, but this can be
- *  extremely inefficient. Sound_Seek() accelerates the seek on a
- *  with decoder-specific code.
+ *  extremely inefficient. Sound_Seek() accelerates the seek with
+ *  decoder-specific code.
  *
  * If this function fails, the sample should continue to function as if
  *  this call was never made. If there was an unrecoverable error,

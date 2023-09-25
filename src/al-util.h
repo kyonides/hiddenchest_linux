@@ -185,7 +185,7 @@ namespace Source
 
 }
 // Changed from uint8_t to uint16_t in SDL2_Sound
-inline uint16_t formatSampleSize(int sdlFormat)
+inline uint8_t formatSampleSize(int sdlFormat)
 {
   switch (sdlFormat)
   {
@@ -197,28 +197,25 @@ inline uint16_t formatSampleSize(int sdlFormat)
   case AUDIO_S16LSB :
   case AUDIO_S16MSB :
     return 2;
+  case AUDIO_F32LSB :
+  case AUDIO_F32MSB :
+  case AUDIO_S32LSB :
+  case AUDIO_S32MSB :
+    return 2;
   default :
     assert(!"Unhandled sample format");
   }
   return 0;
 }
 
-inline ALenum chooseALFormat(int sampleSize, int channelCount)
+inline ALenum chooseALFormat(int sampleSize, int channels)
 {
   switch (sampleSize)
   {
   case 1 :
-    switch (channelCount)
-    {
-    case 1 : return AL_FORMAT_MONO8;
-    case 2 : return AL_FORMAT_STEREO8;
-    }
+    return channels == 2 ? AL_FORMAT_STEREO8 : AL_FORMAT_MONO8;
   case 2 :
-    switch (channelCount)
-    {
-    case 1 : return AL_FORMAT_MONO16;
-    case 2 : return AL_FORMAT_STEREO16;
-    }
+    return channels == 2 ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16;
   default :
     assert(!"Unhandled sample size / channel count");
   }
