@@ -323,6 +323,20 @@ static VALUE SpriteSetBlendType(VALUE self, VALUE type)
   return rb_iv_set(self, "blend_type", blend_kind);
 }
 
+static VALUE SpriteGetWaveRotate(VALUE self)
+{
+  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  return s->getWaveRotate() ? Qtrue : Qfalse;
+}
+
+static VALUE SpriteSetWaveRotate(VALUE self, VALUE bln)
+{
+  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s) return Qfalse;
+  s->setWaveRotate(bln == Qtrue);
+  return s->getWaveRotate() ? Qtrue : Qfalse;
+}
+
 static VALUE SpriteGetWaveAmp(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
@@ -427,7 +441,7 @@ static VALUE SpriteSetMirror(VALUE self, VALUE bln)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s) return Qfalse;
-  GUARD_EXC( s->setMirror( bln == Qtrue ? true : false ); )
+  s->setMirror(bln == Qtrue);
   return bln;
 }
 
@@ -442,7 +456,7 @@ static VALUE SpriteSetMirrorY(VALUE self, VALUE bln)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s) return Qfalse;
-  GUARD_EXC( s->setMirrorY( bln == Qtrue ? true : false ); )
+  s->setMirrorY(bln == Qtrue);
   return bln;
 }
 
@@ -644,6 +658,8 @@ void SpriteBindingInit() {
     rb_define_method(RSprite, "bush_opacity", RMF(SpriteGetBushOpacity), 0);
     rb_define_method(RSprite, "bush_opacity=", RMF(SpriteSetBushOpacity), 1);
   }
+  rb_define_method(RSprite, "wave_rotate", RMF(SpriteGetWaveRotate), 0);
+  rb_define_method(RSprite, "wave_rotate=", RMF(SpriteSetWaveRotate), 1);
   rb_define_method(RSprite, "wave_amp", RMF(SpriteGetWaveAmp), 0);
   rb_define_method(RSprite, "wave_amp=", RMF(SpriteSetWaveAmp), 1);
   rb_define_method(RSprite, "wave_length", RMF(SpriteGetWaveLength), 0);

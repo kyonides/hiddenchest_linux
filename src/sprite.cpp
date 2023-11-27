@@ -67,6 +67,7 @@ struct SpritePrivate
   Tone *tone;
   struct
   {
+    bool rotated;
     int amp;
     int length;
     int speed;
@@ -103,6 +104,7 @@ struct SpritePrivate
     sceneRect.x = sceneRect.y = 0;
     updateSrcRectCon();
     prepareCon = shState->prepareDraw.connect(sigc::mem_fun(this, &SpritePrivate::prepare));
+    wave.rotated = false;
     wave.amp = 0;
     wave.length = 180;
     wave.speed = 360;
@@ -221,6 +223,17 @@ struct SpritePrivate
     vert += 4;
   }
 
+  void emitWaveChunk2(SVertex *&vert, float phase, int height, float zoomX, int chunkX, int chunkLength)
+  {
+    float wavePos = phase + (chunkX / (float) wave.length) * (float) (M_PI * 2);
+    float chunkY = sin(wavePos) * wave.amp;
+    FloatRect tex(chunkX / zoomX, 0, chunkLength / zoomX, height);
+    FloatRect pos = tex;
+    pos.y = chunkY;
+    Quad::setTexPosRect(vert, tex, pos);
+    vert += 4;
+  }
+
   void updateWave()
   {
     if (nullOrDisposed(bitmap)) return;
@@ -231,26 +244,51 @@ struct SpritePrivate
     wave.active = true;
     int width = srcRect->width;
     int height = srcRect->height;
+    float zoomX = trans.getScale().x;
     float zoomY = trans.getScale().y;
-    if (wave.amp < -(width / 2)) {
-      wave.qArray.resize(0);
-      wave.qArray.commit();
-      return;
+    if (!wave.rotated) {
+      if (wave.amp < -(width / 2)) {
+        wave.qArray.resize(0);
+        wave.qArray.commit();
+        return;
+      }
+    } else {
+      if (wave.amp < -(height / 2)) {
+        wave.qArray.resize(0);
+        wave.qArray.commit();
+        return;
+      }
     }
     // RMVX does this, and I have no *** clue why
     if (wave.amp < 0) {
       wave.qArray.resize(1);
-      int x = -wave.amp;
-      int w = width - x * 2;
-      FloatRect tex(x, srcRect->y, w, srcRect->height);
+      int x, y, w, h;
+      if (!wave.rotated) {
+        x = -wave.amp;
+        y = srcRect->y;
+        w = width + wave.amp * 2;
+        h = srcRect->height;
+      } else {
+        x = srcRect->x;
+        y = -wave.amp;
+        w = srcRect->width;
+        h = height + wave.amp * 2;
+      }
+      FloatRect tex(x, y, w, h);
       Quad::setTexPosRect(&wave.qArray.vertices[0], tex, tex);
       wave.qArray.commit();
       return;
     }
-    // The length of the sprite as it appears on screen
-    int visibleLength = height * zoomY;
-    // First chunk length (aligned to 8 pixel boundary
-    int firstLength = ((int) trans.getPosition().y) % 8;
+    int visibleLength, firstLength;
+    if (!wave.rotated) {
+      // The length of the sprite as it appears on screen
+      visibleLength = height * zoomY;
+      // First chunk length (aligned to 8 pixel boundary
+      firstLength = ((int) trans.getPosition().y) % 8;
+    } else {
+      visibleLength = width * zoomX;
+      firstLength = ((int) trans.getPosition().x) % 8;
+    }
     // Amount of full 8 pixel chunks in the middle
     int chunks = (visibleLength - firstLength) / 8;
     // Final chunk length
@@ -258,12 +296,21 @@ struct SpritePrivate
     wave.qArray.resize(!!firstLength + chunks + !!lastLength);
     SVertex *vert = &wave.qArray.vertices[0];
     float phase = (wave.phase * (float) M_PI) / 180.0f;
-    if (firstLength > 0)
-      emitWaveChunk(vert, phase, width, zoomY, 0, firstLength);
-    for (int i = 0; i < chunks; ++i)
-      emitWaveChunk(vert, phase, width, zoomY, firstLength + i * 8, 8);
-    if (lastLength > 0)
-      emitWaveChunk(vert, phase, width, zoomY, firstLength + chunks * 8, lastLength);
+    if (!wave.rotated) {
+      if (firstLength > 0)
+        emitWaveChunk(vert, phase, width, zoomY, 0, firstLength);
+      for (int i = 0; i < chunks; ++i)
+        emitWaveChunk(vert, phase, width, zoomY, firstLength + i * 8, 8);
+      if (lastLength > 0)
+        emitWaveChunk(vert, phase, width, zoomY, firstLength + chunks * 8, lastLength);
+    } else {
+      if (firstLength > 0)
+        emitWaveChunk2(vert, phase, height, zoomY, 0, firstLength);
+      for (int i = 0; i < chunks; ++i)
+        emitWaveChunk2(vert, phase, height, zoomX, firstLength + i * 8, 8);
+      if (lastLength > 0)
+        emitWaveChunk2(vert, phase, height, zoomX, firstLength + chunks * 8, lastLength);
+    }
     wave.qArray.commit();
   }
 
@@ -354,6 +401,16 @@ DEF_ATTR_RD_SIMPLE(Sprite, WaveAmp,    int,     p->wave.amp)
 DEF_ATTR_RD_SIMPLE(Sprite, WaveLength, int,     p->wave.length)
 DEF_ATTR_RD_SIMPLE(Sprite, WaveSpeed,  int,     p->wave.speed)
 DEF_ATTR_RD_SIMPLE(Sprite, WavePhase,  float,   p->wave.phase)
+
+bool Sprite::getWaveRotate() const
+{
+  return p->wave.rotated;
+}
+
+void Sprite::setWaveRotate(bool state)
+{
+  p->wave.rotated = state;
+}
 
 int Sprite::getBushOpacity() const
 {
