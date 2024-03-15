@@ -89,7 +89,7 @@ static VALUE window_initialize(int argc, VALUE *v, VALUE self)
 static VALUE window_update(VALUE self)
 {
   Window *w = getPrivateData<Window>(self);
-  w->update();
+  if (!!w) w->update();
   return Qnil;
 }
 

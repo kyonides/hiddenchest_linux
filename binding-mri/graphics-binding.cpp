@@ -1,7 +1,7 @@
 /*
 ** graphics-binding.cpp
 **
-** This file is part of mkxpplus and mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
 ** 2018 Modified by Kyonides-Arkanthes

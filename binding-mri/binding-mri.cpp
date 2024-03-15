@@ -45,6 +45,7 @@
 extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
+extern const char win32api_fake[];
 extern const char module_hc[];
 static void mriBindingExecute();
 static void mriBindingTerminate();
@@ -54,6 +55,7 @@ void init_terms();
 void init_system();
 void init_settings();
 void init_backdrop();
+int system_is_really_linux();
 static VALUE hidden, script_ary;
 
 ScriptBinding scriptBindingImpl =
@@ -194,6 +196,10 @@ static void mriBindingInit()
   ch version = shState->config().game.version.c_str();
   rb_define_const(game, "TITLE", rstr(title));
   rb_define_const(game, "VERSION", rstr(version));
+  if (system_is_really_linux()) {
+    Debug() << "Loading Fake Win32API...";
+    rb_eval_string(win32api_fake);
+  }
 }
 
 static void showMsg(const std::string &msg)

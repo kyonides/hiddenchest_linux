@@ -793,27 +793,32 @@ void Font::initDefaults(const SharedFontState &sfs)
   std::vector<std::string> &names = FontPrivate::initialDefaultNames;
   FontPrivate::default_outline = true;
   FontPrivate::default_shadow  = false;
-  if (rgssVer < 2) {
+  switch (rgssVer) {
+  case 0 :
+  case 1 :
     FontPrivate::default_size = 22;
     FontPrivate::default_outline = false;
-    reduce_size = 2;
+    reduce_size = 3;
     names.push_back("Arial");
     names.push_back("Verdana");
     names.push_back("Courier New");
-  } else if (rgssVer == 2) {
+    break;
+  case 2 :
     FontPrivate::default_size = 20;
     FontPrivate::default_outline = false;
     FontPrivate::default_shadow  = true;
-    reduce_size = 3;
+    reduce_size = 2;
     names.push_back("Verdana");
     names.push_back("Arial");
     names.push_back("Courier New");
-  } else if (rgssVer == 3) {
+    break;
+  case 3 :
     FontPrivate::default_size = 24;
     reduce_size = 5;
     names.push_back("VL Gothic");
     names.push_back("MS Gothic");
     names.push_back("UmePlus Gothic");
+    break;
   }
   names.push_back(DEFAULT_FONT);
   if (names.size() > 0) set_default_name(names, sfs);

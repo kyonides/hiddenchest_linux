@@ -1,6 +1,6 @@
 #define HIDDENAUTHOR "Kyonides Arkanthes"
-#define HIDDENVERSION "1.1.54"
-#define HIDDENDATE "2023-11-27"
+#define HIDDENVERSION "1.1.55"
+#define HIDDENDATE "2024-03-15"
 #define CODENAME "NewSynth"
 #define SYSTEM_STRING "linux"
 #define SYSTEM_REAL_STRING "Linux"

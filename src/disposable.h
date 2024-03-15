@@ -77,8 +77,7 @@ template<class C>
 inline bool
 nullOrDisposed(const C *d)
 {
-  if (!d) return true;
-  if (d->isDisposed()) return true;
+  if (!d || d->isDisposed()) return true;
   return false;
 }
 

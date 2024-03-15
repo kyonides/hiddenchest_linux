@@ -603,7 +603,7 @@ Window::~Window()
 
 void Window::update()
 {
-  guardDisposed();
+  if (isDisposed()) return;
   p->updateOpenness();
   p->updateControls();
   p->stepAnimations();

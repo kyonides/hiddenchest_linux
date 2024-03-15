@@ -20,9 +20,24 @@ static VALUE system_platform_get(VALUE self)
   return rb_const_get(self, rb_intern("NAME"));
 }
 
+static VALUE system_is_linux(VALUE self)
+{
+  return rb_str_equal(system_platform_get(self), rstr("linux"));
+}
+
 static VALUE system_user_lang_get(VALUE self)
 {
   return rb_iv_get(self, "user_language");
+}
+
+bool system_is_really_windows()
+{
+  return !strcmp(SYSTEM_STRING, "windows");
+}
+
+bool system_is_really_linux()
+{
+  return !strcmp(SYSTEM_STRING, "linux");
 }
 
 void init_system()
@@ -34,6 +49,7 @@ void init_system()
   rb_define_const(sys, "NAME", rstr(SYSTEM_REAL_STRING));
   rb_define_const(sys, "FAMILY_NAME", rstr(SYSTEM_STRING));
   rb_define_module_function(sys, "platform", RMF(system_platform_get), 0);
+  rb_define_module_function(sys, "linux?", RMF(system_is_linux), 0);
   rb_define_module_function(sys, "user_language", RMF(system_user_lang_get), 0);
   hidden = rb_define_module("HiddenChest");
   rb_define_const(hidden, "LOGO", rstr("app_logo"));

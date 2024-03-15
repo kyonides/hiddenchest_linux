@@ -843,8 +843,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
   SDL_Surface *surf = render_str(is_solid, str, c);
   p->ensureFormat(surf, SDL_PIXELFORMAT_ABGR8888);
   int shapx = f->get_shadow_size();
-  bool is_shadow = f->get_shadow();
-  if (is_shadow) {
+  if (f->get_shadow() && !f->get_outline()) {
     const char *temp_str;
     SDL_Rect tmp;
     SDL_Surface *large, *shade;
@@ -854,16 +853,28 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     for (int n = 0; n < shapx; n++) {
       shade = TTF_RenderUTF8_Solid(font, str, sc);
       p->ensureFormat(shade, SDL_PIXELFORMAT_ABGR8888);
-      large = SDL_CreateRGBSurface(0, shade->w + shapx * 2, shade->h + shapx * 2,
+      int sh = shade->h + shapx * 2 + 1;
+      large = SDL_CreateRGBSurface(0, shade->w + shapx * 2, sh,
         fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask);
-      if (mode == 2) sx = n + 1;
+      if (mode == 0) sx = n + 1;
       tmp = { sx, 1, large->w, large->h };
       SDL_SetSurfaceBlendMode(shade, SDL_BLENDMODE_BLEND);
       SDL_BlitSurface(shade, 0, large, &tmp);
+      if (mode == 0) {
+        tmp.x += 1;
+        SDL_BlitSurface(shade, 0, large, &tmp);
+        tmp.y += 1;
+        SDL_BlitSurface(shade, 0, large, &tmp);
+      }
       SDL_FreeSurface(shade);
-      if (mode == 0) tmp.y += 1;
-      else if (mode == 1) tmp.x += 1;
-      else tmp.x -= n + 1;
+      if (mode == 2) {
+        tmp.y += 1;
+      } else if (mode == 1) {
+        tmp.x += 1;
+      } else {
+        tmp.x -= n + 1;
+        tmp.y -= 1;
+      }
       SDL_SetSurfaceBlendMode(surf, SDL_BLENDMODE_BLEND);
       SDL_BlitSurface(surf, 0, large, &tmp);
       SDL_FreeSurface(surf);
@@ -980,7 +991,8 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     p->blitQuad(quad);
     p->popViewport();
   }
-  SDL_FreeSurface(surf);//p->addTaintedArea(posRect);
+  SDL_FreeSurface(surf);
+  p->addTaintedArea(posRect);
   p->onModified();
 }
 /* http://www.lemoda.net/c/utf8-to-ucs2/index.html */
@@ -1010,7 +1022,7 @@ static uint16_t utf8_to_ucs2(const char *_input, const char **end_ptr)
 
 IntRect Bitmap::textSize(const char *str)
 {
-  guardDisposed();
+  if (isDisposed()) return IntRect(0, 0, 0, 0);
   GUARD_MEGA;
   TTF_Font *font = p->font->getSdlFont();
   std::string fixed = fixupString(str);
@@ -1022,14 +1034,16 @@ IntRect Bitmap::textSize(const char *str)
   uint16_t ucs2 = utf8_to_ucs2(str, &endPtr);
   /* For cursive characters, returning the advance
    * as width yields better results */
-  if (p->font->get_italic() && *endPtr == '\0')
+  if (p->font->get_italic() && *endPtr == '\0') {
     TTF_GlyphMetrics(font, ucs2, 0, 0, 0, 0, &w);
+    if (w > 0) w += 1;
+  }
   return IntRect(0, 0, w, h);
 }
 
 int Bitmap::textWidth(const char *str)
 {
-  guardDisposed();
+  if (isDisposed()) return 0;
   GUARD_MEGA;
   TTF_Font *font = p->font->getSdlFont();
   std::string fixed = fixupString(str);
@@ -1041,14 +1055,16 @@ int Bitmap::textWidth(const char *str)
   uint16_t ucs2 = utf8_to_ucs2(str, &endPtr);
   /* For cursive characters, returning the advance
    * as width yields better results */
-  if (p->font->get_italic() && *endPtr == '\0')
+  if (p->font->get_italic() && *endPtr == '\0') {
     TTF_GlyphMetrics(font, ucs2, 0, 0, 0, 0, &w);
+    if (w > 0) w += 1;
+  }
   return w;
 }
 
 int Bitmap::textHeight(const char *str)
 {
-  guardDisposed();
+  if (isDisposed()) return 0;
   GUARD_MEGA;
   TTF_Font *font = p->font->getSdlFont();
   std::string fixed = fixupString(str);

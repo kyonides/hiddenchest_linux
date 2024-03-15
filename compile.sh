@@ -12,10 +12,10 @@ cp hiddenchest* ..
 #exec strip ./hiddenchest.bin
 #strip ./hiddenchest.binx64
 #strip hiddenchest.binx64
-if [ -x mkx.b ]; then #pplus.binx64
-    echo "Found a 64 bit binary file!"
-    strip ./mkx.b #pplus.binx64
-elif [ -x hiddenchest.bin ]; then
-    strip hiddenchest.bin
-fi
+#if [ -x mkx.b ]; then #pplus.binx64
+#    echo "Found a 64 bit binary file!"
+#    strip ./mkx.b #pplus.binx64
+#elif [ -x hiddenchest.bin ]; then
+#    strip hiddenchest.bin
+#fi
 echo "Happy Game Testing!"

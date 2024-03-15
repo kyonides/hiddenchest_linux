@@ -1,6 +1,0 @@
-#define HIDDENAUTHOR "Kyonides Arkanthes"
-#define HIDDENVERSION "1.1.54"
-#define HIDDENDATE "2023-11-27"
-#define CODENAME "NewSynth"
-#cmakedefine SYSTEM_STRING "@SYSTEM_STRING@"
-#cmakedefine SYSTEM_REAL_STRING "@SYSTEM_REAL_STRING@"
