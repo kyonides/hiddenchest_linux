@@ -5,6 +5,7 @@ typedef struct _fluid_hashtable_t fluid_settings_t;
 typedef struct _fluid_synth_t fluid_synth_t;
 
 typedef int (*FLUIDSETTINGSSETNUMPROC)(fluid_settings_t* settings, const char *name, double val);
+typedef int (*FLUIDSETTINGSSETINTPROC)(fluid_settings_t* settings, const char *name, int val);
 typedef int (*FLUIDSETTINGSSETSTRPROC)(fluid_settings_t* settings, const char *name, const char *str);
 typedef int (*FLUIDSYNTHSFLOADPROC)(fluid_synth_t* synth, const char* filename, int reset_presets);
 typedef int (*FLUIDSYNTHSYSTEMRESETPROC)(fluid_synth_t* synth);
@@ -23,6 +24,7 @@ typedef int (*DELETEFLUIDSYNTHPROC)(fluid_synth_t* synth);
 
 #define FLUID_FUNCS \
 	FLUID_FUN(settings_setnum, FLUIDSETTINGSSETNUMPROC) \
+	FLUID_FUN(settings_setint, FLUIDSETTINGSSETINTPROC) \
 	FLUID_FUN(settings_setstr, FLUIDSETTINGSSETSTRPROC) \
 	FLUID_FUN(synth_sfload, FLUIDSYNTHSFLOADPROC) \
 	FLUID_FUN(synth_system_reset, FLUIDSYNTHSYSTEMRESETPROC) \
