@@ -518,7 +518,8 @@ void fontBindingInit()
   VALUE fonts = rb_ary_new();
   bool is_linux = strcmp(sys_kind, "linux") == 0;
   bool cache_font = shState->config().font_cache;
-  if (is_linux && cache_font) fonts = linux_system_fonts_search();
+  if (is_linux && cache_font)
+    fonts = linux_system_fonts_search();
   if (RARRAY_LEN(fonts) > 0) {
     std::vector<std::string> names;
     collectStrings(fonts, names);

@@ -9,6 +9,7 @@
 #include "author.h"
 #include "hcextras.h"
 #include "graphics.h"
+#include "sharedmidistate.h"
 #include "sharedstate.h"
 #include "SDL_locale.h"
 
@@ -43,11 +44,13 @@ bool system_is_really_linux()
 void init_system()
 {
   locales = SDL_GetPreferredLocales();
+  const char *sf = shState->midiState().soundFont.c_str();
   VALUE sys, hidden;
   sys = rb_define_module("System");
   rb_iv_set(sys, "user_language", rstr(locales[0].language));
   rb_define_const(sys, "NAME", rstr(SYSTEM_REAL_STRING));
   rb_define_const(sys, "FAMILY_NAME", rstr(SYSTEM_STRING));
+  rb_define_const(sys, "SOUNDFONT", rstr(sf));
   rb_define_module_function(sys, "platform", RMF(system_platform_get), 0);
   rb_define_module_function(sys, "linux?", RMF(system_is_linux), 0);
   rb_define_module_function(sys, "user_language", RMF(system_user_lang_get), 0);

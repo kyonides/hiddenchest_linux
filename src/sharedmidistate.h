@@ -25,12 +25,11 @@
 #include "config.h"
 #include "debugwriter.h"
 #include "fluid-fun.h"
-
 #include <assert.h>
 #include <vector>
 #include <string>
 
-#define SYNTH_INIT_COUNT 2
+#define SYNTH_INIT_COUNT 3
 #define SYNTH_SAMPLERATE 44100
 
 struct Synth
@@ -44,11 +43,13 @@ struct SharedMidiState
 	bool inited;
 	std::vector<Synth> synths;
 	const std::string &soundFont;
+	std::string other_soundfont;
 	fluid_settings_t *flSettings;
 
 	SharedMidiState(const Config &conf)
 	    : inited(false),
-	      soundFont(conf.midi.soundFont)
+	      soundFont(conf.midi.soundFont),
+	      other_soundfont("")
 	{}
 
 	~SharedMidiState()
@@ -69,9 +70,7 @@ struct SharedMidiState
 	{
 		if (inited)
 			return;
-
 		inited = true;
-
 		initFluidFunctions();
 
 		if (!HAVE_FLUID)
@@ -82,7 +81,10 @@ struct SharedMidiState
 		fluid.settings_setnum(flSettings, "synth.sample-rate", SYNTH_SAMPLERATE);
 		fluid.settings_setint(flSettings, "synth.chorus.active", conf.midi.chorus ? 1 : 0);
 		fluid.settings_setint(flSettings, "synth.reverb.active", conf.midi.reverb ? 1 : 0);
-
+		if (soundFont.empty())
+			Debug() << "Warning: No initial soundfont specified, sound might be mute";
+    //if (other_soundfont.empty()) {
+		  //Debug() << "Warning: No custom soundfont specified, sound might be mute";
 		for (size_t i = 0; i < SYNTH_INIT_COUNT; ++i)
 			addSynth(false);
 	}
@@ -115,14 +117,41 @@ struct SharedMidiState
 		synths[i].inUse = false;
 	}
 
+	void set_soundfont(std::string new_sf)
+	{
+		assert(HAVE_FLUID);
+		//assert(inited);
+		other_soundfont = new_sf;
+		Debug() << "New SoundFont:" << new_sf;
+		size_t i = 1000;
+		fluid_synth_t *syn;// = synths[i].synth;
+		Debug() << "Max Synths:" << synths.size(); 
+		for (size_t n = 0; n < synths.size(); ++n) {
+			syn = synths[n].synth;
+		  fluid.synth_system_reset(syn);
+		  fluid.synth_sfload(syn, new_sf.c_str(), 1);
+			if (i == 1000)
+				i = n;
+		}
+		if (synths.size() <= i)
+			i = 0;
+		Debug() << "Current Synthetizer:" << i + 1;
+		synths[i].inUse = true;
+	}
+
 private:
 	fluid_synth_t *addSynth(bool usedNow)
 	{
 		fluid_synth_t *syn = fluid.new_synth(flSettings);
-		if (!soundFont.empty())
-			fluid.synth_sfload(syn, soundFont.c_str(), 1);
-		else
-			Debug() << "Warning: No soundfont specified, sound might be mute";
+		if (other_soundfont.empty()) {
+			if (!soundFont.empty()) {
+				Debug() << "Loading SoundFont" << soundFont.c_str() << "...";
+				fluid.synth_sfload(syn, soundFont.c_str(), 1);
+			}
+		}	else {
+			Debug() << "Loading SoundFont" << other_soundfont.c_str() << "...";
+			fluid.synth_sfload(syn, other_soundfont.c_str(), 1);
+		}
 		Synth synth;
 		synth.inUse = usedNow;
 		synth.synth = syn;

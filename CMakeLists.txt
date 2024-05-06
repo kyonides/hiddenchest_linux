@@ -352,7 +352,7 @@ if (BINDING STREQUAL "MRI")
     binding-mri/tilemapvx-binding.cpp
     binding-mri/backdrop.cpp
     binding-mri/scripts.cpp
-    binding-mri/settings.cpp
+    binding-mri/setup.cpp
     binding-mri/system.cpp
     binding-mri/terms.cpp
   )

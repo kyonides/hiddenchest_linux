@@ -807,7 +807,7 @@ void Font::initDefaults(const SharedFontState &sfs)
     FontPrivate::default_size = 20;
     FontPrivate::default_outline = false;
     FontPrivate::default_shadow  = true;
-    reduce_size = 2;
+    reduce_size = 1;
     names.push_back("Verdana");
     names.push_back("Arial");
     names.push_back("Courier New");

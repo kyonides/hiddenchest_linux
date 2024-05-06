@@ -267,7 +267,7 @@ SharedFontState& SharedState::fontState() const
   return p->fontState;
 }
 
-SharedMidiState&SharedState::midiState() const
+SharedMidiState& SharedState::midiState() const
 {
   return p->midiState;
 }

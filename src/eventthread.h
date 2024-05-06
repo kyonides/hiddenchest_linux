@@ -32,9 +32,9 @@
 #include <SDL_mutex.h>
 #include <string>
 #include <stdint.h>
+#include <alc.h>
 
 struct RGSSThreadData;
-typedef struct ALCdevice_struct ALCdevice;
 struct SDL_Window;
 union SDL_Event;
 

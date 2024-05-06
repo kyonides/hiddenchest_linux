@@ -53,7 +53,7 @@ static void mriBindingReset();
 void init_scripts();
 void init_terms();
 void init_system();
-void init_settings();
+void init_setup();
 void init_backdrop();
 int system_is_really_linux();
 static VALUE hidden, script_ary;
@@ -153,7 +153,7 @@ static void mriBindingInit()
   fileIntBindingInit();
   init_scripts();
   init_terms();
-  init_settings();
+  init_setup();
   init_backdrop();
   rb_define_module_function(rb_mKernel, "msgbox", RMF(mriPrint), -1);
   rb_define_module_function(rb_mKernel, "msgbox_p", RMF(mriP), -1);
