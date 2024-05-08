@@ -450,7 +450,7 @@ static VALUE bitmap_write(int argc, VALUE* argv, VALUE self)
   const char *ext;
   const char *str = objAsStringPtr(argv[0]);
   if (argc == 1) {
-    VALUE settings = rb_define_module("Settings");
+    VALUE settings = rb_define_module("Setup");
     VALUE fmt = rb_iv_get(settings, "@shot_format");
     ext = objAsStringPtr(fmt);
   } else if (argc == 2) {

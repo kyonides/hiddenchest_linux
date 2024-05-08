@@ -124,7 +124,7 @@ struct SharedMidiState
 		other_soundfont = new_sf;
 		Debug() << "New SoundFont:" << new_sf;
 		size_t i = 1000;
-		fluid_synth_t *syn;// = synths[i].synth;
+		fluid_synth_t *syn;
 		Debug() << "Max Synths:" << synths.size(); 
 		for (size_t n = 0; n < synths.size(); ++n) {
 			syn = synths[n].synth;
