@@ -107,7 +107,9 @@ La excepción es boost, lo que es raro porque aún no ha logrado que incorporen 
 
 ### Soporte de MIDI
 
-El soporte de Midi está habilitado por defecto y requiere de fluidsynth a la hora de ejecución (no para compilarlo). Si HiddenChest no puede hallarlo al ejecutarse, la reproducción de midi se deshabilita. Buscará `libfluidsynth.so.1` en Linux, `libfluidsynth.dylib.1` en OSX y `fluidsynth.dll` en Windows, así que asegúrense de tener uno en la configuración de sus directorios. Si necesitan que fluidsynth sea enlazado estrechamente al engine al compilarlo, incluyan `CONFIG+=SHARED_FLUID`. De compilar fluidsynth por ustedes mismos, pueden deshabilitar casi todas las opciones (controladores de audio, etc.) ya que no se usarán. Noten que upstream fluidsynth ofrece soporte de compartir datos de un soundfont entre sintetizadores (HiddenChest usa múltiples sintetizadores), por lo que si su consumo de memoria llega a ser muy alto, podrían querer compilar fluidsynth desde su git master.
+El soporte de Midi está habilitado por defecto y requiere de fluidsynth a la hora de ejecución (no para compilarlo). Si HiddenChest no puede hallarlo al ejecutarse, la reproducción de midi se deshabilita. Buscará `libfluidsynth.so.1` o `libfluidsynth.so.3` en Linux, `libfluidsynth.dylib.1` en OSX y `fluidsynth.dll` en Windows, así que asegúrense de tener uno en la configuración de sus directorios. Si necesitan que fluidsynth sea enlazado estrechamente al engine al compilarlo, incluyan `CONFIG+=SHARED_FLUID`. De compilar fluidsynth por ustedes mismos, pueden deshabilitar casi todas las opciones (controladores de audio, etc.) ya que no se usarán. Noten que upstream fluidsynth ofrece soporte de compartir datos de un soundfont entre sintetizadores (HiddenChest usa múltiples sintetizadores), por lo que si su consumo de memoria llega a ser muy alto, podrían querer compilar fluidsynth desde su git master.
+
+Ahora es posible cambiar la soundfont SF2 en pleno juego.
 
 Por defecto HiddenChest cambia a la carpeta donde su binario se halla y entonces allí comienza a leer la configuración y resuelve las rutas relativas. En el caso de que eso sea indeseable como cuando el binario debe de instalarse globalmente, en una ubicación de solo lectura, puede ser deshabilitada al agregar `DEFINES+=WORKDIR_CURRENT` a los argumentos de qmake.
 
@@ -144,6 +146,8 @@ Ejemplo: `./hiddenchest --gameFolder="mi_juego" --vsync=true --fixedFramerate=60
 HiddenChest no viene con una soundfont por defecto, así que deben de suplirla ustedes mismos (fijen su dirección en el config). La reproducción ha sido probada y debería reproducir bastante bien todos los recursos del RTP.
 
 Pueden utilizar esta soundfont de dominio público: [GMGSx.sf2](https://www.dropbox.com/s/qxdvoxxcexsvn43/GMGSx.sf2?dl=0)
+
+Una vez que hayas descargados todas las soundfonts que tu proyecto pueda necesitar, crea una nueva carpeta llamada SF2 dentro de la carpeta Audio. Luego copia y pega todas tus soundfonts allí. (Ruta: `Audio/SF2`)
 
 ## Fonts
 
@@ -191,18 +195,25 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
     - `bar_bitmap` está hecho de una barra de título como en Windows y KDE y GTK.
     - `close_icon` no es más que el ícono donde hacen clic para cerrar la ventana!
     - `contents` representa al contenedor de todos los mensajes de textos impresos en ella!
-* Módulo `Graphics` tiene tres propiedades adicionales: `fullscreen` representa al modo actual de pantalla completa (`true` = pantalla completa, `false` = en ventana), `show_cursor` esconde el cursor del Sistema Operativo de estar dentro de la ventana de juego si se fija en `false` y `block_fullscreen` (`true` o `false`) impedirá o permitirá que el jugador entre en modo de pantalla completa incluso si cambian la configuración en el archivo de configuración hiddenchest.conf.
-* Módulo `Graphics` también permite hacer capturas de pantalla:
-    - `screenshot` o `save_screenshot` o `save_snapshot`
+* Módulo `Graphics` tiene tres propiedades adicionales:
+    - `fullscreen` representa al modo actual de pantalla completa (`true` = pantalla completa, `false` = en ventana)
+    - `show_cursor` esconde el cursor del Sistema Operativo de estar dentro de la ventana de juego si se fija en `false`
+    - `block_fullscreen` (`true` o `false`) impedirá o permitirá que el jugador entre en modo de pantalla completa incluso si cambian la configuración en el archivo de configuración hiddenchest.conf.
+    - Permite hacer capturas de pantalla:
+      `screenshot` o `save_screenshot` o `save_snapshot`
          - Lo guarda en la carpeta Screenshots
     - `dimensions` permite obtener su ancho y su altura en un arreglo o lista.
-* Módulo `Settings` permite personalizar las configuraciones de su juego via llamados a script.
+* Módulo `Setup` permite personalizar las configuraciones de su juego via llamados a script.
     - `image_format` y `image_format=` permiten verificar o asignar el formato preferido de imágenes para sus capturas. Opciones disponibles:
          - :jpg o 0 para formato JPG - opción por defecto
          - :png o 1 para formato PNG
     - `snapshot_dir` y `snapshot_filename` para definir la carpeta y el nombre base de los archivos de capturas de pantalla.
     - `save_dir` y `save_filename` para definir la carpeta y el nombre base de los archivos de partidas guardadas.
     - `auto_create_dirs` para que se creen las carpetas si cambiaron la ruta de alguna de las carpetas.
+    - `soundfont` te muestra tu soundfont actual.
+    - `soundfonts` consiste en una lista de soundfonts disponibles.
+    - `soundfont_index` te entrega el índice de la soundfont actual si la hay.
+    - `choose_soundfont` más un número entero como único parámetro te permite cambiar la soundfont en plena ejecución.
 * Módulo `Game` incluye las constants `TITLE` y `VERSION`. Estas son extraídas del archivo Game.ini
 * Módulo `Backdrop`, disponibles en todas las versiones de RGSS, permite crear una captura temporal del mapa previo para usarlo como fondo de una escena distinta. Usen cualquiera de los siguientes llamados para crear el bitmap que necesitarán en su escena personalizada. Después pueden asignarle su bitmap a una variable de @instancia de su elección al llamar a su método `bitmap` o `bitmap_dup` (duplicado). Luego de congelar la escena con `Graphics.freeze`, llamen a `clear_bitmap` para desecharlo apropiadamente o desechen el bitmap de su sprite directamente en caso de que deseen guardarlo para más adelante y hayan utilizado el método `bitmap_dup` anteriormente.
     - `keep_bitmap` - Su mapa sin efectos especiales

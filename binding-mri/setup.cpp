@@ -101,6 +101,20 @@ static VALUE set_sound_font_set(VALUE self, VALUE fn)
   return rb_iv_set(self, "@soundfont", fn);
 }
 
+static VALUE set_sound_font_index(VALUE self)
+{
+  VALUE elem;
+  VALUE sf2 = rb_iv_get(self, "@soundfont");
+  VALUE ary = rb_iv_get(self, "@soundfonts");
+  int max = RARRAY_LEN(ary); 
+  for (int n = 0; n < max; n++) {
+    elem = rb_ary_entry(ary, n);
+    if (rb_equal(elem, sf2))
+      return RB_INT2FIX(n);
+  }
+  return Qnil;
+}
+
 static VALUE set_sound_fonts_get(VALUE self)
 {
   return rb_iv_get(self, "@soundfonts");
@@ -173,6 +187,7 @@ void init_setup()
   module_func(set, "click_timer=", set_click_timer_set, 1);
   module_func(set, "soundfont", set_sound_font_get, 0);
   module_func(set, "soundfont=", set_sound_font_set, 1);
+  module_func(set, "soundfont_index", set_sound_font_index, 0);
   module_func(set, "soundfonts", set_sound_fonts_get, 0);
   module_func(set, "choose_soundfont", set_sound_font_by_pos, 1);
 }

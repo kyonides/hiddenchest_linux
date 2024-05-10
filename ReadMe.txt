@@ -1,4 +1,4 @@
-HiddenChest is Kyonides-Arkanthes's fork of a previous project called
+HiddenChest is Kyonides Arkanthes's fork of a previous project called
 mkxp developed by Ancurio.
 
 ** This project is distributed under the terms of the GNU General
@@ -16,6 +16,8 @@ h800 or h800.exe
 h*anyotherwidth or h*anyotherwidth*.exe
   Possible resolutions 800*608, 960*736, 1088*608, 1280*768, 1680*1050 and 1920*1080
   Includes extra buttons not found in vanilla RGSS games
+KSoundFontMenuXP.rb
+  A custom menu that allows you to change your current soundfont SF2 on the fly!
 MapCustomResFixes.rb
   A Ruby script you can open with your favorite text editor to
   copy and paste it in any RGSS 1 or 2 game to let old scripts

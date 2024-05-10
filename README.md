@@ -107,7 +107,9 @@ The exception is boost, which is weird in that it still hasn't managed to pull o
 
 ### MIDI Support
 
-Midi support is enabled by default and requires fluidsynth to be present at runtime (not needed for building); if HiddenChest can't find it at runtime, midi playback is disabled. It looks for `libfluidsynth.so.1` on Linux, `libfluidsynth.dylib.1` on OSX and `fluidsynth.dll` on Windows, so make sure to have one of these in your link path. If you still need fluidsynth to be hard linked at buildtime, use `CONFIG+=SHARED_FLUID`. When building fluidsynth yourself, you can disable almost all options (audio drivers etc.) as they are not used. Note that upstream fluidsynth has support for sharing soundfont data between synthesizers (HiddenChest uses multiple synths), so if your memory usage is very high, you might want to try compiling fluidsynth from git master.
+Midi support is enabled by default and requires fluidsynth to be present at runtime (not needed for building); if HiddenChest can't find it at runtime, midi playback is disabled. It looks for `libfluidsynth.so.1` or `libfluidsynth.so.3` on Linux, `libfluidsynth.dylib.1` on OSX and `fluidsynth.dll` on Windows, so make sure to have one of these in your link path. If you still need fluidsynth to be hard linked at buildtime, use `CONFIG+=SHARED_FLUID`. When building fluidsynth yourself, you can disable almost all options (audio drivers etc.) as they are not used. Note that upstream fluidsynth has support for sharing soundfont data between synthesizers (HiddenChest uses multiple synths), so if your memory usage is very high, you might want to try compiling fluidsynth from git master.
+
+Now it is also possible to change your current soundfont SF2 on the fly!
 
 By default, HiddenChest switches into the directory where its binary is contained and then starts reading the configuration and resolving relative paths. In case this is undesired (eg. when the binary is to be installed to a system global, read-only location), it can be turned off by adding `DEFINES+=WORKDIR_CURRENT` to qmake's arguments.
 
@@ -144,6 +146,8 @@ Example: `./hiddenchest --gameFolder="my game" --vsync=true --fixedFramerate=60`
 HiddenChest doesn't come with a soundfont by default, so you will have to supply it yourself (set its path in the config). Playback has been tested and should work reasonably well with all RTP assets.
 
 You can use this public domain soundfont: [GMGSx.sf2](https://www.dropbox.com/s/qxdvoxxcexsvn43/GMGSx.sf2?dl=0)
+
+Once you have downloaded all the soundfonts your project will ever need, create a new directory called SF2 inside your Audio folder. Then copy and paste all of your soundfonts there. (Path: `Audio/SF2`)
 
 ## Fonts
 
@@ -191,18 +195,25 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
     - `bar_bitmap` is made of the message box title bar.
     - `close_icon` is nothing but the icon where you can click to close the box!
     - `contents` stands for the actual container of all of your text messages printed on it!
-* The `Graphics` module has three additional properties: `fullscreen` represents the current fullscreen mode (`true` = fullscreen, `false` = windowed), `show_cursor` hides the system cursor inside the game window when `false` and `block_fullscreen` (`true` or `false`) will prevent the player from entering fullscreen mode or not even if they change the configuration file settings.
-* `Graphics` module also lets you take snapshots by calling:
-   -  `screenshot` or `save_screenshot` or `save_snapshot`
+* The `Graphics` module has three additional properties:
+   - `fullscreen` represents the current fullscreen mode (`true` = fullscreen, `false` = windowed)
+   - `show_cursor` hides the system cursor inside the game window when `false`
+   - `block_fullscreen` (`true` or `false`) will prevent the player from entering fullscreen mode or not even if they change the configuration file settings.
+   - It also lets you take snapshots by calling:
+     `screenshot` or `save_screenshot` or `save_snapshot`
          - The image is stored in the Screenshots directory by default.
    - `dimensions` lets you get its width and height as an array.
-* `Settings` module lets you customize your game settings via script calls.
+* `Setup` module lets you customize your game settings via script calls.
     - `image_format` and `image_format=` let you check out or assign a preferred image format for your screenshots. Available options are:
          - :jpg or 0 for JPG format - default option
          - :png or 1 for PNG format
     - `snapshot_dir` and `snapshot_filename` define the directory and base name of your screenshots.
     - `save_dir` and `save_filename` define the directory and base name of your saved games.
     - `auto_create_dirs` lets you create directories whenever you do not want to use any of the default paths.
+    - `soundfont` shows your current soundfont.
+    - `soundfonts` consists of a list of available soundfonts.
+    - `soundfont_index` retrieves the index of the current soundfont if any.
+    - `choose_soundfont` and an integer as its only parameter lets you change the current soundfont on the fly.
 * The `Backdrop` module, available on all RGSS versions, lets you create a temporary snapshot of a previous map to use it in any scene class at will. Use any of the following calls to create the bitmap you will need in your (custom) scene. Later you can assign its bitmap to an instance variable of your choice by calling its `bitmap` or `bitmap_dup` method. After freezing the scene with `Graphics.freeze`, call `clear_bitmap` to dispose it properly or dispose your sprite's bitmap directly in case you want to keep it for later use and you previously used the `bitmap_dup` method.
     - `keep_bitmap` - Your map without any special effects.
     - `gray_bitmap` - Grayish version of your map.
