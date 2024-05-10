@@ -2,6 +2,12 @@
 #   Scripter : Kyonides Arkanthes
 #   2024-05-09
 
+# Note: It seems like the MIDI file should be playing BEFORE you proceed to call
+#       Setup.choose_soundfont while loading a save game. Otherwise, the MIDI
+#       synthetizer might ignore your request at that specific point.
+#       Calling the same method at the beginning of KSoundFont::Menu ensures it
+#       will always play the MIDI using the chosen soundfont.
+
 # * Script Call * #
 # $scene = KSoundFont::Menu.new
 
@@ -118,6 +124,7 @@ class Scene_Load
   alias :kyon_soundfont_menu_scn_ld_rsd :read_save_data
   def read_save_data(file)
     kyon_soundfont_menu_scn_ld_rsd(file)
+    $game_system.bgm_play($game_system.playing_bgm)
     Setup.choose_soundfont($game_system.soundfont_index)
   end
 end
