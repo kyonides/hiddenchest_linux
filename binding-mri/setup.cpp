@@ -145,8 +145,10 @@ void find_soundfonts(VALUE self)
   VALUE sys = rb_define_module("System");
   VALUE dsfont = rb_const_get(sys, rb_intern("SOUNDFONT"));
   VALUE temp_fonts = rb_ary_new();
-  if (RSTRING_LEN(dsfont) > 0)
+  if (RSTRING_LEN(dsfont) > 0) {
     rb_ary_push(temp_fonts, dsfont);
+    rb_iv_set(self, "@soundfont", dsfont);
+  }
   VALUE names = rb_funcall(rb_cDir, glob, 1, rstr("Audio/SF2/*"));
   int total = RARRAY_LEN(names);
   for (int n = 0; n < total; n++) {

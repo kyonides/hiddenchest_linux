@@ -46,6 +46,7 @@ class Menu
   def main
     @timer = 0
     pos = $game_system.soundfont_index
+    Setup.choose_soundfont(pos)
     soundfont = Setup.soundfonts[pos]
     soundfont = soundfont.split("/")[-1].sub(".sf2", "")
     @help_window = Window_Help.new
@@ -96,7 +97,7 @@ class Game_System
   alias :kyon_soundfont_menu_gm_sys_init :initialize
   def initialize
     kyon_soundfont_menu_gm_sys_init
-    @soundfont_index = find_soundfont_index
+    self.soundfont_index = find_soundfont_index
   end
 
   def find_soundfont_index
