@@ -89,7 +89,7 @@ Concerning Boost, please read the Boost section of this guide.
 
 ### CMake
 
-You can compile it with CMake by running my custom bash script compile.sh on your terminal by typing the following in the project's root directory:
+You can compile it with CMake by running my custom bash script compile.sh on your Linux terminal by typing the following in the project's root directory:
 
 ./compile.sh
 
@@ -125,7 +125,7 @@ To auto detect the encoding of the game title in `Game.ini` and auto convert it 
 
 These depend on the SDL2 auxiliary libraries. For maximum RGSS compliance, build SDL2_image with png/jpg support, and SDL_sound with oggvorbis/wav/mp3 support.
 
-To run HiddenChest, you should have a graphics card capable of at least **OpenGL (ES) 2.0** with an up-to-date driver installed.
+To run HiddenChest, you should have a graphics card capable of at least **OpenGL (ES) 2.0** with an up-to-date driver installed. Earlier versions of OpenGL will not be supported.
 
 ## Dependency kit
 
@@ -214,6 +214,7 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
     - `soundfonts` consists of a list of available soundfonts.
     - `soundfont_index` retrieves the index of the current soundfont if any.
     - `choose_soundfont` and an integer as its only parameter lets you change the current soundfont on the fly.
+* The `Game` module includes the following constants: `TITLE`, `VERSION` & `SCRIPTS`. They are automatically extracted from the Game.ini file.
 * The `Backdrop` module, available on all RGSS versions, lets you create a temporary snapshot of a previous map to use it in any scene class at will. Use any of the following calls to create the bitmap you will need in your (custom) scene. Later you can assign its bitmap to an instance variable of your choice by calling its `bitmap` or `bitmap_dup` method. After freezing the scene with `Graphics.freeze`, call `clear_bitmap` to dispose it properly or dispose your sprite's bitmap directly in case you want to keep it for later use and you previously used the `bitmap_dup` method.
     - `keep_bitmap` - Your map without any special effects.
     - `gray_bitmap` - Grayish version of your map.

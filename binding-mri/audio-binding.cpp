@@ -25,7 +25,6 @@
 #include "exception.h"
 #include "binding-util.h"
 #include "filesystem.h"
-
 static VALUE audio_bgmPlay(int argc, VALUE* argv, VALUE self)
 {
   const char *filename;
@@ -152,7 +151,8 @@ static VALUE audio_play_se(int argc, VALUE* argv, VALUE self)
 {
   VALUE se = rb_iv_get(self, "@se"), name, volume, pitch;
   rb_scan_args(argc, argv, "12", &name, &volume, &pitch);
-  if (RB_NIL_P(name) || RSTRING_LEN(name) == 0) return Qnil;
+  if (RB_NIL_P(name) || RSTRING_LEN(name) == 0)
+    return Qnil;
   name = rb_str_plus(rb_str_new_cstr("Audio/SE/"), name);
   const char *fn = StringValueCStr(name);
   int vol = RB_NIL_P(volume) ? RB_FIX2INT(rb_iv_get(self, "@se_volume")) :
@@ -377,26 +377,6 @@ static VALUE rpg_audio_file_initialize(int argc, VALUE* argv, VALUE self)
   rb_iv_set(self, "@pitch", pitch);
   rb_iv_set(self, "@pos", pos);
   return self;
-}
-
-void audio_setup_custom_se()
-{
-  VALUE mod = rb_const_get(rb_cObject, rb_intern("Audio"));
-  VALUE filename = rb_str_new_cstr("Data/System.rxdata");
-  VALUE ds = rb_funcall(rb_mKernel, rb_intern("load_data"), 1, filename);
-  if ( RB_NIL_P(ds) ) return;
-  rb_p(rb_str_new_cstr("Initializing extra Audio methods now..."));
-  rb_iv_set(mod, "@buzzer", rb_iv_get(ds, "@buzzer_se"));
-  rb_iv_set(mod, "@cancel", rb_iv_get(ds, "@cancel_se"));
-  rb_iv_set(mod, "@cursor", rb_iv_get(ds, "@cursor_se"));
-  rb_iv_set(mod, "@ok", rb_iv_get(ds, "@decision_se"));
-  rb_iv_set(mod, "@shop", rb_iv_get(ds, "@shop_se"));
-  rb_iv_set(mod, "@equip", rb_iv_get(ds, "@equip_se"));
-  rb_iv_set(mod, "@save", rb_iv_get(ds, "@save_se"));
-  rb_iv_set(mod, "@load", rb_iv_get(ds, "@load_se"));
-  rb_iv_set(mod, "@escape", rb_iv_get(ds, "@escape_se"));
-  rb_iv_set(mod, "@actor_ko", rb_iv_get(ds, "@actor_collapse_se"));
-  rb_iv_set(mod, "@enemy_ko", rb_iv_get(ds, "@enemy_collapse_se"));
 }
 
 #define RMF(func) ((VALUE (*)(ANYARGS))(func))

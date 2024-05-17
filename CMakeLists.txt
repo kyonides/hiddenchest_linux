@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.9)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS "-w")
 set(RUBY "2.7")
 Project(hiddenchest)
 
@@ -102,7 +103,7 @@ pkg_check_modules(SDL2_TTF     REQUIRED SDL2_ttf)
 pkg_check_modules(SDL2_IMAGE   REQUIRED SDL2_image)
 pkg_check_modules(SDL_SOUND    REQUIRED SDL_sound)
 
-find_package(Boost 1.49 COMPONENTS program_options filesystem REQUIRED)
+find_package(Boost 1.49 COMPONENTS program_options REQUIRED)
 find_package(OpenAL REQUIRED)
 find_package(ZLIB REQUIRED)
 
@@ -329,6 +330,7 @@ if (BINDING STREQUAL "MRI")
     binding-mri/flashable-binding.h
     binding-mri/msgboxsprite-binding.h
     binding-mri/hcextras.h
+    binding-mri/output.h
   )
   set(BINDING_SOURCE
     binding-mri/binding-mri.cpp

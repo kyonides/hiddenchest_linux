@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <string>
 #include <chrono>
+#include "debugwriter.h"
 
 SharedState *SharedState::instance = 0;
 int SharedState::rgssVersion = 0;
@@ -105,18 +106,8 @@ struct SharedStatePrivate
     // Shaders have been compiled in ShaderSet's constructor
     if (gl.ReleaseShaderCompiler)
       gl.ReleaseShaderCompiler();
-    std::string archPath = config.execName + gameArchExt();
-    // Check if a game archive exists
-    FILE *tmp = fopen(archPath.c_str(), "rb");
-    if (tmp) {
-      fileSystem.addPath(archPath.c_str());
-      fclose(tmp);
-    }
+    // Moved Encrypted Data to a separate function
     fileSystem.addPath(".");
-    for (size_t i = 0; i < config.rtps.size(); ++i)
-      fileSystem.addPath(config.rtps[i].c_str());
-    if (config.pathCache)
-      fileSystem.createPathCache();
     fileSystem.initFontSets(fontState);
     globalTexW = 128;
     globalTexH = 64;
@@ -144,6 +135,25 @@ struct SharedStatePrivate
   }
 };
 
+void SharedState::check_encrypted_game_file(const char* game_fn)
+{
+  std::string archPath = game_fn; //config.execName + gameArchExt();
+  Debug() << "Searching for encrypted game file...";
+  // Check if a game archive exists
+  FILE *tmp = fopen(archPath.c_str(), "rb");
+  if (tmp) {
+    Debug() << "Found game file:" << archPath;
+    p->fileSystem.addPath(archPath.c_str());
+    fclose(tmp);
+  } else {
+    Debug() << "Could not find any encrypted game file.";
+  }
+  for (size_t i = 0; i < p->config.rtps.size(); ++i)
+    p->fileSystem.addPath(p->config.rtps[i].c_str());
+  if (p->config.pathCache)
+    p->fileSystem.createPathCache();
+}
+
 void SharedState::initInstance(RGSSThreadData *threadData)
 {
   /* This section is tricky because of dependencies:
@@ -154,14 +164,11 @@ void SharedState::initInstance(RGSSThreadData *threadData)
   _globalIBO->ensureSize(1);
   SharedState::instance = 0;
   Font *defaultFont = 0;
-  try
-  {
+  try {
     SharedState::instance = new SharedState(threadData);
     Font::initDefaults(instance->p->fontState);
     defaultFont = new Font();
-  }
-  catch (const Exception &exc)
-  {
+  } catch (const Exception &exc) {
     delete _globalIBO;
     delete SharedState::instance;
     delete defaultFont;

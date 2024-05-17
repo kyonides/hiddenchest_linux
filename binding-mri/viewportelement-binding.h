@@ -57,7 +57,8 @@ static C * viewportElementInitialize(int argc, VALUE *v, VALUE self)
   rb_get_args(argc, v, "|o", &rbView RB_ARG_END);
   if (!RB_NIL_P(rbView)) {
     viewport = getPrivateDataCheck<Viewport>(rbView, ViewportType);
-    if (rgssVer == 1) disposableAddChild(rbView, self);
+    if (rgssVer == 1)
+      disposableAddChild(rbView, self);
   } // Construct object
   C *ve = new C(viewport);
   rb_iv_set(self, "viewport", rbView); // Set property objects

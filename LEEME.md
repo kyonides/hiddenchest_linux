@@ -89,7 +89,7 @@ Sobre Boost sírvanse leer la sección de Boost en esta guía.
 
 ### CMake
 
-Pueden compilar con CMake al ejecutar mi script de bash compile.sh en su terminal al digitar lo siguiente en el directorio raíz de su proyecto:
+Pueden compilar con CMake al ejecutar mi script de bash compile.sh en su terminal de Linux al digitar lo siguiente en el directorio raíz de su proyecto:
 
 ./compile.sh
 
@@ -125,7 +125,7 @@ Para detectar automáticamente el encoding del título del juego en `Game.ini` y
 
 Dependen de las bibliotecas auxiliares de SDL2. Para una mejor adherencia a RGSS, compilen SDL2_image con soporte de png/jpg y SDL_sound con soporte de oggvorbis/wav/mp3.
 
-Para ejecutar HiddenChest, deben de tener una tarjeta o placa gráfica capaz de correr al menos **OpenGL (ES) 2.0** con un controlador actualizado ya instalado.
+Para ejecutar HiddenChest, deben de tener una tarjeta o placa gráfica capaz de correr al menos **OpenGL (ES) 2.0** con un controlador actualizado ya instalado. Versiones anteriores de OpenGL no tendrán soporte.
 
 ## Kit de Dependencias
 
@@ -214,7 +214,7 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
     - `soundfonts` consiste en una lista de soundfonts disponibles.
     - `soundfont_index` te entrega el índice de la soundfont actual si la hay.
     - `choose_soundfont` más un número entero como único parámetro te permite cambiar la soundfont en plena ejecución.
-* Módulo `Game` incluye las constants `TITLE` y `VERSION`. Estas son extraídas del archivo Game.ini
+* Módulo `Game` incluye las siguientes constantes: `TITLE`, `VERSION` y `SCRIPTS`. Estas son extraídas del archivo Game.ini de forma automática.
 * Módulo `Backdrop`, disponibles en todas las versiones de RGSS, permite crear una captura temporal del mapa previo para usarlo como fondo de una escena distinta. Usen cualquiera de los siguientes llamados para crear el bitmap que necesitarán en su escena personalizada. Después pueden asignarle su bitmap a una variable de @instancia de su elección al llamar a su método `bitmap` o `bitmap_dup` (duplicado). Luego de congelar la escena con `Graphics.freeze`, llamen a `clear_bitmap` para desecharlo apropiadamente o desechen el bitmap de su sprite directamente en caso de que deseen guardarlo para más adelante y hayan utilizado el método `bitmap_dup` anteriormente.
     - `keep_bitmap` - Su mapa sin efectos especiales
     - `gray_bitmap` - Versión en Gris de su mapa

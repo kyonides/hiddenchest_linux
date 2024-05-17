@@ -821,7 +821,8 @@ void Font::initDefaults(const SharedFontState &sfs)
     break;
   }
   names.push_back(DEFAULT_FONT);
-  if (names.size() > 0) set_default_name(names, sfs);
+  if (names.size() > 0)
+    set_default_name(names, sfs);
 }
 
 void Font::init_system_fonts(const std::vector<std::string> &names)

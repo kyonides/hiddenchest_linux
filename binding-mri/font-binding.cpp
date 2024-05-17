@@ -1,10 +1,10 @@
 /*
 ** font-binding.cpp
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Extended (C) 2019 Kyonides Arkanthes <kyonides@gmail.com>
+** Extended (C) 2019-2024 Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -511,8 +511,9 @@ VALUE linux_system_fonts_search()
   return fonts;
 }
 
-void fontBindingInit()
+void init_font_binding()
 {
+  Font::initDefaults(shState->fontState());
   VALUE klass = rb_define_class("Font", rb_cObject);
   rb_define_alloc_func(klass, classAllocate<&FontType>);
   VALUE fonts = rb_ary_new();

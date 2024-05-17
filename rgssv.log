@@ -1,0 +1,29 @@
+grep -r rgssVer
+windowvx-binding.cpp:  if (rgssVer == 3) {
+windowvx-binding.cpp:  if (rgssVer == 3)
+msgboxsprite-binding.cpp:    if (rgssVer == 1) disposableAddChild(rbView, self);
+bitmap-binding.cpp:  if (rgssVer == 1) bitmapDisposeChildren(self);
+bitmap-binding.cpp:    if (rgssVer >= 2) {
+bitmap-binding.cpp:    if (rgssVer >= 2) {
+bitmap-binding.cpp:  if (rgssVer >= 2) {
+bitmap-binding.cpp:  if (rgssVer >= 2) {
+bitmap-binding.cpp:  if (rgssVer >= 2) {
+bitmap-binding.cpp:  if (rgssVer == 1)
+sprite-binding.cpp:  if (rgssVer >= 2) {
+etc-binding.cpp:  if (rgssVer >= 3) \
+viewport-binding.cpp:  if (argc == 0 && rgssVer == 3) {
+viewport-binding.cpp:  } else if (rgssVer == 1 && argc == 4) {
+binding-util.cpp:  exc[Reset] = rb_define_class(rgssVer >= 3 ? "RGSSReset" : "Reset", rb_eException);
+window-binding.cpp:    if (rgssVer == 1) disposableAddChild(rbView, self);
+tilemapvx-binding.cpp:  if (rgssVer == 3) {
+backdrop.cpp:  if (rgssVer == 1) disposableDisposeChildren(bitmap);
+audio-binding.cpp:  if (rgssVer == 1) {
+audio-binding.cpp:  if (rgssVer >= 3)
+binding-mri.cpp:  conf.rgssVersion = rgss;
+binding-mri.cpp:  shState->rgssVersion = rgss;
+disposable-binding.h:  if (rgssVer == 1)
+disposable-binding.h:  if (rgssVer == 1)
+viewportelement-binding.h:    if (rgssVer == 1) disposableAddChild(rbView, self);
+input-binding.cpp:  if (SYMBOL_P(number)) {// && rgssVer == 3
+msgboxsprite-binding.h:  if (rgssVer < 2) disposableDisposeChildren(self);
+msgboxsprite-binding.h:  if (rgssVer < 2)

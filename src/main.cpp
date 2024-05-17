@@ -122,16 +122,13 @@ int rgssThreadFun(void *userdata)
   return 0;
 }
 
-static void printRgssVersion(int ver)
+static void printHCVersion()
 {
   Debug() << "HiddenChest The RGSS 1 2 & 3 Player Engine";
   Debug() << "Developer:                  " << HIDDENAUTHOR;
   Debug() << "HiddenChest Engine Version: " << HIDDENVERSION;
   Debug() << "Code Name:                  " << CODENAME;
   Debug() << "Release Date:               " << HIDDENDATE;
-  const char *const makers[] = { "HiddenChest", "XP", "VX", "VX Ace" };
-  //char buf[128];snprintf(buf, sizeof(buf),  %d (%s)", ver, makers[ver]);
-  Debug() << "Using RGSS Version" << ver << "(" << makers[ver] << ")";
 }
 
 static void showInitError(const std::string &msg)
@@ -175,19 +172,18 @@ int main(int argc, char *argv[])
     SDL_free(dataDir);
   }
 #endif
-  // now we load the config
+  // now we partially load the config
   Config conf;
   conf.read(argc, argv);
-  if (!conf.gameFolder.empty())
+  if (!conf.gameFolder.empty()) {
     if (chdir(conf.gameFolder.c_str()) != 0) {
       showInitError(std::string("Unable to switch into gameFolder ") + conf.gameFolder);
       return 0;
     }
-  conf.readGameINI();
+  }
   if (conf.windowTitle.empty())
     conf.windowTitle = conf.game.title;
-  assert(conf.rgssVersion >= 0 && conf.rgssVersion < 4);
-  printRgssVersion(conf.rgssVersion);
+  printHCVersion();
   int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
   if (IMG_Init(imgFlags) != imgFlags) {
     showInitError(std::string("Error initializing SDL_image: ") + SDL_GetError());
@@ -279,7 +275,7 @@ int main(int argc, char *argv[])
     Debug() << rtData.rgssErrorMsg;
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, conf.windowTitle.c_str(),
                              rtData.rgssErrorMsg.c_str(), win);
-  } // Clean up any remainin events
+  } // Clean up any remaining events
   eventThread.cleanup();
   Debug() << "Shutting down.";
   alcCloseDevice(alcDev);

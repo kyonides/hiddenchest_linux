@@ -53,6 +53,7 @@ struct SharedMidiState;
 
 struct SharedState
 {
+	void check_encrypted_game_file(const char* game_fn);
 	void *bindingData() const;
 	void setBindingData(void *data);
 

@@ -20,6 +20,7 @@
 ** along with HiddenChest. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "hcextras.h"
 #include "sprite.h"
 #include "sharedstate.h"
 #include "disposable-binding.h"
@@ -28,7 +29,6 @@
 #include "viewportelement-binding.h"
 #include "binding-util.h"
 #include "binding-types.h"
-#include "hcextras.h"
 
 rb_data_type_t SpriteType = { "Sprite",
   { 0, freeInstance<Sprite>, 0, 0, { 0 } }, 0, 0, 0 };
@@ -585,7 +585,8 @@ static VALUE SpriteAllocate(VALUE klass)
   return rb_data_typed_object_wrap(klass, 0, SpriteType);
 }
 
-void SpriteBindingInit() {
+void SpriteBindingInit()
+{
   VALUE RSprite = rb_define_class("Sprite", rb_cObject);
   rb_define_alloc_func(RSprite, SpriteAllocate<&SpriteType>);
   disposableBindingInit<Sprite>(RSprite);

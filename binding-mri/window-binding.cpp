@@ -20,6 +20,7 @@
 ** along with HiddenChest. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "hcextras.h"
 #include "window.h"
 #include "viewport.h"
 #include "sharedstate.h"
@@ -28,7 +29,6 @@
 #include "sceneelement-binding.h"
 #include "disposable-binding.h"
 #include "binding-util.h"
-#include "hcextras.h"
 
 DEF_TYPE(Window);
 
@@ -75,7 +75,8 @@ static VALUE window_initialize(int argc, VALUE *v, VALUE self)
   rb_get_args(argc, v, "|o", &rbView RB_ARG_END);
   if (!RB_NIL_P(rbView)) {
     view = getPrivateDataCheck<Viewport>(rbView, ViewportType);
-    if (rgssVer == 1) disposableAddChild(rbView, self);
+    if (rgssVer == 1)
+      disposableAddChild(rbView, self);
   }
   rb_iv_set(self, "viewport", rbView);
   Window *w = new Window(view, cmode);

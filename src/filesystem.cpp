@@ -526,7 +526,8 @@ void FileSystem::openRead(OpenHandler &handler, const char *filename)
 void FileSystem::openReadRaw(SDL_RWops &ops, const char *fn, bool freeOnClose)
 {
   PHYSFS_File *handle = PHYSFS_openRead(fn);
-  if (!handle) Debug() << fn << "file could not be found!";
+  if (!handle)
+    Debug() << fn << "file could not be found!";
   assert(handle);// Fails if file doesn't exist, ignoring Ruby's rescue!
   initReadOps(handle, ops, freeOnClose);
 }

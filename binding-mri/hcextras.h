@@ -22,11 +22,13 @@
 #ifndef HCEXTRAS_H
 #define HCEXTRAS_H
 
-#include <ruby.h>
+#include <stdarg.h>
+//#include <ruby.h>
+#include "binding-util.h"
 
 #define RMF(func) ((VALUE (*)(ANYARGS))(func))
 #define rstr(x) rb_str_new_cstr(x)
-#define rb_ary_c_ary(a) RARRAY(a)->as.heap.ptr
+#define c_rb_ary(a) RARRAY(a)->as.heap.ptr
 
 #define module_func(mod, name, func, args) \
   rb_define_module_function(mod, name, RMF(func), args)
@@ -42,6 +44,42 @@ static VALUE hc_sym(const char* str)
 static VALUE hc_sym2(VALUE str)
 {
   return rb_id2sym(rb_intern_str(str));
+}
+
+static VALUE print_out(int total, ...)
+{
+  VALUE line;
+  va_list list;
+  va_start(list, total);
+  try {
+    for (int n = 0; n < total; n++) {
+      const char* cstr = va_arg(list, const char*);
+      line = rb_str_new_cstr(cstr);
+      rb_io_write(rb_stdout, line);
+      rb_io_write(rb_stdout, rb_default_rs);
+    }
+  } catch (Exception &e) {
+    raiseRbExc(e);
+  }
+  va_end(list);
+  return Qnil;
+}
+
+static void rb_print(int total, ...)
+{
+  VALUE line;
+  va_list list;
+  va_start(list, total);
+  try {
+    for (int n = 0; n < total; n++) {
+      line = va_arg(list, VALUE);
+      rb_io_write(rb_stdout, line);
+      rb_io_write(rb_stdout, rb_default_rs);
+    }
+  } catch (Exception &e) {
+    raiseRbExc(e);
+  }
+  va_end(list);
 }
 
 void safe_mkdir(VALUE dir);

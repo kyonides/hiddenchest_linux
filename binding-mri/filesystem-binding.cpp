@@ -32,7 +32,7 @@ static VALUE eFileError;
 
 void safe_mkdir(VALUE dir)
 {
-  if (!rb_funcall(rb_cDir, rb_intern("exist?"), 1, dir))
+  if (rb_funcall(rb_cDir, rb_intern("exist?"), 1, dir) != Qtrue)
     rb_funcall(rb_cDir, rb_intern("mkdir"), 1, dir);
 }
 
@@ -58,13 +58,13 @@ static VALUE fileIntForPath(const char *path, bool rubyExc)
     else
       throw e;
   }
-  VALUE klass = rb_const_get(rb_cObject, rb_intern("FileInt"));
+  VALUE klass = rb_define_class("FileInt", rb_cIO);
   VALUE obj = rb_obj_alloc(klass);
   RTYPEDDATA_DATA(obj) = ops;
   return obj;
 }
 
-RB_METHOD(fileIntRead)
+static VALUE fileIntRead(int argc, VALUE *argv, VALUE self)
 {
   int length = -1;
   rb_get_args(argc, argv, "i", &length RB_ARG_END);
@@ -81,26 +81,23 @@ RB_METHOD(fileIntRead)
   return data;
 }
 
-RB_METHOD(fileIntClose)
+static VALUE fileIntClose(VALUE self)
 {
-  RB_UNUSED_PARAM;
   SDL_RWops *ops = getPrivateData<SDL_RWops>(self);
   SDL_RWclose(ops);
   return Qnil;
 }
 
-RB_METHOD(fileIntGetByte)
+static VALUE fileIntGetByte(VALUE self)
 {
-  RB_UNUSED_PARAM;
   SDL_RWops *ops = getPrivateData<SDL_RWops>(self);
   unsigned char byte;
   size_t result = SDL_RWread(ops, &byte, 1, 1);
   return (result == 1) ? rb_fix_new(byte) : Qnil;
 }
 
-RB_METHOD(fileIntBinmode)
+static VALUE fileIntBinmode(VALUE self)
 {
-  RB_UNUSED_PARAM;
   return Qnil;
 }
 
@@ -117,19 +114,21 @@ static bool file_do_exist(const char *fname)
 
 VALUE kernelLoadDataInt(const char *fname, bool rubyExc)
 {
-  rb_gc_start();
+  /*rb_gc_start();
   if ( !file_do_exist(fname) ) {
     const char *cause = "No such file or directory.";
     rb_raise(rb_eIOError, "Unable to open file '%s'.\n%s", fname, cause);
     return Qnil;
-  }
+  }*/
   VALUE port = fileIntForPath(fname, rubyExc);
-  if (RB_NIL_P(port)) return Qnil;
+  if (RB_NIL_P(port))
+    return Qnil;
   VALUE marsh = rb_const_get(rb_cObject, rb_intern("Marshal"));
   // FIXME need to catch exceptions here with begin rescue
   VALUE result;
   result = rb_funcall2(marsh, rb_intern("load"), 1, &port);
   rb_funcall2(port, rb_intern("close"), 0, NULL);
+  rb_gc_start();
   return result;
 }
 
@@ -159,7 +158,7 @@ static VALUE customProc(VALUE arg, VALUE proc)
   obj = rb_funcall2(proc, rb_intern("call"), 1, &obj);
   return obj;
 }
-
+/*
 RB_METHOD(_marshalLoad)
 {
   RB_UNUSED_PARAM;
@@ -174,22 +173,38 @@ RB_METHOD(_marshalLoad)
   VALUE v[] = { port, utf8Proc };
   return rb_funcall2(marsh, rb_intern("_HC_load_alias"), ARRAY_SIZE(v), v);
 }
+*/
+static VALUE _marshalLoad(VALUE self, VALUE port)
+{//RB_UNUSED_PARAM;port, 
+  VALUE proc = Qnil;
+  /*try {
+    rb_get_args(argc, argv, "o|o", &port, &proc RB_ARG_END);
+  } catch(...) {
+    hc_console_error();
+  }*/
+  VALUE utf8Proc = rb_proc_new(RMF(stringForceUTF8), Qnil);
+  //if (proc == Qnil) utf8Proc //else
+    //utf8Proc = rb_proc_new(RMF(customProc), proc);
+  VALUE v[] = { port, utf8Proc };
+  VALUE ml = rb_define_module("Marshal");
+  return rb_funcall2(ml, rb_intern("_HC_load_alias"), ARRAY_SIZE(v), v);
+}
 
 void fileIntBindingInit()
 {
   VALUE klass = rb_define_class("FileInt", rb_cIO);
   rb_define_alloc_func(klass, classAllocate<&FileIntType>);
-  _rb_define_method(klass, "read", fileIntRead);
-  _rb_define_method(klass, "getbyte", fileIntGetByte);
-  _rb_define_method(klass, "binmode", fileIntBinmode);
-  _rb_define_method(klass, "close", fileIntClose);
-  rb_define_singleton_method(rb_cFile, "exist_compressed?", RMF(fileInt_exist), 1);
+  rb_define_method(klass, "read", RMF(fileIntRead), -1);
+  rb_define_method(klass, "getbyte", RMF(fileIntGetByte), 0);
+  rb_define_method(klass, "binmode", RMF(fileIntBinmode), 0);
+  rb_define_method(klass, "close", RMF(fileIntClose), 0);
   rb_define_singleton_method(klass, "exist?", RMF(fileInt_exist), 1);
-  rb_define_module_function(rb_mKernel, "load_data", RMF(kernelLoadData), 1);
-  rb_define_module_function(rb_mKernel, "save_data", RMF(kernelSaveData), 2);
+  rb_define_singleton_method(rb_cFile, "exist_compressed?", RMF(fileInt_exist), 1);
+  module_func(rb_mKernel, "load_data", kernelLoadData, 1);
+  module_func(rb_mKernel, "save_data", kernelSaveData, 2);
   /* We overload the built-in 'Marshal::load()' function to silently
    * insert our utf8proc that ensures all read strings will be UTF-8 encoded */
-  VALUE marsh = rb_const_get(rb_cObject, rb_intern("Marshal"));
-  rb_define_alias(rb_singleton_class(marsh), "_HC_load_alias", "load");
-  _rb_define_module_function(marsh, "load", _marshalLoad);
+  VALUE marshal = rb_const_get(rb_cObject, rb_intern("Marshal"));
+  rb_define_alias(rb_singleton_class(marshal), "_HC_load_alias", "load");
+  module_func(marshal, "load", _marshalLoad, 1);
 }

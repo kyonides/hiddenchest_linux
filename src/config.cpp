@@ -1,10 +1,10 @@
-/* --- Modified! --- setupScreenSize(Config &conf)
+/*
 ** config.cpp
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest.
 **
-** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Extended (C) 2019 Kyonides Arkanthes <kyonides@gmail.com>
+** Copyright (C) 2013 mkxp Jonas Kulla <Nyocurio@gmail.com>
+**           (C) 2019-2024 HiddenChest Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 ** GNU General Public License for more details.
 **
 ** You should have received a copy of the GNU General Public License
-** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
+** along with HiddenChest.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "config.h"
@@ -25,7 +25,6 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
-#include <boost/filesystem.hpp>
 #include <SDL_filesystem.h>
 #include <fstream>
 #include <stdint.h>
@@ -40,8 +39,6 @@ extern "C" {
 #include <iconv.h>
 #include <errno.h>
 #endif
-
-namespace fs = boost::filesystem;
 
 /* http://stackoverflow.com/a/1031773 */
 static bool validUtf8(const char *string)
@@ -144,8 +141,8 @@ void Config::read(int argc, char *argv[])
 	PO_DESC(fixedAspectRatio, bool, true) \
 	PO_DESC(smoothScaling, bool, true) \
 	PO_DESC(vsync, bool, true) \
-	PO_DESC(defScreenW, int, 0) \
-	PO_DESC(defScreenH, int, 0) \
+	PO_DESC(defScreenW, int, START_WIDTH) \
+	PO_DESC(defScreenH, int, START_HEIGHT) \
 	PO_DESC(windowTitle, std::string, "") \
 	PO_DESC(fixedFramerate, int, 0) \
 	PO_DESC(frameSkip, bool, true) \
@@ -249,114 +246,4 @@ static void setupScreenSize(Config &conf)
 {
   if (conf.defScreenW < 1) conf.defScreenW = START_WIDTH;
   if (conf.defScreenH < 1) conf.defScreenH = START_HEIGHT;
-}
-
-void Config::readGameINI()
-{
-  if (!customScript.empty()) {
-    game.title = baseName(customScript);
-    setupScreenSize(*this);
-    return;
-  }
-  po::options_description podesc;
-  podesc.add_options()
-    ("Game.Title", po::value<std::string>())
-    ("Game.Version", po::value<std::string>())
-    ("Game.Scripts", po::value<std::string>())
-    ;
-  po::variables_map vm;
-  Debug() << fs::current_path();
-  std::string iniFilename;
-  fs::path dir = fs::current_path();
-  for (auto i = fs::directory_iterator(dir); i != fs::directory_iterator(); i++)
-  {
-    if ( fs::is_directory(i->path()) ) continue;
-    iniFilename = i->path().filename().string();
-    if ( fs::extension(iniFilename) == ".ini" ) {
-      execName = i->path().stem().string();
-      break;
-    }
-  }
-  SDLRWStream iniFile(iniFilename.c_str(), "r");
-  if (iniFile) {
-    try {
-      po::store(po::parse_config_file(iniFile.stream(), podesc, true), vm);
-      po::notify(vm);
-    } catch (po::error &error) {
-      Debug() << iniFilename + ":" << error.what();
-    }
-  } else {
-    Debug() << "FAILED to open" << iniFilename;
-  }
-  GUARD_ALL( game.title = vm["Game.Title"].as<std::string>(); );
-  GUARD_ALL( game.version = vm["Game.Version"].as<std::string>(); );
-  GUARD_ALL( game.scripts = vm["Game.Scripts"].as<std::string>(); );
-  strReplace(game.scripts, '\\', '/');
-  Debug() << game.title;
-  if (game.version.size() == 0) game.version = "1.0.0";
-#ifdef INI_ENCODING
-  // Can add more later
-  const char *languages[] =
-  {
-    titleLanguage.c_str(),
-    GUESS_REGION_JP, /* Japanese */
-    GUESS_REGION_KR, /* Korean */
-    GUESS_REGION_CN, /* Chinese */
-    0
-  };
-  bool convSuccess = true;
-  /* Verify that the game title is UTF-8, and if not,
-   * try to determine the encoding and convert to UTF-8 */
-  if (!validUtf8(game.title.c_str())) {
-    const char *encoding = 0;
-    convSuccess = false;
-    for (size_t i = 0; languages[i]; ++i) {
-      encoding = libguess_determine_encoding(game.title.c_str(),
-                                             game.title.size(),
-                                             languages[i]);
-      if (encoding) break;
-    }
-    if (encoding) {
-      iconv_t cd = iconv_open("UTF-8", encoding);
-      size_t inLen = game.title.size();
-      size_t outLen = inLen * 4;
-      std::string buf(outLen, '\0');
-      char *inPtr = const_cast<char*>(game.title.c_str());
-      char *outPtr = const_cast<char*>(buf.c_str());
-      errno = 0;
-      size_t result = iconv(cd, &inPtr, &inLen, &outPtr, &outLen);
-      iconv_close(cd);
-      if (result != (size_t) -1 && errno == 0) {
-        buf.resize(buf.size()-outLen);
-        game.title = buf;
-        convSuccess = true;
-      }
-    }
-  }
-  if (!convSuccess)
-    game.title.clear();
-#else
-  if (!validUtf8(game.title.c_str()))
-    game.title.clear();
-#endif
-  if (game.title.empty())
-    game.title = baseName(gameFolder);
-  if (rgssVersion == 0) {
-    // Try to guess RGSS version based on Data/Scripts extension
-    if (!game.scripts.empty()) {
-      const char *p = &game.scripts[game.scripts.size()];
-      const char *head = &game.scripts[0];
-      while (--p != head)
-        if (*p == '.') break;
-      if (!strcmp(p, ".rxdata"))
-        rgssVersion = 1;
-      else if (!strcmp(p, ".rvdata"))
-        rgssVersion = 2;
-      else if (!strcmp(p, ".rvdata2"))
-        rgssVersion = 3;
-    } else {
-      game.title = "HiddenChest Engine";
-    }
-  }
-  setupScreenSize(*this);
 }

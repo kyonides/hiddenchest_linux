@@ -73,9 +73,12 @@ static VALUE backdrop_gradient_bitmap(VALUE self, VALUE c1, VALUE c2, VALUE bln)
   Color *clr1 = static_cast<Color*>(Check_TypedStruct(c1, &ColorType));
   Color *clr2 = static_cast<Color*>(Check_TypedStruct(c2, &ColorType));
   int mode;
-  if (bln == Qfalse) mode = 0;
-  else if (bln == Qtrue) mode = 1;
-  else if (bln == Qnil) mode = 2;
+  if (bln == Qfalse)
+    mode = 0;
+  else if (bln == Qtrue)
+    mode = 1;
+  else if (bln == Qnil)
+    mode = 2;
   Bitmap *b = shState->graphics().gradient_bitmap(clr1->norm, clr2->norm, mode);
   VALUE bitmap = wrapObject(b, BitmapType);
   return self == graphics ? bitmap : rb_iv_set(self, "@bitmap", bitmap);
@@ -147,10 +150,13 @@ static VALUE backdrop_bitmap_dup(VALUE self)
 static VALUE backdrop_clear_bitmap(VALUE self)
 {
   VALUE bitmap = rb_iv_get(self, "@bitmap");
-  if (bitmap == Qnil) return Qnil;
+  if (bitmap == Qnil)
+    return Qnil;
   Bitmap *d = getPrivateData<Bitmap>(bitmap);
-  if (!d || d->isDisposed()) rb_iv_set(self, "@bitmap", Qnil);
-  if (rgssVer == 1) disposableDisposeChildren(bitmap);
+  if (!d || d->isDisposed())
+    rb_iv_set(self, "@bitmap", Qnil);
+  if (rgssVer == 1)
+    disposableDisposeChildren(bitmap);
   d->dispose();
   return rb_iv_set(self, "@bitmap", Qnil);
 }

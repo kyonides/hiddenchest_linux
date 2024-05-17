@@ -69,7 +69,8 @@ static VALUE bitmapInitializeCopy(int argc, VALUE* argv, VALUE self)
 {
   rb_check_argc(argc, 1);
   VALUE origObj = argv[0];
-  if (!OBJ_INIT_COPY(self, origObj)) return self;
+  if (!OBJ_INIT_COPY(self, origObj))
+    return self;
   Bitmap *orig = getPrivateData<Bitmap>(origObj);
   Bitmap *b = 0;
   GUARD_EXC( b = new Bitmap(*orig); );
@@ -82,7 +83,8 @@ static VALUE bitmapInitializeCopy(int argc, VALUE* argv, VALUE self)
 inline void bitmapDisposeChildren(VALUE disp)
 {
   VALUE children = rb_iv_get(disp, "children");
-  if ( RB_NIL_P(children) ) return;
+  if ( RB_NIL_P(children) )
+    return;
   ID dispFun = rb_intern("_HC_dispose_alias");
   for (long i = 0; i < RARRAY_LEN(children); ++i)
     rb_funcall(rb_ary_entry(children, i), dispFun, 0);
@@ -91,9 +93,12 @@ inline void bitmapDisposeChildren(VALUE disp)
 static VALUE bitmapDispose(VALUE self)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
-  if (!b) return Qnil;
-  if (b->isDisposed()) return Qnil;
-  if (rgssVer == 1) bitmapDisposeChildren(self);
+  if (!b)
+    return Qnil;
+  if (b->isDisposed())
+    return Qnil;
+  if (shState->rgssVersion == 1)
+    bitmapDisposeChildren(self);
   b->dispose();
   return Qnil;
 }
@@ -256,7 +261,7 @@ RB_METHOD(bitmapDrawText)
   if (argc == 2 || argc == 3) {
     VALUE rectObj;
     Rect *rect;
-    if (rgssVer >= 2) {
+    if (shState->rgssVersion >= 2) {
       VALUE strObj;
       rb_get_args(argc, argv, "oo|i", &rectObj, &strObj, &align RB_ARG_END);
       str = objAsStringPtr(strObj);
@@ -267,7 +272,7 @@ RB_METHOD(bitmapDrawText)
     GUARD_EXC( b->drawText(rect->toIntRect(), str, align); );
   } else {
     int x, y, width, height;
-    if (rgssVer >= 2) {
+    if (shState->rgssVersion >= 2) {
       VALUE strObj;
       rb_get_args(argc, argv, "iiiio|i", &x, &y, &width, &height, &strObj, &align RB_ARG_END);
       str = objAsStringPtr(strObj);
@@ -283,7 +288,7 @@ RB_METHOD(bitmapTextSize)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
   const char *str;
-  if (rgssVer >= 2) {
+  if (shState->rgssVersion >= 2) {
     VALUE strObj;
     rb_get_args(argc, argv, "o", &strObj RB_ARG_END);
     str = objAsStringPtr(strObj);
@@ -300,7 +305,7 @@ RB_METHOD(bitmapTextWidth)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
   const char *str;
-  if (rgssVer >= 2) {
+  if (shState->rgssVersion >= 2) {
     VALUE strObj;
     rb_get_args(argc, argv, "o", &strObj RB_ARG_END);
     str = objAsStringPtr(strObj);
@@ -316,7 +321,7 @@ RB_METHOD(bitmapTextHeight)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
   const char *str;
-  if (rgssVer >= 2) {
+  if (shState->rgssVersion >= 2) {
     VALUE strObj;
     rb_get_args(argc, argv, "o", &strObj RB_ARG_END);
     str = objAsStringPtr(strObj);

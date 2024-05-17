@@ -47,6 +47,7 @@ extern const char module_rpg2[];
 extern const char module_rpg3[];
 extern const char win32api_fake[];
 extern const char module_hc[];
+extern const char game_ini[];
 static void mriBindingExecute();
 static void mriBindingTerminate();
 static void mriBindingReset();
@@ -56,6 +57,8 @@ void init_system();
 void init_setup();
 void init_backdrop();
 int system_is_really_linux();
+int rgss;
+const char *scripts;
 static VALUE hidden, script_ary;
 
 ScriptBinding scriptBindingImpl =
@@ -69,7 +72,7 @@ ScriptBinding *scriptBinding = &scriptBindingImpl;
 
 void tableBindingInit();
 void etcBindingInit();
-void fontBindingInit();
+void init_font_binding();
 void bitmapBindingInit();
 void SpriteBindingInit();
 void MsgBoxSpriteBindingInit();
@@ -83,7 +86,6 @@ void inputBindingInit();
 void audioBindingInit();
 void graphicsBindingInit();
 void fileIntBindingInit();
-void audio_setup_custom_se();
 
 RB_METHOD(mriPrint);
 RB_METHOD(mriP);
@@ -134,13 +136,13 @@ static void mriBindingInit()
   tableBindingInit();
   etcBindingInit();
   init_system();
-  fontBindingInit();
+  init_font_binding();
   bitmapBindingInit();
   SpriteBindingInit();
   MsgBoxSpriteBindingInit();
   viewportBindingInit();
   planeBindingInit();
-  if (rgssVer < 2) {
+  if (rgss < 2) {
     windowBindingInit();
     tilemapBindingInit();
   } else {
@@ -155,47 +157,42 @@ static void mriBindingInit()
   init_terms();
   init_setup();
   init_backdrop();
-  rb_define_module_function(rb_mKernel, "msgbox", RMF(mriPrint), -1);
-  rb_define_module_function(rb_mKernel, "msgbox_p", RMF(mriP), -1);
-  rb_define_module_function(rb_mKernel, "print", RMF(mriPrint), -1);
-  rb_define_module_function(rb_mKernel, "p", RMF(mriP), -1);
-  if (rgssVer >= 3) {
-    rb_define_module_function(rb_mKernel, "rgss_main", RMF(mriRgssMain), -1);
-    rb_define_module_function(rb_mKernel, "rgss_stop", RMF(mriRgssStop), -1);
-    rb_define_global_const("RGSS_VERSION", rstr("3.0.1"));
+  module_func(rb_mKernel, "msgbox", mriPrint, -1);
+  module_func(rb_mKernel, "msgbox_p", mriP, -1);
+  module_func(rb_mKernel, "print", mriPrint, -1);
+  module_func(rb_mKernel, "p", mriP, -1);
+  if (rgss >= 3) {
+    module_func(rb_mKernel, "rgss_main", mriRgssMain, -1);
+    module_func(rb_mKernel, "rgss_stop", mriRgssStop, -1);
   } else {
     rb_define_alias(rb_singleton_class(rb_mKernel), "_HC_kernel_caller_alias", "caller");
-    rb_define_module_function(rb_mKernel, "caller", RMF(_kernelCaller), -1);
+    module_func(rb_mKernel, "caller", _kernelCaller, -1);
   }
   hidden = rb_define_module("HiddenChest");
-  rb_define_module_function(hidden, "data_directory", RMF(hc_data_dir), 0);
-  rb_define_module_function(hidden, "puts", RMF(HCPuts), -1);
-  rb_define_module_function(hidden, "raw_key_states", RMF(HCRawKeyStates), -1);
-  rb_define_module_function(hidden, "mouse_in_window", RMF(HCMouseInWindow), 0);
   VALUE sys = rb_define_module("System");
-  rb_define_module_function(sys, "data_directory", RMF(hc_data_dir), 0);
-  if (rgssVer == 1) {
+  module_func(hidden, "puts", HCPuts, -1);
+  module_func(hidden, "raw_key_states", HCRawKeyStates, -1);
+  module_func(hidden, "mouse_in_window", HCMouseInWindow, 0);
+  module_func(sys, "data_dir", hc_data_dir, 0);
+  VALUE debug = shState->config().editor.debug ? Qtrue : Qfalse;
+  if (rgss == 1) {
     rb_eval_string(module_rpg1);
-    audio_setup_custom_se();
-  } else if (rgssVer == 2) {
-    rb_eval_string(module_rpg2);
-  } else if (rgssVer == 3) {
-    rb_eval_string(module_rpg3);
+    rb_gv_set("DEBUG", debug);
+  } else {
+    rb_gv_set("TEST", debug);
+    if (rgss == 2)
+      rb_eval_string(module_rpg2);
+    else if (rgss == 3)
+      rb_eval_string(module_rpg3);
   }
   // Load global constants
   rb_gv_set("HiddenChest", Qtrue);
-  VALUE debug = shState->config().editor.debug ? Qtrue : Qfalse;
-  if (rgssVer == 1) {
-    rb_gv_set("DEBUG", debug);
-  } else if (rgssVer >= 2) {
-    rb_gv_set("TEST", debug);
-  }
   rb_gv_set("BTEST", shState->config().editor.battleTest ? Qtrue : Qfalse);
-  VALUE game = rb_define_module("Game");
-  ch title = shState->config().game.title.c_str();
-  ch version = shState->config().game.version.c_str();
-  rb_define_const(game, "TITLE", rstr(title));
-  rb_define_const(game, "VERSION", rstr(version));
+  //VALUE game = rb_define_module("Game");
+  //ch title = shState->config().game.title.c_str();
+  //ch version = shState->config().game.version.c_str();
+  //rb_define_const(game, "TITLE", rstr(title));
+  //rb_define_const(game, "VERSION", rstr(version));
   if (system_is_really_linux()) {
     Debug() << "Loading Fake Win32API...";
     rb_eval_string(win32api_fake);
@@ -356,6 +353,60 @@ RB_METHOD(_kernelCaller)
   return trace;
 }
 
+static bool file_exist(VALUE name, const char* ext)
+{
+  name = rb_str_plus(name, rstr(ext));
+  const char* fn = StringValueCStr(name);
+  return shState->fileSystem().exists(fn);
+}
+
+static void rb_check_rgss_version(Config &conf)
+{
+  rgss = 0;
+  const char *const projects[] = { ".rhproj", ".rxproj", ".rvproj", ".rvproj2" };
+  const char *const enc_names[] = { ".rhc", ".rgssad", ".rgss2a", ".rgss3a" };
+  const char *const makers[] = { "HiddenChest", "XP", "VX", "VX Ace" };
+  ID glob = rb_intern("glob");
+  VALUE fn_ary = rb_funcall(rb_cDir, glob, 1, rstr("*.ini"));
+  VALUE filename = rb_ary_entry(fn_ary, 0);
+  if (filename == Qnil)
+    return;
+  VALUE game = rb_define_module("Game");
+  rb_define_const(game, "INI_FILENAME", filename);
+  VALUE ary = rb_str_split(filename, ".");
+  VALUE exe_name = rb_ary_entry(ary, 0);
+  for (int n = 0; n < 4; n++) {
+    if (file_exist(exe_name, projects[n])) {
+      rgss = n;
+      break;
+    }
+  }
+  if (!rgss) {
+    for (int n = 0; n < 4; n++) {
+      if (file_exist(exe_name, enc_names[n])) {
+        rgss = n;
+        break;
+      }
+    }
+  }
+  conf.rgssVersion = rgss;
+  shState->rgssVersion = rgss;
+  VALUE enc_name_ext = rb_str_plus(exe_name, rstr(enc_names[rgss]));
+  ch encrypted_name = RSTRING_PTR(enc_name_ext);
+  rb_define_global_const("RGSS_VERSION", RB_INT2FIX(rgss));
+  Debug() << "RGSS Version" << rgss << "(" << makers[rgss] << ")";
+  rb_eval_string(game_ini);
+  VALUE data = rb_const_get(game, rb_intern("DATA"));
+  data = rb_funcall(data, rb_intern("values"), 0);
+  scripts = RSTRING_PTR(rb_const_get(game, rb_intern("SCRIPTS")));
+  ch title = RSTRING_PTR(rb_const_get(game, rb_intern("TITLE")));
+  conf.game.scripts = scripts;
+  conf.game.title = title;
+  conf.game.version = RSTRING_PTR(rb_const_get(game, rb_intern("VERSION")));
+  shState->set_title(title);
+  shState->check_encrypted_game_file(encrypted_name);
+}
+
 static void runCustomScript(const std::string &filename)
 {
   Debug() << "Running Custom Scripts";
@@ -376,16 +427,16 @@ struct BacktraceData
   BoostHash<std::string, std::string> scriptNames;
 };
 
-#define SCRIPT_SECTION_FMT (rgssVer >= 3 ? "Section%04ld" : "Section%03ld")
+#define SCRIPT_SECTION_FMT (rgss >= 3 ? "Section%04ld" : "Section%03ld")
 
 static void runRGSSscripts(BacktraceData &btData)
 {
-  if (rgssVer == 0) {
+  if (rgss == 0) {
     hc_c_splash("No game file was found!", 1, "LoadError");
     return;
   }
   const Config &conf = shState->rtData().config;
-  const std::string &scriptPack = conf.game.scripts;
+  std::string scriptPack = conf.game.scripts;
   if (scriptPack.empty()) {
     ch error = "No game scripts specified (missing Game.ini?)";
     Debug() << error;
@@ -394,12 +445,13 @@ static void runRGSSscripts(BacktraceData &btData)
   }
   if (!shState->fileSystem().exists(scriptPack.c_str())) {
     std::string error = "Unable to open '" + scriptPack + "'";
+    Debug() << "Errno::ENOENT" << error;
     hc_c_splash(error.c_str(), 2, "Errno::ENOENT");
     return;
   }
   // We checked if Scripts.rxdata exists, but something might still go wrong
   try {
-    script_ary = kernelLoadDataInt(scriptPack.c_str(), false);
+    script_ary = kernelLoadDataInt(scripts, false);
   } catch (const Exception &e) {
     std::string error = "Failed to read script data: " + e.msg;
     hc_c_splash(error.c_str(), 2, "IOError");
@@ -544,8 +596,8 @@ static void mriBindingExecute()
   ruby_init();
   rb_enc_set_default_external(rb_enc_from_encoding(rb_utf8_encoding()));
   VALUE rversion = rb_const_get(rb_cObject, rb_intern("RUBY_VERSION"));
-  ch version = StringValueCStr(rversion);
-  Debug() << "Ruby Version: " << version;
+  rversion = rb_str_plus(rstr("Ruby Version: "), rversion);
+  rb_print(1, rversion);
   Config &conf = shState->rtData().config;
   if (!conf.rubyLoadpaths.empty()) {
     // Setup custom load paths
@@ -556,6 +608,7 @@ static void mriBindingExecute()
       rb_ary_push(lpaths, pathv);
     }
   }
+  rb_check_rgss_version(conf);
   RbData rbData;
   shState->setBindingData(&rbData);
   BacktraceData btData;

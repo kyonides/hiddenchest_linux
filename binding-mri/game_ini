@@ -1,0 +1,17 @@
+module Game
+  DATA = {}
+  DATA.default = ""
+  def self.process_ini
+    lines = File.readlines(INI_FILENAME)
+    lines.size.times do
+      key, value = lines.shift.split("=")
+      next if !key or key[/\[/]
+      DATA[key] = value != nil ? value.chomp : ""
+    end
+    DATA["Scripts"].sub!(/\\/, "/")
+    const_set("SCRIPTS", DATA["Scripts"])
+    const_set("TITLE", DATA["Title"])
+    const_set("VERSION", DATA["Version"])
+  end
+  process_ini
+end
