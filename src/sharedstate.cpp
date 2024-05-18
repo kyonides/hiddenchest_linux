@@ -38,7 +38,6 @@
 #include "sharedmidistate.h"
 #include <unistd.h>
 #include <stdio.h>
-#include <string>
 #include <chrono>
 #include "debugwriter.h"
 
@@ -124,7 +123,7 @@ struct SharedStatePrivate
     /* RGSS3 games will call setup_midi, so there's
      * no need to do it on startup */
     if (rgssVer <= 2)
-       midiState.initIfNeeded(threadData->config);
+      midiState.initIfNeeded(threadData->config);
   }
 
   ~SharedStatePrivate()
@@ -137,7 +136,7 @@ struct SharedStatePrivate
 
 void SharedState::check_encrypted_game_file(const char* game_fn)
 {
-  std::string archPath = game_fn; //config.execName + gameArchExt();
+  std::string archPath = game_fn;
   Debug() << "Searching for encrypted game file...";
   // Check if a game archive exists
   FILE *tmp = fopen(archPath.c_str(), "rb");
@@ -207,6 +206,7 @@ const char* SharedState::get_title()
 void SharedState::set_title(const char *title)
 {
   p->config.game.title = title;
+  p->config.windowTitle = title;
   SDL_SetWindowTitle(p->sdlWindow, title);
 }
 
@@ -371,12 +371,14 @@ void SharedState::checkReset()
   scriptBinding->reset();
 }
 
-void SharedState::reset_config(int rgss, const char *version, const char *scripts)
+void SharedState::reset_config(int rgss, const char *version,
+                               const char *scripts, std::vector<std::string> &rtps)
 {
+  rgssVersion = rgss;
+  p->config.rgssVersion = rgss;
   p->config.game.version = version;
   p->config.game.scripts = scripts;
-  p->config.rgssVersion = rgss;
-  rgssVersion = rgss;
+  p->config.rtps.insert(p->config.rtps.end(), rtps.begin(), rtps.end());
 }
 
 Font &SharedState::defaultFont() const

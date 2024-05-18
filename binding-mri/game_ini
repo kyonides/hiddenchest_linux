@@ -2,6 +2,7 @@ module Game
   INI_FILENAME = Dir["*.ini"][0] || ".ini"
   DATA = {}
   DATA.default = ""
+  RTP = []
   extend self
   def process_exe_name(list)
     4.times do |n|
@@ -21,8 +22,16 @@ module Game
     end
     lines.size.times do
       key, value = lines.shift.split("=")
-      if key and key[/\[/] == nil
-        DATA[key] = value != nil ? value.chomp : ""
+      if !key or !value
+        next
+      end
+      value = value.chomp
+      if key[/\[/] == nil
+        if key[/RTP/i] != nil and value.size > 1
+          RTP << value
+        else
+          DATA[key] = value
+        end
       end
     end
     DATA["Scripts"].sub!("\\", "/")

@@ -23,6 +23,8 @@
 #define SHAREDSTATE_H
 
 #include <sigc++/signal.h>
+#include <string>
+#include <vector>
 
 #define shState SharedState::instance
 #define glState shState->_glState()
@@ -115,7 +117,8 @@ struct SharedState
 
 	void checkReset();
 
-	void reset_config(int rgss, const char *version, const char *scripts);
+	void reset_config(int rgss, const char *version,
+										const char *scripts, std::vector<std::string> &rtps);
   
   const char* get_title();
   void set_title(const char *title);

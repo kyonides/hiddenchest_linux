@@ -273,7 +273,8 @@ FileSystem::FileSystem(const char *argv0, bool allowSymlinks)
 FileSystem::~FileSystem()
 {
   delete p;
-  if (PHYSFS_deinit() == 0)  Debug() << "PhyFS failed to deinit.";
+  if (PHYSFS_deinit() == 0)
+    Debug() << "PhyFS failed to deinit.";
 }
 
 void FileSystem::addPath(const char *path)
@@ -281,7 +282,8 @@ void FileSystem::addPath(const char *path)
   if (!PHYSFS_mount(path, 0, 1)) {
     // If it didn't work, try mounting via a wrapped SDL_RWops
     PHYSFS_Io *io = createSDLRWIo(path);
-    if (io) PHYSFS_mountIo(io, path, 0, 1);
+    if (io)
+      PHYSFS_mountIo(io, path, 0, 1);
   }
 }
 

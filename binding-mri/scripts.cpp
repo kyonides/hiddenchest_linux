@@ -115,7 +115,7 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
   btr[0] = rb_str_plus(rstr("Error Type: "), klass);
   btr[1] = rb_str_plus(msg, rstr("\n"));
   rb_io_write(file, btr[0]);
-  rb_io_write(file, rstr("\n"));
+  rb_io_write(file, rb_default_rs);
   rb_io_write(file, btr[1]);
   if (bt == Qnil) {
     if (names != Qnil) {
@@ -123,7 +123,7 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
       Debug() << RSTRING_PTR(name);
       rb_io_write(file, rstr("Script "));
       rb_io_write(file, name);
-      rb_io_write(file, rstr("\n"));
+      rb_io_write(file, rb_default_rs);
     }
     rb_io_close(file);
     rb_io_puts(2, btr, rb_stdout);
@@ -145,7 +145,7 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
       //rb_io_write(file, name);
       rb_io_write(file, rstr("in "));
       rb_io_write(file, line);
-      rb_io_write(file, rstr("\n"));
+      rb_io_write(file, rb_default_rs);
     }
   } else {
     VALUE regex_digit, regex_eval, test_regex;
@@ -167,7 +167,7 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
       //rb_io_write(file, rb_ary_entry(ary, 1));
       rb_io_write(file, rstr("in "));
       rb_io_write(file, line);
-      rb_io_write(file, rstr("\n"));
+      rb_io_write(file, rb_default_rs);
     }
   }
   rb_io_close(file);

@@ -37,8 +37,10 @@ void initFluidFunctions()
 
 #else
 	so = SDL_LoadObject(FLUID_LIB);
+#if __LINUX__
   if (!so)
 		so = SDL_LoadObject(FLUID_LIB3);
+#endif
 	if (!so)
 		goto fail;
 
@@ -60,7 +62,10 @@ FLUID_FUNCS2
 
 #ifndef SHARED_FLUID
 fail:
-	Debug() << "Failed to load " FLUID_LIB " or " FLUID_LIB3 ".";
+	Debug() << "Failed to load " FLUID_LIB ".";
+#if __LINUX__
+	Debug() << "Failed to load " FLUID_LIB3 ".";
+#endif
 	Debug() << "Midi playback is disabled.";
 	memset(&fluid, 0, sizeof(fluid));
 	SDL_UnloadObject(so);

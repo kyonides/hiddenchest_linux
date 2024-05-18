@@ -8,6 +8,7 @@
 
 #include "hcextras.h"
 #include "sharedstate.h"
+#include "debugwriter.h"
 
 static VALUE game_set_internal_values(VALUE self)
 {
@@ -17,8 +18,19 @@ static VALUE game_set_internal_values(VALUE self)
   const char *version = RSTRING_PTR(rb_const_get(self, rb_intern("VERSION")));
   const char *scripts = RSTRING_PTR(rb_const_get(self, rb_intern("SCRIPTS")));
   const char *enc_name = RSTRING_PTR(rb_const_get(self, rb_intern("ENCRYPTED_NAME")));
+  VALUE entry, rtp_ary = rb_const_get(self, rb_intern("RTP"));
+  int rtp_len = RARRAY_LEN(rtp_ary);
+  std::vector<std::string> c_rtp;
+  std::string str;
+  print_out(1, "RTP List:");
+  for (int n = 0; n < rtp_len; n++) {
+    entry = rb_ary_entry(rtp_ary, n);
+    rb_print(1, entry);
+    str = RSTRING_PTR(entry);
+    c_rtp.push_back(str);
+  }
   shState->set_title(title);
-  shState->reset_config(rgss, version, scripts);
+  shState->reset_config(rgss, version, scripts, c_rtp);
   shState->check_encrypted_game_file(enc_name);
   return Qnil;
 }
