@@ -146,7 +146,7 @@ void SharedState::check_encrypted_game_file(const char* game_fn)
     p->fileSystem.addPath(archPath.c_str());
     fclose(tmp);
   } else {
-    Debug() << "Could not find any encrypted game file.";
+    Debug() << "Could not find any encrypted game file:" << game_fn;
   }
   for (size_t i = 0; i < p->config.rtps.size(); ++i)
     p->fileSystem.addPath(p->config.rtps[i].c_str());
@@ -206,6 +206,7 @@ const char* SharedState::get_title()
 
 void SharedState::set_title(const char *title)
 {
+  p->config.game.title = title;
   SDL_SetWindowTitle(p->sdlWindow, title);
 }
 
@@ -368,6 +369,14 @@ void SharedState::checkReset()
   if (!p->rtData.rqReset) return;
   p->rtData.rqReset.clear();
   scriptBinding->reset();
+}
+
+void SharedState::reset_config(int rgss, const char *version, const char *scripts)
+{
+  p->config.game.version = version;
+  p->config.game.scripts = scripts;
+  p->config.rgssVersion = rgss;
+  rgssVersion = rgss;
 }
 
 Font &SharedState::defaultFont() const

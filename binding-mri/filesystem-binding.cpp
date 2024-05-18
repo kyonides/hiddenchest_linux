@@ -158,7 +158,7 @@ static VALUE customProc(VALUE arg, VALUE proc)
   obj = rb_funcall2(proc, rb_intern("call"), 1, &obj);
   return obj;
 }
-/*
+
 RB_METHOD(_marshalLoad)
 {
   RB_UNUSED_PARAM;
@@ -166,28 +166,12 @@ RB_METHOD(_marshalLoad)
   rb_get_args(argc, argv, "o|o", &port, &proc RB_ARG_END);
   VALUE utf8Proc;
   if (RB_NIL_P(proc))
-    utf8Proc = rb_proc_new(RUBY_METHOD_FUNC(stringForceUTF8), Qnil);
+    utf8Proc = rb_proc_new(RMF(stringForceUTF8), Qnil);
   else
-    utf8Proc = rb_proc_new(RUBY_METHOD_FUNC(customProc), proc);
-  VALUE marsh = rb_const_get(rb_cObject, rb_intern("Marshal"));
+    utf8Proc = rb_proc_new(RMF(customProc), proc);
+  VALUE marshal = rb_const_get(rb_cObject, rb_intern("Marshal"));
   VALUE v[] = { port, utf8Proc };
-  return rb_funcall2(marsh, rb_intern("_HC_load_alias"), ARRAY_SIZE(v), v);
-}
-*/
-static VALUE _marshalLoad(VALUE self, VALUE port)
-{//RB_UNUSED_PARAM;port, 
-  VALUE proc = Qnil;
-  /*try {
-    rb_get_args(argc, argv, "o|o", &port, &proc RB_ARG_END);
-  } catch(...) {
-    hc_console_error();
-  }*/
-  VALUE utf8Proc = rb_proc_new(RMF(stringForceUTF8), Qnil);
-  //if (proc == Qnil) utf8Proc //else
-    //utf8Proc = rb_proc_new(RMF(customProc), proc);
-  VALUE v[] = { port, utf8Proc };
-  VALUE ml = rb_define_module("Marshal");
-  return rb_funcall2(ml, rb_intern("_HC_load_alias"), ARRAY_SIZE(v), v);
+  return rb_funcall2(marshal, rb_intern("_HC_load_alias"), ARRAY_SIZE(v), v);
 }
 
 void fileIntBindingInit()
@@ -206,5 +190,5 @@ void fileIntBindingInit()
    * insert our utf8proc that ensures all read strings will be UTF-8 encoded */
   VALUE marshal = rb_const_get(rb_cObject, rb_intern("Marshal"));
   rb_define_alias(rb_singleton_class(marshal), "_HC_load_alias", "load");
-  module_func(marshal, "load", _marshalLoad, 1);
+  module_func(marshal, "load", _marshalLoad, -1);
 }

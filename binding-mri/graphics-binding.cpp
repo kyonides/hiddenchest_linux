@@ -291,7 +291,8 @@ static VALUE graphics_get_title(VALUE self)
 
 static VALUE graphics_set_title(VALUE self, VALUE title)
 {
-  shState->set_title(RSTRING_PTR(title));
+  const char *new_title = RSTRING_PTR(title);
+  shState->set_title(new_title);
   return title;
 }
 

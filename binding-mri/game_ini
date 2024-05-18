@@ -1,17 +1,47 @@
 module Game
+  INI_FILENAME = Dir["*.ini"][0] || ".ini"
   DATA = {}
   DATA.default = ""
-  def self.process_ini
-    lines = File.readlines(INI_FILENAME)
+  extend self
+  def process_exe_name(list)
+    4.times do |n|
+      if FileInt.exist?(EXE_NAME + list[n])
+        return n
+      end
+    end
+    return 0
+  end
+
+  def process_ini
+    begin
+      lines = File.readlines(INI_FILENAME)
+    rescue => e
+      puts e.class, e.message, e.backtrace
+      return
+    end
     lines.size.times do
       key, value = lines.shift.split("=")
-      next if !key or key[/\[/]
-      DATA[key] = value != nil ? value.chomp : ""
+      if key and key[/\[/] == nil
+        DATA[key] = value != nil ? value.chomp : ""
+      end
     end
-    DATA["Scripts"].sub!(/\\/, "/")
+    DATA["Scripts"].sub!("\\", "/")
     const_set("SCRIPTS", DATA["Scripts"])
     const_set("TITLE", DATA["Title"])
     const_set("VERSION", DATA["Version"])
+    const_set("EXE_NAME", INI_FILENAME.split('.')[0])
+    projects = [".rhproj", ".rxproj", ".rvproj", ".rvproj2"]
+    encrypt_ext = [".rhc", ".rgssad", ".rgss2a", ".rgss3a"]
+    makers = ["HiddenChest", "XP", "VX", "VX Ace"]
+    n = process_exe_name(projects)
+    if n == 0
+      n = process_exe_name(encrypt_ext)
+    end
+    const_set("ENCRYPTED_NAME", EXE_NAME + encrypt_ext[n])
+    const_set("MAKER", makers[n])
+    const_set("RGSS_VERSION", n)
+    puts "RGSS Version: #{n} (#{MAKER})", ENCRYPTED_NAME
   end
   process_ini
+  set_internal_values
 end

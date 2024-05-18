@@ -114,6 +114,8 @@ struct SharedState
 	void checkShutdown();
 
 	void checkReset();
+
+	void reset_config(int rgss, const char *version, const char *scripts);
   
   const char* get_title();
   void set_title(const char *title);

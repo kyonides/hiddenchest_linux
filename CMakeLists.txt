@@ -357,6 +357,7 @@ if (BINDING STREQUAL "MRI")
     binding-mri/setup.cpp
     binding-mri/system.cpp
     binding-mri/terms.cpp
+    binding-mri/game.cpp
   )
 elseif(BINDING STREQUAL "MRUBY")
   message(FATAL_ERROR "Mruby support in CMake needs to be finished")
