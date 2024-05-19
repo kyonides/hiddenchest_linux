@@ -42,13 +42,13 @@ struct SharedMidiState
 {
 	bool inited;
 	std::vector<Synth> synths;
-	const std::string &soundFont;
+	std::string soundFont;
 	std::string other_soundfont;
 	fluid_settings_t *flSettings;
 
 	SharedMidiState(const Config &conf)
 	    : inited(false),
-	      soundFont(conf.midi.soundFont),
+	      soundFont(""),
 	      other_soundfont("")
 	{}
 
@@ -81,12 +81,10 @@ struct SharedMidiState
 		fluid.settings_setnum(flSettings, "synth.sample-rate", SYNTH_SAMPLERATE);
 		fluid.settings_setint(flSettings, "synth.chorus.active", conf.midi.chorus ? 1 : 0);
 		fluid.settings_setint(flSettings, "synth.reverb.active", conf.midi.reverb ? 1 : 0);
-		if (soundFont.empty())
-			Debug() << "Warning: No initial soundfont specified, sound might be mute";
+		//if (soundFont.empty())
+			//Debug() << "Warning: No initial soundfont specified, sound might be mute";
     //if (other_soundfont.empty()) {
 		  //Debug() << "Warning: No custom soundfont specified, sound might be mute";
-		for (size_t i = 0; i < SYNTH_INIT_COUNT; ++i)
-			addSynth(false);
 	}
 
 	fluid_synth_t *allocateSynth()
@@ -117,6 +115,14 @@ struct SharedMidiState
 		synths[i].inUse = false;
 	}
 
+	void set_default_soundfont(std::string def_sf)
+	{
+		assert(HAVE_FLUID);
+		soundFont = def_sf;
+		for (size_t i = 0; i < SYNTH_INIT_COUNT; ++i)
+			addSynth(false);
+	}
+
 	void set_soundfont(std::string new_sf)
 	{
 		assert(HAVE_FLUID);
@@ -145,11 +151,9 @@ private:
 		fluid_synth_t *syn = fluid.new_synth(flSettings);
 		if (other_soundfont.empty()) {
 			if (!soundFont.empty()) {
-				Debug() << "Loading SoundFont" << soundFont.c_str() << "...";
 				fluid.synth_sfload(syn, soundFont.c_str(), 1);
 			}
 		}	else {
-			Debug() << "Loading SoundFont" << other_soundfont.c_str() << "...";
 			fluid.synth_sfload(syn, other_soundfont.c_str(), 1);
 		}
 		Synth synth;

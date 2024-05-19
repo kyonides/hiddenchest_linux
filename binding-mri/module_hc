@@ -1,0 +1,79 @@
+module HiddenChest
+
+class Scene
+  def initialize
+    Font.default_outline = true
+    @sprites = []
+    @sprites << @frame = Sprite.new
+    @sprites << @logo = Sprite.new
+    @sprites << @title = Sprite.new
+    @sprites << @advice = Sprite.new
+  end
+
+  def main
+    width = Graphics.width
+    @frame.x = (width - 240) / 2 - 44
+    @frame.y = Graphics.height / 3 - 24
+    @frame.bitmap = b = Bitmap.new(72, 72)
+    b.fill_rect(0, 0, 72, 72, Color.new(0, 80, 255))
+    @logo.x = @frame.x + 4
+    @logo.y = @frame.y + 4
+    @logo.bitmap = Bitmap.new
+    @title.x = @logo.x + 76
+    @title.y = @logo.y - 24
+    @title.bitmap = b = Bitmap.new(240, 128)
+    f = b.font
+    f.size = 36
+    f.outline_size = 4
+    f.outline_color.set(0, 80, 255)
+    b.draw_text(0, 0, 240, 36, "HiddenChest", 1)
+    f.size = 22
+    f.outline_size = 2
+    f.outline_color.set(0, 180, 80)
+    b.draw_text(0, 40, 240, 24, "Version " + VERSION, 1)
+    f.outline_color.set(80, 80, 80)
+    b.draw_text(0, 68, 240, 24, "Release Date: " + RELEASE_DATE, 1)
+    b.draw_text(0, 100, 240, 24, "by " + AUTHOR, 1)
+    @advice.y = @logo.y + 128
+    @advice.bitmap = b = Bitmap.new(width, 140)
+    f = b.font
+    f.size = 28
+    f.outline_size = 2
+    f.outline_color.set(255, 80, 0)
+    b.draw_text(0, 0, width, 26, "LoadError", 1)
+    f.size = 24
+    b.draw_text(0, 32, width, 26, "No game file was found!", 1)
+    f.outline_color.set(80, 80, 80)
+    f.size = 26
+    b.draw_text(0, 72, width, 28, "Click or Press Any Button", 1)
+    b.draw_text(0, 104, width, 28, "to close the window", 1)
+    Graphics.transition
+    Graphics.screenshot
+    until $scene != self
+      Graphics.update
+      Input.update
+      if Input.trigger_any?
+        $scene = nil
+      end
+    end
+    terminate
+  end
+
+  def terminate
+    Graphics.freeze
+    @sprites.each{|sprite| sprite.dispose }
+  end
+end
+
+end
+
+begin
+  Graphics.freeze
+  $scene = HiddenChest::Scene.new
+  while $scene
+    $scene.main
+  end
+  Graphics.transition(20)
+rescue
+  print $!.class, "\n", $!.message, "\n", $!.backtrace
+end

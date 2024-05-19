@@ -1,3 +1,21 @@
+module System
+  LOGO = "app_logo"
+  DESCRIPTION = "An RGSS based engine derived from mkxp developed by Ancurio"
+  extend self
+  attr_reader :user_language
+  def platform
+    NAME
+  end
+
+  def linux?
+    FAMILY_NAME == "linux"
+  end
+
+  def windows?
+    FAMILY_NAME == "windows"
+  end
+end
+
 module Game
   INI_FILENAME = Dir["*.ini"][0] || ".ini"
   DATA = {}
@@ -22,16 +40,32 @@ module Game
     end
     lines.size.times do
       key, value = lines.shift.split("=")
-      if !key or !value
+      unless key and value
         next
       end
       value = value.chomp
-      if key[/\[/] == nil
-        if key[/RTP/i] != nil and value.size > 1
+      if key[/RTP/i] != nil
+        if value.size > 1
           RTP << value
-        else
-          DATA[key] = value
         end
+      elsif key[/SoundFontWin/i] != nil
+        if System.windows?
+          System.const_set("SOUNDFONT", value)
+        end
+      elsif key[/SoundFontLnx/i] != nil
+        if System.linux?
+          System.const_set("SOUNDFONT", value)
+        end
+      elsif key[/SoundFontPathWin/i] != nil
+        if System.windows?
+          System.const_set("SOUNDFONT_DIR", value)
+        end
+      elsif key[/SoundFontPathLnx/i] != nil
+        if System.linux?
+          System.const_set("SOUNDFONT_DIR", value)
+        end
+      else
+        DATA[key] = value
       end
     end
     DATA["Scripts"].sub!("\\", "/")
@@ -49,7 +83,7 @@ module Game
     const_set("ENCRYPTED_NAME", EXE_NAME + encrypt_ext[n])
     const_set("MAKER", makers[n])
     const_set("RGSS_VERSION", n)
-    puts "RGSS Version: #{n} (#{MAKER})", ENCRYPTED_NAME
+    puts "RGSS Version: #{n} (#{MAKER})"
   end
   process_ini
   set_internal_values

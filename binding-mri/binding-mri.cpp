@@ -48,6 +48,7 @@ extern const char module_rpg3[];
 extern const char win32api_fake[];
 extern const char module_hc[];
 extern const char game_ini[];
+extern const char setup_ini[];
 static void mriBindingExecute();
 static void mriBindingTerminate();
 static void mriBindingReset();
@@ -133,9 +134,9 @@ void hc_rb_splash(VALUE exception)
 
 static void mriBindingInit()
 {
+  init_setup();
   tableBindingInit();
   etcBindingInit();
-  init_system();
   init_font_binding();
   bitmapBindingInit();
   SpriteBindingInit();
@@ -153,7 +154,6 @@ static void mriBindingInit()
   audioBindingInit();
   graphicsBindingInit();
   init_terms();
-  init_setup();
   init_backdrop();
   module_func(rb_mKernel, "msgbox", mriPrint, -1);
   module_func(rb_mKernel, "msgbox_p", mriP, -1);
@@ -186,10 +186,8 @@ static void mriBindingInit()
   // Load global constants
   rb_gv_set("HiddenChest", Qtrue);
   rb_gv_set("BTEST", shState->config().editor.battleTest ? Qtrue : Qfalse);
-  if (system_is_really_linux()) {
-    Debug() << "Loading Fake Win32API...";
-    rb_eval_string(win32api_fake);
-  }
+  Debug() << "Loading Fake Win32API...";
+  rb_eval_string(win32api_fake);
 }
 
 static void showMsg(const std::string &msg)
@@ -357,11 +355,22 @@ static int rb_check_rgss_version()
 {
   fileIntBindingInit();
   init_scripts();
+  init_system();
   init_game();
   int state;
   rb_eval_string_protect(game_ini, &state);
   VALUE error = rb_errinfo();
-  rb_print(1, rb_obj_as_string(RB_INT2FIX(state)));
+  if (state && error != Qnil) {
+    VALUE klass, message, backtrace;
+    klass = rb_obj_as_string(rb_obj_class(error));
+    message = rb_funcall(error, rb_intern("message"), 0);
+    backtrace = rb_funcall(error, rb_intern("backtrace"), 0);
+    rb_print(2, klass, message);
+    rb_print(RARRAY_LEN(backtrace), backtrace);
+    return state;
+  }
+  rb_eval_string_protect(setup_ini, &state);
+  error = rb_errinfo();
   if (state && error != Qnil) {
     VALUE klass, message, backtrace;
     klass = rb_obj_as_string(rb_obj_class(error));
