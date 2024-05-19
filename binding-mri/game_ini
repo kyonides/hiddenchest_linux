@@ -1,4 +1,6 @@
 module System
+  SOUNDFONT = ""
+  SOUNDFONT_DIR = ""
   LOGO = "app_logo"
   DESCRIPTION = "An RGSS based engine derived from mkxp developed by Ancurio"
   extend self
