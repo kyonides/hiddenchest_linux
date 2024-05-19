@@ -172,12 +172,17 @@ static void mriBindingInit()
   module_func(hidden, "raw_key_states", HCRawKeyStates, -1);
   module_func(hidden, "mouse_in_window", HCMouseInWindow, 0);
   module_func(sys, "data_dir", hc_data_dir, 0);
-  VALUE debug = shState->config().editor.debug ? Qtrue : Qfalse;
+  VALUE game, debug, fullscreen;
+  game = rb_define_module("Game");
+  debug = rb_const_get(game, rb_intern("DEBUG"));
+  fullscreen = rb_const_get(game, rb_intern("FULLSCREEN"));
+  shState->config().editor.debug = debug == Qtrue;
+  shState->graphics().set_fullscreen(fullscreen == Qtrue);
   if (rgssVer == 1) {
     rb_eval_string(module_rpg1);
-    rb_gv_set("DEBUG", debug);
+    rb_gv_set("$DEBUG", debug);
   } else {
-    rb_gv_set("TEST", debug);
+    rb_gv_set("$TEST", debug);
     if (rgssVer == 2)
       rb_eval_string(module_rpg2);
     else if (rgssVer == 3)
@@ -185,7 +190,7 @@ static void mriBindingInit()
   }
   // Load global constants
   rb_gv_set("HiddenChest", Qtrue);
-  rb_gv_set("BTEST", shState->config().editor.battleTest ? Qtrue : Qfalse);
+  rb_gv_set("$BTEST", shState->config().editor.battleTest ? Qtrue : Qfalse);
   Debug() << "Loading Fake Win32API...";
   rb_eval_string(win32api_fake);
 }

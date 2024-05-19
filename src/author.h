@@ -1,5 +1,5 @@
 #define HIDDENAUTHOR "Kyonides Arkanthes"
-#define HIDDENVERSION "1.1.64"
+#define HIDDENVERSION "1.1.65"
 #define HIDDENDATE "2024-05-19"
 #define CODENAME "ReConfigured"
 #define SYSTEM_STRING "linux"

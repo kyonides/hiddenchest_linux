@@ -214,7 +214,7 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
     - `soundfonts` consiste en una lista de soundfonts disponibles.
     - `soundfont_index` te entrega el índice de la soundfont actual si la hay.
     - `choose_soundfont` más un número entero como único parámetro te permite cambiar la soundfont en plena ejecución.
-* Módulo `Game` incluye las siguientes constantes: `TITLE`, `VERSION` y `SCRIPTS`. Estas son extraídas del archivo Game.ini de forma automática.
+* Módulo `Game` incluye las siguientes constantes: `TITLE`, `VERSION`, `SCRIPTS`, `DEBUG` y `FULLSCREEN`. Estas son extraídas del archivo Game.ini de forma automática.
 * Módulo `Backdrop`, disponibles en todas las versiones de RGSS, permite crear una captura temporal del mapa previo para usarlo como fondo de una escena distinta. Usen cualquiera de los siguientes llamados para crear el bitmap que necesitarán en su escena personalizada. Después pueden asignarle su bitmap a una variable de @instancia de su elección al llamar a su método `bitmap` o `bitmap_dup` (duplicado). Luego de congelar la escena con `Graphics.freeze`, llamen a `clear_bitmap` para desecharlo apropiadamente o desechen el bitmap de su sprite directamente en caso de que deseen guardarlo para más adelante y hayan utilizado el método `bitmap_dup` anteriormente.
     - `keep_bitmap` - Su mapa sin efectos especiales
     - `gray_bitmap` - Versión en Gris de su mapa

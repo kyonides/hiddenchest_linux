@@ -50,7 +50,7 @@
 include <SDL_opengles2.h>
 define APIENTRYP GL_APIENTRYP
 else*/
-#include <SDL_opengl.h>
+//#include <SDL_opengl.h>
 //endif */
 // End of addition
 #define GUARD_MEGA \
@@ -276,9 +276,11 @@ Bitmap::Bitmap(const char *filename, int none)
     if (!strcmp(ib.name, filename)) break;
   }
   SDL_RWops *src = SDL_RWFromConstMem(ib.mem, ib.size);
-  if (!src) Debug() << "No source!";
+  if (!src)
+    Debug() << "No source!";
   SDL_Surface *surface = IMG_Load_RW(src, SDL_TRUE);
-  if (!surface) Debug() << "No surface";
+  if (!surface)
+    Debug() << "No surface";
   p = new BitmapPrivate(this);
   p->ensureFormat(surface, SDL_PIXELFORMAT_ABGR8888);
   TEXFBO tex = shState->texPool().request(surface->w, surface->h);
@@ -292,9 +294,11 @@ Bitmap::Bitmap(const char *filename, int none)
 Bitmap::Bitmap(int none)
 {
   SDL_RWops *src = SDL_RWFromConstMem(assets_app_logo_png, assets_app_logo_png_len);
-  if (!src) Debug() << "No source!";
+  if (!src)
+    Debug() << "No source!";
   SDL_Surface *surface = IMG_Load_RW(src, SDL_TRUE);
-  if (!surface) Debug() << "No surface";
+  if (!surface)
+    Debug() << "No surface";
   p = new BitmapPrivate(this);
   p->ensureFormat(surface, SDL_PIXELFORMAT_ABGR8888);
   TEXFBO tex = shState->texPool().request(surface->w, surface->h);
@@ -331,14 +335,16 @@ Bitmap::~Bitmap()
 int Bitmap::width() const
 {
   guardDisposed();
-  if (p->megaSurface) return p->megaSurface->w;
+  if (p->megaSurface)
+    return p->megaSurface->w;
   return p->gl.width;
 }
 
 int Bitmap::height() const
 {
   guardDisposed();
-  if (p->megaSurface) return p->megaSurface->h;
+  if (p->megaSurface)
+    return p->megaSurface->h;
   return p->gl.height;
 }
 
@@ -369,9 +375,11 @@ void Bitmap::stretchBlt(const IntRect &destRect,
 {
   guardDisposed();
   GUARD_MEGA;
-  if (source.isDisposed()) return;
+  if (source.isDisposed())
+    return;
   opacity = clamp(opacity, 0, 255);
-  if (opacity == 0) return;
+  if (opacity == 0)
+    return;
   SDL_Surface *srcSurf = source.megaSurface();
   if (srcSurf && shState->config().subImageFix) {
     // Blit from software surface, for broken GL drivers
@@ -397,18 +405,20 @@ void Bitmap::stretchBlt(const IntRect &destRect,
     return;
   } else if (srcSurf) {
     // Blit from software surface - Don't do transparent blits for now
-    if (opacity < 255) source.ensureNonMega();
+    if (opacity < 255)
+      source.ensureNonMega();
     SDL_Rect srcRect = sourceRect;
     SDL_Rect dstRect = destRect;
     SDL_Rect btmRect = { 0, 0, width(), height() };
     SDL_Rect bltRect;
-    if (SDL_IntersectRect(&btmRect, &dstRect, &bltRect) != SDL_TRUE) return;
+    if (SDL_IntersectRect(&btmRect, &dstRect, &bltRect) != SDL_TRUE)
+      return;
     int bpp;
     Uint32 rMask, gMask, bMask, aMask;
     SDL_PixelFormatEnumToMasks(SDL_PIXELFORMAT_ABGR8888,
                                &bpp, &rMask, &gMask, &bMask, &aMask);
     SDL_Surface *blitTemp =
-            SDL_CreateRGBSurface(0, destRect.w, destRect.h, bpp, rMask, gMask, bMask, aMask);
+      SDL_CreateRGBSurface(0, destRect.w, destRect.h, bpp, rMask, gMask, bMask, aMask);
     SDL_BlitScaled(srcSurf, &srcRect, blitTemp, 0);
     TEX::bind(p->gl.tex);
     if (bltRect.w == dstRect.w && bltRect.h == dstRect.h)
@@ -661,7 +671,8 @@ Color Bitmap::getPixel(int x, int y) const
 {
   guardDisposed();
   GUARD_MEGA;
-  if (x < 0 || y < 0 || x >= width() || y >= height()) return Vec4();
+  if (x < 0 || y < 0 || x >= width() || y >= height())
+    return Vec4();
   if (!p->surface) makeSurface();
   uint32_t pixel = getPixelAt(p->surface, p->format, x, y);
   return Color((pixel >> p->format->Rshift) & 0xFF,
@@ -730,7 +741,8 @@ void Bitmap::hueChange(int hue)
 {
   guardDisposed();
   GUARD_MEGA;
-  if ((hue % 360) == 0) return;
+  if ((hue % 360) == 0)
+    return;
   TEXFBO newTex = shState->texPool().request(width(), height());
   FloatRect texRect(rect());
   Quad &quad = shState->gpQuad();
@@ -832,8 +844,10 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
   GUARD_MEGA;
   std::string fixed = fixupString(str);
   str = fixed.c_str();
-  if (*str == '\0') return;
-  if (str[0] == ' ' && str[1] == '\0') return;
+  if (*str == '\0')
+    return;
+  if (str[0] == ' ' && str[1] == '\0')
+    return;
   bool is_solid = shState->rtData().config.solidFonts;
   Font *f = p->font;
   TTF_Font *font = f->getSdlFont();
@@ -1000,20 +1014,23 @@ static uint16_t utf8_to_ucs2(const char *_input, const char **end_ptr)
 {
   const unsigned char *input = reinterpret_cast<const unsigned char*>(_input);
   *end_ptr = _input;
-  if (input[0] == 0) return -1;
+  if (input[0] == 0)
+    return -1;
   if (input[0] < 0x80) {
     *end_ptr = _input + 1;
     return input[0];
   }
   if ((input[0] & 0xE0) == 0xE0) {
-    if (input[1] == 0 || input[2] == 0) return -1;
+    if (input[1] == 0 || input[2] == 0)
+      return -1;
     *end_ptr = _input + 3;
     return (input[0] & 0x0F)<<12 |
            (input[1] & 0x3F)<<6  |
            (input[2] & 0x3F);
   }
   if ((input[0] & 0xC0) == 0xC0) {
-    if (input[1] == 0) return -1;
+    if (input[1] == 0)
+      return -1;
     *end_ptr = _input + 2;
     return (input[0] & 0x1F)<<6 | (input[1] & 0x3F);
   }
@@ -1022,7 +1039,8 @@ static uint16_t utf8_to_ucs2(const char *_input, const char **end_ptr)
 
 IntRect Bitmap::textSize(const char *str)
 {
-  if (isDisposed()) return IntRect(0, 0, 0, 0);
+  if (isDisposed())
+    return IntRect(0, 0, 0, 0);
   GUARD_MEGA;
   TTF_Font *font = p->font->getSdlFont();
   std::string fixed = fixupString(str);
@@ -1102,13 +1120,15 @@ SDL_Surface *Bitmap::megaSurface() const
 
 SDL_Surface *Bitmap::surface() const
 {
-  if (!p->surface) makeSurface();
+  if (!p->surface)
+    makeSurface();
   return p->surface;
 }
 
 void Bitmap::ensureNonMega() const
 {
-  if (isDisposed()) return;
+  if (isDisposed())
+    return;
   GUARD_MEGA;
 }
 

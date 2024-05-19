@@ -214,7 +214,7 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
     - `soundfonts` consists of a list of available soundfonts.
     - `soundfont_index` retrieves the index of the current soundfont if any.
     - `choose_soundfont` and an integer as its only parameter lets you change the current soundfont on the fly.
-* The `Game` module includes the following constants: `TITLE`, `VERSION` & `SCRIPTS`. They are automatically extracted from the Game.ini file.
+* The `Game` module includes the following constants: `TITLE`, `VERSION`, `SCRIPTS`, `DEBUG` & `FULLSCREEN`. They are automatically extracted from the Game.ini file.
 * The `Backdrop` module, available on all RGSS versions, lets you create a temporary snapshot of a previous map to use it in any scene class at will. Use any of the following calls to create the bitmap you will need in your (custom) scene. Later you can assign its bitmap to an instance variable of your choice by calling its `bitmap` or `bitmap_dup` method. After freezing the scene with `Graphics.freeze`, call `clear_bitmap` to dispose it properly or dispose your sprite's bitmap directly in case you want to keep it for later use and you previously used the `bitmap_dup` method.
     - `keep_bitmap` - Your map without any special effects.
     - `gray_bitmap` - Grayish version of your map.

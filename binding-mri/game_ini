@@ -3,17 +3,19 @@ module System
   SOUNDFONT_DIR = ""
   LOGO = "app_logo"
   DESCRIPTION = "An RGSS based engine derived from mkxp developed by Ancurio"
-  extend self
-  attr_reader :user_language
-  def platform
+  def self.user_language
+    @user_language
+  end
+
+  def self.platform
     NAME
   end
 
-  def linux?
+  def self.linux?
     FAMILY_NAME == "linux"
   end
 
-  def windows?
+  def self.windows?
     FAMILY_NAME == "windows"
   end
 end
@@ -23,8 +25,7 @@ module Game
   DATA = {}
   DATA.default = ""
   RTP = []
-  extend self
-  def process_exe_name(list)
+  def self.process_exe_name(list)
     4.times do |n|
       if FileInt.exist?(EXE_NAME + list[n])
         return n
@@ -33,7 +34,7 @@ module Game
     return 0
   end
 
-  def process_ini
+  def self.process_ini
     begin
       lines = File.readlines(INI_FILENAME)
     rescue => e
@@ -85,7 +86,13 @@ module Game
     const_set("ENCRYPTED_NAME", EXE_NAME + encrypt_ext[n])
     const_set("MAKER", makers[n])
     const_set("RGSS_VERSION", n)
+    debug = (DATA["Debug"][/true/i] != nil)
+    full = (DATA["Fullscreen"][/true/i] != nil)
+    const_set("DEBUG", debug)
+    const_set("FULLSCREEN", full)
     puts "RGSS Version: #{n} (#{MAKER})"
+    puts "Enable Debug: #{DEBUG}"
+    puts "Trigger Fullscreen: #{FULLSCREEN}"
   end
   process_ini
   set_internal_values
