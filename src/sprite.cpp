@@ -25,7 +25,6 @@
 #include "bitmap.h"
 #include "input.h"
 #include "etc.h"
-#include "etc-internal.h"
 #include "util.h"
 #include "gl-util.h"
 #include "quad.h"
@@ -415,10 +414,10 @@ void Sprite::setWaveRotate(bool state)
 int Sprite::getBushOpacity() const
 {
   guardDisposed();
-  return p->bushOpacity;
+  return p->bushOpacity.unNorm;
 }
 
-void Sprite::setBushOpacity(int opacity)
+void Sprite::setBushOpacity(NormValue opacity)
 {
   guardDisposed();
   p->bushOpacity = opacity;
@@ -427,10 +426,10 @@ void Sprite::setBushOpacity(int opacity)
 int Sprite::getOpacity() const
 {
   guardDisposed();
-  return p->opacity;
+  return p->opacity.unNorm;
 }
 
-void Sprite::setOpacity(int opacity)
+void Sprite::setOpacity(NormValue opacity)
 {
   guardDisposed();
   p->opacity = opacity;
@@ -481,14 +480,17 @@ void Sprite::setTone(Tone &tone)
 void Sprite::setBitmap(Bitmap *bitmap)
 {
   guardDisposed();
-  if (p->bitmap == bitmap) return;
+  if (p->bitmap == bitmap)
+    return;
   p->bitmap = bitmap;
-  if (nullOrDisposed(bitmap)) return;
+  if (nullOrDisposed(bitmap))
+    return;
   bitmap->ensureNonMega();
   *p->srcRect = bitmap->rect();
   p->onSrcRectChange();
   p->quad.setPosRect(p->srcRect->toFloatRect());
-  if (p->wave.active) p->wave.dirty = true;
+  if (p->wave.active)
+    p->wave.dirty = true;
 }
 
 void Sprite::gray_out()
@@ -509,16 +511,19 @@ void Sprite::invert_colors()
 void Sprite::setX(int nx)
 {
   guardDisposed();
-  if (p->trans.getPosition().x == nx) return;
+  if (p->trans.getPosition().x == nx)
+    return;
   p->trans.setPosition(Vec2(nx, getY()));
 }
 
 void Sprite::setY(int ny)
 {
   guardDisposed();
-  if (p->trans.getPosition().y == ny) return;
+  if (p->trans.getPosition().y == ny)
+    return;
   p->trans.setPosition(Vec2(getX(), ny));
-  if (!p->wave.active) return;//rgssVer >= 2) {
+  if (!p->wave.active)
+    return;
   p->wave.dirty = true;
   setSpriteY(ny);
 }
@@ -528,7 +533,8 @@ void Sprite::set_xy(int nx, int ny)
   guardDisposed();
   if (p->trans.getPosition().x != nx || p->trans.getPosition().y != ny)
     p->trans.setPosition(Vec2(nx, ny));
-  if (!p->wave.active) return;
+  if (!p->wave.active)
+    return;
   p->wave.dirty = true;
   setSpriteY(ny);
 }
@@ -536,45 +542,50 @@ void Sprite::set_xy(int nx, int ny)
 void Sprite::setOX(int value)
 {
   guardDisposed();
-  if (p->trans.getOrigin().x == value) return;
+  if (p->trans.getOrigin().x == value)
+    return;
   p->trans.setOrigin(Vec2(value, getOY()));
 }
 
 void Sprite::setOY(int value)
 {
   guardDisposed();
-  if (p->trans.getOrigin().y == value) return;
+  if (p->trans.getOrigin().y == value)
+    return;
   p->trans.setOrigin(Vec2(getOX(), value));
 }
 
 void Sprite::setZoomX(float value)
 {
   guardDisposed();
-  if (p->trans.getScale().x == value) return;
+  if (p->trans.getScale().x == value)
+    return;
   p->trans.setScale(Vec2(value, getZoomY()));
 }
 
 void Sprite::setZoomY(float value)
 {
   guardDisposed();
-  if (p->trans.getScale().y == value) return;
+  if (p->trans.getScale().y == value)
+    return;
   p->trans.setScale(Vec2(getZoomX(), value));
   p->recomputeBushDepth();
-  //if (rgssVer >= 2)
   p->wave.dirty = true;
 }
 
 void Sprite::setAngle(float value)
 {
   guardDisposed();
-  if (p->trans.getRotation() == value) return;
+  if (p->trans.getRotation() == value)
+    return;
   p->trans.setRotation(value);
 }
 
 void Sprite::setMirror(bool mirrored)
 {
   guardDisposed();
-  if (p->mirrored == mirrored) return;
+  if (p->mirrored == mirrored)
+    return;
   p->mirrored = mirrored;
   p->onSrcRectChange();
 }
@@ -582,7 +593,8 @@ void Sprite::setMirror(bool mirrored)
 void Sprite::setMirrorY(bool mirrored)
 {
   guardDisposed();
-  if (p->mirroredY == mirrored) return;
+  if (p->mirroredY == mirrored)
+    return;
   p->mirroredY = mirrored;
   p->onSrcRectChange();
 }
@@ -590,7 +602,8 @@ void Sprite::setMirrorY(bool mirrored)
 void Sprite::setBushDepth(int value)
 {
   guardDisposed();
-  if (p->bushDepth == value) return;
+  if (p->bushDepth == value)
+    return;
   p->bushDepth = value;
   p->recomputeBushDepth();
 }
@@ -697,29 +710,38 @@ bool Sprite::isHeightReduced()
 bool Sprite::isMouseInside()
 {
   guardDisposed();
-  if (!p->isVisible) return false;
+  if (!p->isVisible)
+    return false;
   int mx = shState->input().mouseX();
   int x = p->trans.getPosition().x;
-  if (mx < x) return false;
-  if (mx > x + p->srcRect->width) return false;
+  if (mx < x)
+    return false;
+  if (mx > x + p->srcRect->width)
+    return false;
   int my = shState->input().mouseY();
   int y = p->trans.getPosition().y;
-  if (my < y) return false;
+  if (my < y)
+    return false;
   return my <= y + p->srcRect->height;
 }
 
 bool Sprite::isMouseAboveColorFound()
 {
   guardDisposed();
-  if (!p->isVisible) return false;
+  if (!p->isVisible)
+    return false;
   int mx = shState->input().mouseX();
   int x = p->trans.getPosition().x;
-  if (mx < x) return false;
-  if (mx > x + p->srcRect->width) return false;
+  if (mx < x)
+    return false;
+  if (mx > x + p->srcRect->width)
+    return false;
   int my = shState->input().mouseY();
   int y = p->trans.getPosition().y;
-  if (my < y) return false;
-  if (my > y + p->srcRect->height) return false;
+  if (my < y)
+    return false;
+  if (my > y + p->srcRect->height)
+    return false;
   int ax = mx - x, ay = my - y;
   return !p->bitmap->is_alpha_pixel(ax, ay);
 }

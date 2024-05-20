@@ -176,7 +176,6 @@ static void mriBindingInit()
   game = rb_define_module("Game");
   debug = rb_const_get(game, rb_intern("DEBUG"));
   fullscreen = rb_const_get(game, rb_intern("FULLSCREEN"));
-  shState->config().editor.debug = debug == Qtrue;
   shState->graphics().set_fullscreen(fullscreen == Qtrue);
   if (rgssVer == 1) {
     rb_eval_string(module_rpg1);

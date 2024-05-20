@@ -371,6 +371,12 @@ void SharedState::checkReset()
   scriptBinding->reset();
 }
 
+void SharedState::init_size(int w, int h)
+{
+  p->config.defScreenW = w;
+  p->config.defScreenH = h;
+}
+
 void SharedState::reset_config(int rgss, const char *version,
                                const char *scripts, std::vector<std::string> &rtps)
 {

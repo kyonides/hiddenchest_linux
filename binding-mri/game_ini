@@ -25,6 +25,22 @@ module Game
   DATA = {}
   DATA.default = ""
   RTP = []
+  def self.setup_screen
+    @setup_screen
+  end
+
+  def self.setup_screen=(bool)
+    @setup_screen = bool
+  end
+
+  def self.normal_size?
+    (WIDTH >= 320 and HEIGHT >= 240)
+  end
+
+  def self.change_size?
+    (WIDTH != START_WIDTH or HEIGHT != START_HEIGHT)
+  end
+
   def self.process_exe_name(list)
     4.times do |n|
       if FileInt.exist?(EXE_NAME + list[n])
@@ -79,18 +95,27 @@ module Game
     projects = [".rhproj", ".rxproj", ".rvproj", ".rvproj2"]
     encrypt_ext = [".rhc", ".rgssad", ".rgss2a", ".rgss3a"]
     makers = ["HiddenChest", "XP", "VX", "VX Ace"]
+    debug = (DATA["Debug"][/true/i] != nil)
     n = process_exe_name(projects)
     if n == 0
       n = process_exe_name(encrypt_ext)
+      debug = false
     end
+    const_set("DEBUG", debug)
     const_set("ENCRYPTED_NAME", EXE_NAME + encrypt_ext[n])
     const_set("MAKER", makers[n])
     const_set("RGSS_VERSION", n)
-    debug = (DATA["Debug"][/true/i] != nil)
-    full = (DATA["Fullscreen"][/true/i] != nil)
-    const_set("DEBUG", debug)
+    w = DATA.delete("Width")
+    h = DATA.delete("Height")
+    w = w.empty? ? START_WIDTH : w.to_i;
+    h = h.empty? ? START_HEIGHT : h.to_i;
+    const_set("WIDTH", w)
+    const_set("HEIGHT", h)
+    @setup_screen = (normal_size? and change_size?);
+    full = (DATA["Fullscreen"][/true/i] != nil);
     const_set("FULLSCREEN", full)
     puts "RGSS Version: #{n} (#{MAKER})"
+    puts "Game Screen Size: #{WIDTH}x#{HEIGHT}"
     puts "Enable Debug: #{DEBUG}"
     puts "Trigger Fullscreen: #{FULLSCREEN}"
   end

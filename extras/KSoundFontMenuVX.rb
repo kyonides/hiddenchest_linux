@@ -1,4 +1,4 @@
-# * KSoundFontMenu XP * # 
+# * KSoundFontMenu VX * # 
 #   Scripter : Kyonides Arkanthes
 #   2024-05-20
 
@@ -61,10 +61,11 @@ class Menu
     end
     @help_window = Window_Help.new
     @help_window.set_text(TITLE, 1)
+    hwy = @help_window.height
     @command_window = PathsWindow.new(192, Setup.soundfonts)
-    @command_window.y = 64
+    @command_window.y = hwy
     @command_window.index = pos
-    @info_window = SmallInfoWindow.new(192, @command_window.y, 240, 96)
+    @info_window = SmallInfoWindow.new(192, hwy, 240, 96)
     @info_window.set_text(soundfont)
     Graphics.transition
     loop do
@@ -89,11 +90,11 @@ class Menu
     end
     @command_window.update
     if Input.trigger?(Input::B)
-      $game_system.se_play($data_system.cancel_se)
+      Sound.play_cancel
       $scene = Scene_Map.new
       return
     elsif Input.trigger?(Input::C)
-      $game_system.se_play($data_system.decision_se)
+      Sound.play_decision
       $game_system.soundfont_index = @command_window.index
       @info_window.set_text(DELAY_MESSAGE)
       @timer = Graphics.frame_rate * 2
@@ -124,11 +125,11 @@ class Game_System
   end
 end
 
-class Scene_Load
-  alias :kyon_soundfont_menu_scn_ld_rsd :read_save_data
+class Scene_File
+  alias :kyon_soundfont_menu_scn_fl_rsd :read_save_data
   def read_save_data(file)
-    kyon_soundfont_menu_scn_ld_rsd(file)
-    $game_system.bgm_play($game_system.playing_bgm)
+    kyon_soundfont_menu_scn_fl_rsd(file)
+    @last_bgm.play
     Setup.choose_soundfont($game_system.soundfont_index)
   end
 end

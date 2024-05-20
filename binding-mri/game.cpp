@@ -7,19 +7,30 @@
 */
 
 #include "hcextras.h"
+#include "resolution.h"
 #include "sharedstate.h"
 #include "debugwriter.h"
 
 static VALUE game_set_internal_values(VALUE self)
 {
-  VALUE rgss_version = rb_const_get(self, rb_intern("RGSS_VERSION"));
-  int rgss = RB_FIX2INT(rgss_version);
-  const char *title = RSTRING_PTR(rb_const_get(self, rb_intern("TITLE")));
-  const char *version = RSTRING_PTR(rb_const_get(self, rb_intern("VERSION")));
-  const char *scripts = RSTRING_PTR(rb_const_get(self, rb_intern("SCRIPTS")));
-  const char *enc_name = RSTRING_PTR(rb_const_get(self, rb_intern("ENCRYPTED_NAME")));
-  VALUE entry, rtp_ary = rb_const_get(self, rb_intern("RTP"));
-  int rtp_len = RARRAY_LEN(rtp_ary);
+  VALUE rgss_version, width, height, ttl, ver, scr, enc, entry, rtp_ary;
+  rgss_version = rb_const_get(self, rb_intern("RGSS_VERSION"));
+  width = rb_const_get(self, rb_intern("WIDTH"));
+  height = rb_const_get(self, rb_intern("HEIGHT"));
+  ttl = rb_const_get(self, rb_intern("TITLE"));
+  ver = rb_const_get(self, rb_intern("VERSION"));
+  scr = rb_const_get(self, rb_intern("SCRIPTS"));
+  enc = rb_const_get(self, rb_intern("ENCRYPTED_NAME"));
+  rtp_ary = rb_const_get(self, rb_intern("RTP"));
+  int rgss, w, h, rtp_len;
+  rgss = RB_FIX2INT(rgss_version);
+  w = RB_FIX2INT(width);
+  h = RB_FIX2INT(height);
+  rtp_len = RARRAY_LEN(rtp_ary);
+  const char *title = RSTRING_PTR(ttl);
+  const char *version = RSTRING_PTR(ver);
+  const char *scripts = RSTRING_PTR(scr);
+  const char *enc_name = RSTRING_PTR(enc);
   std::vector<std::string> c_rtp;
   std::string str;
   print_out(1, "RTP List:");
@@ -30,6 +41,7 @@ static VALUE game_set_internal_values(VALUE self)
     c_rtp.push_back(str);
   }
   shState->set_title(title);
+  shState->init_size(w, h);
   shState->reset_config(rgss, version, scripts, c_rtp);
   shState->check_encrypted_game_file(enc_name);
   return Qnil;
@@ -39,4 +51,6 @@ void init_game()
 {
   VALUE game = rb_define_module("Game");
   module_func(game, "set_internal_values", game_set_internal_values, 0);
+  rb_const_set(game, rb_intern("START_WIDTH"), RB_INT2FIX(START_WIDTH));
+  rb_const_set(game, rb_intern("START_HEIGHT"), RB_INT2FIX(START_HEIGHT));
 }

@@ -1,4 +1,4 @@
-#define SET_RES_OPTION 0
+#define SET_RES_OPTION 10
 #define WIDTH_MAX 1920
 #define HEIGHT_MAX 1080
 

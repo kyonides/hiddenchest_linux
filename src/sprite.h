@@ -28,6 +28,7 @@
 #include "disposable.h"
 #include "viewport.h"
 #include "util.h"
+#include "etc-internal.h"
 
 class Bitmap;
 struct Color;
@@ -78,9 +79,9 @@ public:
   Rect& getSrcRect() const;
   void setSrcRect(Rect& rect);
   int getBushOpacity() const;
-  void setBushOpacity(int opacity);
+  void setBushOpacity(NormValue opacity);
   int getOpacity() const;
-  void setOpacity(int opacity);
+  void setOpacity(NormValue opacity);
   int getBlendType() const;
   void setBlendType(int type);
   Color& getColor() const;

@@ -207,6 +207,7 @@ static VALUE SpriteGetX(VALUE self)
 static VALUE SpriteSetX(VALUE self, VALUE x)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  x = rb_funcall(x, rb_intern("to_i"), 0);
   GUARD_EXC( s->setX( RB_FIX2INT(x) ); )
   return RB_INT2FIX( s->getX() );
 }
@@ -220,6 +221,7 @@ static VALUE SpriteGetY(VALUE self)
 static VALUE SpriteSetY(VALUE self, VALUE y)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  y = rb_funcall(y, rb_intern("to_i"), 0);
   GUARD_EXC( s->setY( RB_FIX2INT(y) ); )
   return RB_INT2FIX( s->getY() );
 }
@@ -233,6 +235,7 @@ static VALUE SpriteGetZ(VALUE self)
 static VALUE SpriteSetZ(VALUE self, VALUE z)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  z = rb_funcall(z, rb_intern("to_i"), 0);
   GUARD_EXC( s->setZ( RB_FIX2INT(z) ); )
   return RB_INT2FIX( s->getZ() );
 }
@@ -240,8 +243,21 @@ static VALUE SpriteSetZ(VALUE self, VALUE z)
 static VALUE sprite_set_xy(VALUE self, VALUE x, VALUE y)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  x = rb_funcall(x, rb_intern("to_i"), 0);
+  y = rb_funcall(y, rb_intern("to_i"), 0);
   GUARD_EXC( s->set_xy( RB_FIX2INT(x), RB_FIX2INT(y) ); )
   return rb_ary_new3(2, x, y);
+}
+
+static VALUE sprite_set_xyz(VALUE self, VALUE x, VALUE y, VALUE z)
+{
+  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  x = rb_funcall(x, rb_intern("to_i"), 0);
+  y = rb_funcall(y, rb_intern("to_i"), 0);
+  z = rb_funcall(z, rb_intern("to_i"), 0);
+  GUARD_EXC( s->set_xy( RB_FIX2INT(x), RB_FIX2INT(y) ); )
+  GUARD_EXC( s->setZ( RB_FIX2INT(z) ); )
+  return rb_ary_new3(3, x, y, z);
 }
 
 static VALUE SpriteGetOX(VALUE self)
@@ -285,36 +301,40 @@ static VALUE SpriteSetBushDepth(VALUE self, VALUE depth)
 
 static VALUE SpriteGetBushOpacity(VALUE self)
 {
-  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  return RB_INT2FIX( s->getBushOpacity() );
+  checkDisposed<Sprite>(self);
+  return rb_iv_get(self, "bush_opacity");
 }
 
 static VALUE SpriteSetBushOpacity(VALUE self, VALUE opacity)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  GUARD_EXC( s->setBushOpacity( RB_FIX2INT(opacity) ); )
-  return RB_INT2FIX( s->getBushOpacity() );
+  GUARD_EXC( s->setBushOpacity( NUM2DBL(opacity) ); )
+  VALUE op = DBL2NUM(s->getBushOpacity());
+  op = rb_funcall(op, rb_intern("to_i"), 0);
+  return rb_iv_set(self, "bush_opacity", op);
 }
 
 static VALUE SpriteGetOpacity(VALUE self)
-{
+{ 
   checkDisposed<Sprite>(self);
   return rb_iv_get(self, "opacity");
-}//Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));RB_INT2FIX( s->getOpacity() );
+}
 
 static VALUE SpriteSetOpacity(VALUE self, VALUE opacity)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  GUARD_EXC( s->setOpacity( RB_FIX2INT(opacity) ); )
-  return rb_iv_set(self, "opacity", RB_INT2FIX( s->getOpacity() ));
+  GUARD_EXC( s->setOpacity( NUM2DBL(opacity) ); )
+  VALUE op = DBL2NUM(s->getOpacity());
+  op = rb_funcall(op, rb_intern("to_i"), 0);
+  return rb_iv_set(self, "opacity", op);
 }
 
 static VALUE SpriteGetBlendType(VALUE self)
 {
   checkDisposed<Sprite>(self);
   return rb_iv_get(self, "blend_type");
-}//Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  //return RB_INT2FIX( s->getBlendType() );
+}
+
 static VALUE SpriteSetBlendType(VALUE self, VALUE type)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
@@ -608,6 +628,7 @@ void SpriteBindingInit()
   rb_define_method(RSprite, "z", RMF(SpriteGetZ), 0);
   rb_define_method(RSprite, "z=", RMF(SpriteSetZ), 1);
   rb_define_method(RSprite, "set_xy", RMF(sprite_set_xy), 2);
+  rb_define_method(RSprite, "set_xyz", RMF(sprite_set_xyz), 3);
   rb_define_method(RSprite, "ox", RMF(SpriteGetOX), 0);
   rb_define_method(RSprite, "ox=", RMF(SpriteSetOX), 1);
   rb_define_method(RSprite, "oy", RMF(SpriteGetOY), 0);

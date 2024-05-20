@@ -1,6 +1,6 @@
-# * KSoundFontMenu XP * # 
+# * KSoundFontMenu ACE * # 
 #   Scripter : Kyonides Arkanthes
-#   2024-05-20
+#   2024-05-29
 
 # Note: It seems like the MIDI file should be playing BEFORE you proceed to call
 #       Setup.choose_soundfont while loading a save game. Otherwise, the MIDI
@@ -9,7 +9,7 @@
 #       will always play the MIDI using the chosen soundfont.
 
 # * Script Call * #
-# $scene = KSoundFont::Menu.new
+# SceneManager(KSoundFont::Menu)
 
 module KSoundFont
   TITLE = "Select a SoundFont"
@@ -17,11 +17,27 @@ module KSoundFont
   DELAY_MESSAGE = "Processing New SF..."
   TRANSPARENT = Color.new(0, 0, 0, 0)
 
-class PathsWindow < Window_Command
+class PathsWindow < Window_Selectable
   def initialize(w, paths)
     @paths = paths
-    commands = paths.map {|fn| fn.split("/")[-1].sub(".sf2", "") }
-    super(w, commands)
+    @commands = paths.map {|fn| fn.split("/")[-1].sub(".sf2", "") }
+    @item_max = @commands.size
+    h = @item_max * line_height + line_height
+    super(0, 0, w, h)
+    return if @item_max == 0
+    refresh
+    self.active = true
+  end
+
+  def draw_all_items
+    @item_max.times do |n|
+      rect = item_rect_for_text(n)
+      draw_text(rect, @commands[n])
+    end
+  end
+
+  def process_handling
+    
   end
 
   def path
@@ -31,6 +47,7 @@ class PathsWindow < Window_Command
   def name
     @commands[@index]
   end
+  attr_reader :item_max
 end
 
 class SmallInfoWindow < Window_Base
@@ -48,8 +65,9 @@ class SmallInfoWindow < Window_Base
   end
 end
 
-class Menu
-  def main
+class Menu < Scene_Base
+  def start
+    super
     @timer = 0
     pos = $game_system.soundfont_index
     Setup.choose_soundfont(pos)
@@ -59,27 +77,19 @@ class Menu
     else
       soundfont = soundfont.split("/")[-1].sub(".sf2", "")
     end
-    @help_window = Window_Help.new
-    @help_window.set_text(TITLE, 1)
+    @help_window = Window_Help.new(1)
+    @help_window.set_text(TITLE)
+    hwy = @help_window.height
     @command_window = PathsWindow.new(192, Setup.soundfonts)
-    @command_window.y = 64
+    @command_window.y = hwy
     @command_window.index = pos
-    @info_window = SmallInfoWindow.new(192, @command_window.y, 240, 96)
+    @info_window = SmallInfoWindow.new(192, hwy, 240, 96)
     @info_window.set_text(soundfont)
-    Graphics.transition
-    loop do
-      Graphics.update
-      Input.update
-      update
-      break if $scene != self
-    end
-    Graphics.freeze
-    @info_window.dispose
-    @command_window.dispose
-    @help_window.dispose
   end
 
   def update
+    Graphics.update
+    Input.update
     if @timer > 0
       @timer -= 1
       if @timer == 0
@@ -88,12 +98,12 @@ class Menu
       return
     end
     @command_window.update
-    if Input.trigger?(Input::B)
-      $game_system.se_play($data_system.cancel_se)
-      $scene = Scene_Map.new
+    if Input.trigger?(:B)
+      Sound.play_cancel
+      SceneManager.return
       return
-    elsif Input.trigger?(Input::C)
-      $game_system.se_play($data_system.decision_se)
+    elsif Input.trigger?(:C)
+      Sound.play_ok
       $game_system.soundfont_index = @command_window.index
       @info_window.set_text(DELAY_MESSAGE)
       @timer = Graphics.frame_rate * 2
@@ -105,6 +115,7 @@ end
 
 class Game_System
   alias :kyon_soundfont_menu_gm_sys_init :initialize
+  alias :kyon_soundfont_menu_gm_sys_on_after_load :on_after_load
   def initialize
     kyon_soundfont_menu_gm_sys_init
     self.soundfont_index = find_soundfont_index
@@ -122,13 +133,9 @@ class Game_System
     Setup.choose_soundfont(n)
     @soundfont_index = n
   end
-end
 
-class Scene_Load
-  alias :kyon_soundfont_menu_scn_ld_rsd :read_save_data
-  def read_save_data(file)
-    kyon_soundfont_menu_scn_ld_rsd(file)
-    $game_system.bgm_play($game_system.playing_bgm)
+  def on_after_load
+    kyon_soundfont_menu_gm_sys_on_after_load
     Setup.choose_soundfont($game_system.soundfont_index)
   end
 end

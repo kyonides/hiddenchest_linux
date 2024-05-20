@@ -114,9 +114,9 @@ struct SharedState
 	 * requests the binding to terminate. In this case, this
 	 * function will most likely not return */
 	void checkShutdown();
-
 	void checkReset();
 
+	void init_size(int w, int h);
 	void reset_config(int rgss, const char *version,
 										const char *scripts, std::vector<std::string> &rtps);
   

@@ -1074,13 +1074,19 @@ void Graphics::resizeScreen(int width, int height)
   width = clamp(width, 1, WIDTH_MAX);
   height = clamp(height, 1, HEIGHT_MAX);
   Vec2i size(width, height);
-  if (p->scRes == size) return;
+  if (p->scRes == size)
+    return;
   p->scRes = size;
   p->screen.setResolution(width, height);
   TEXFBO::allocEmpty(p->frozenScene, width, height);
   FloatRect screenRect(0, 0, width, height);
   p->screenQuad.setTexPosRect(screenRect, screenRect);
   shState->eThread().requestWindowResize(width, height);
+  SDL_DisplayMode scr;
+  SDL_GetDesktopDisplayMode(0, &scr);
+  int w = (scr.w - width) / 2;
+  int h = (scr.h - height) / 2;
+  SDL_SetWindowPosition(p->threadData->window, w, h);
 }
 
 void Graphics::playMovie(const char *filename)

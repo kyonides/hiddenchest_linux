@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** 2019 Extended by Kyonides Arkanthes <kyonides@gmail.com>
+** 2019-2024 Extended by Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** HiddenChest is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@
 #include "exception.h"
 #include "gl-fun.h"
 #include "binding.h"
+#include "resolution.h"
 #ifdef __WINDOWS__
 #include "resource.h"
 #endif
@@ -181,8 +182,6 @@ int main(int argc, char *argv[])
       return 0;
     }
   }
-  if (conf.windowTitle.empty())
-    conf.windowTitle = conf.game.title;
   printHCVersion();
   int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
   if (IMG_Init(imgFlags) != imgFlags) {
@@ -212,11 +211,11 @@ int main(int argc, char *argv[])
   Uint32 winFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_INPUT_FOCUS;
   if (conf.winResizable)
     winFlags |= SDL_WINDOW_RESIZABLE;
-  if ((conf.defScreenW == scr.w && conf.defScreenH == scr.h) || conf.fullscreen)
+  if ((START_WIDTH == scr.w && START_HEIGHT == scr.h) || conf.fullscreen)
     winFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-  win = SDL_CreateWindow(conf.windowTitle.c_str(),
+  win = SDL_CreateWindow("",
                          SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                         conf.defScreenW, conf.defScreenH, winFlags);
+                         START_WIDTH, START_HEIGHT, winFlags);
   if (!win) {
     showInitError(std::string("Error creating window: ") + SDL_GetError());
     return 0;
