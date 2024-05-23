@@ -25,6 +25,9 @@
 #include <al.h>
 #include <SDL_audio.h>
 #include <assert.h>
+#ifdef __WINDOWS__
+#include <string.h>
+#endif
 
 namespace AL
 {

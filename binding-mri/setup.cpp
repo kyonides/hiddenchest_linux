@@ -10,6 +10,8 @@
 #include "graphics.h"
 #include "sharedmidistate.h"
 #include "sharedstate.h"
+#include "exception.h"
+#include "debugwriter.h"
 
 static VALUE set_shot_fmt_set(VALUE self, VALUE fmt)
 {
@@ -62,18 +64,15 @@ static VALUE set_sound_font_by_pos(VALUE self, VALUE n)
 void init_setup()
 {
   VALUE set = rb_define_module("Setup");
-  shState->graphics().set_screenshot_format("jpg");
-  shState->graphics().set_screenshot_dir("Screenshots");
-  shState->graphics().set_screenshot_fn("screenshot");
   VALUE sfont = rb_iv_get(set, "@soundfont");
-  if (RSTRING_LEN(sfont) > 4) {
-    const char *sf = RSTRING_PTR(sfont);
-    shState->midiState().set_default_soundfont(sf);
-  }
   module_func(set, "shot_format=", set_shot_fmt_set, 1);
   module_func(set, "shot_dir=", set_shot_dir_set, 1);
   module_func(set, "shot_filename=", set_shot_filename_set, 1);
   module_func(set, "soundfont=", set_sound_font_set, 1);
   module_func(set, "choose_soundfont", set_sound_font_by_pos, 1);
   rb_define_alias(set, "change_soundfont", "choose_soundfont");
+  if (RSTRING_LEN(sfont) > 4) {
+    const char *sf = RSTRING_PTR(sfont);
+    shState->midiState().set_default_soundfont(sf);
+  }
 }

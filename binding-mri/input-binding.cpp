@@ -25,6 +25,7 @@
 #include "exception.h"
 #include "binding-util.h"
 #include "util.h"
+#include "etc.h"
 #include "hcextras.h"
 
 static VALUE inputUpdate(VALUE self)
@@ -37,7 +38,8 @@ static VALUE inputUpdate(VALUE self)
 static int getButtonArg(VALUE number)
 {
   //rb_p(number);
-  if (FIXNUM_P(number)) return RB_FIX2INT(number);
+  if (FIXNUM_P(number))
+    return RB_FIX2INT(number);
   //rb_p(rb_str_new_cstr("Not a Fixnum"));
   if (SYMBOL_P(number)) {// && rgssVer == 3
     VALUE sym_hash = getRbData()->buttoncodeHash;
@@ -82,13 +84,15 @@ static VALUE input_are_triggered(int size, VALUE* buttons, VALUE self)
     int size = RARRAY_LEN(rbuttons);
     for (int n = 0; n < size; n++) {
       int num = getButtonArg(rb_ary_entry(rbuttons, n));
-      if (shState->input().isTriggered(num)) return Qtrue;
+      if (shState->input().isTriggered(num))
+        return Qtrue;
     }
     return Qfalse;
   }
   for (int n = 0; n < size; n++) {
     int num = getButtonArg(buttons[n]);
-    if (shState->input().isTriggered(num)) return Qtrue;
+    if (shState->input().isTriggered(num))
+      return Qtrue;
   }
   return Qfalse;
 }
@@ -100,28 +104,34 @@ static VALUE input_are_pressed(int size, VALUE* buttons, VALUE self)
     int size = RARRAY_LEN(rbuttons);
     for (int n = 0; n < size; n++) {
       int num = getButtonArg(rb_ary_entry(rbuttons, n));
-      if (!shState->input().isPressed(num)) return Qfalse;
+      if (!shState->input().isPressed(num))
+        return Qfalse;
     }
     return Qtrue;
   }
   for (int n = 0; n < size; n++) {
     int num = getButtonArg(buttons[n]);
-    if (!shState->input().isPressed(num)) return Qfalse;
+    if (!shState->input().isPressed(num))
+      return Qfalse;
   }
   return Qtrue;
 }
 
 static VALUE input_trigger_up_down(VALUE self)
 {
-  if (shState->input().isTriggered(Input::Up)) return Qtrue;
-  if (shState->input().isTriggered(Input::Down)) return Qtrue;
+  if (shState->input().isTriggered(Input::Up))
+    return Qtrue;
+  if (shState->input().isTriggered(Input::Down))
+    return Qtrue;
   return Qfalse;
 }
 
 static VALUE input_trigger_left_right(VALUE self)
 {
-  if (shState->input().isTriggered(Input::Left)) return Qtrue;
-  if (shState->input().isTriggered(Input::Right)) return Qtrue;
+  if (shState->input().isTriggered(Input::Left))
+    return Qtrue;
+  if (shState->input().isTriggered(Input::Right))
+    return Qtrue;
   return Qfalse;
 }
 
@@ -145,7 +155,7 @@ static VALUE input_is_dir8(VALUE self)
   return shState->input().is_dir8() ? Qtrue : Qfalse;
 }
 
-/* Non-standard extensions */
+// Non-standard extensions
 static VALUE inputMouseX(VALUE self)
 {
   return RB_INT2FIX(shState->input().mouseX());
@@ -154,6 +164,32 @@ static VALUE inputMouseX(VALUE self)
 static VALUE inputMouseY(VALUE self)
 {
   return RB_INT2FIX(shState->input().mouseY());
+}
+
+static VALUE input_mouse_ox(VALUE self)
+{
+  return rb_iv_get(self, "@mouse_ox");
+}
+
+static VALUE input_mouse_oy(VALUE self)
+{
+  return rb_iv_get(self, "@mouse_oy");
+}
+
+static VALUE input_mouse_ox_set(VALUE self, VALUE val)
+{
+  val = rb_funcall(val, rb_intern("to_i"), 0);
+  int n = RB_FIX2INT(val);
+  shState->input().mouse_set_ox(n);
+  return rb_iv_set(self, "@mouse_ox", val);
+}
+
+static VALUE input_mouse_oy_set(VALUE self, VALUE val)
+{
+  val = rb_funcall(val, rb_intern("to_i"), 0);
+  int n = RB_FIX2INT(val);
+  shState->input().mouse_set_oy(n);
+  return rb_iv_set(self, "@mouse_oy", val);
 }
 
 static VALUE input_left_click(VALUE self)
@@ -333,29 +369,35 @@ static elementsN(buttonCodes);
 
 void inputBindingInit()
 {
-  VALUE module = rb_define_module("Input");
-  rb_define_module_function(module, "update", RMF(inputUpdate), 0);
-  rb_define_module_function(module, "left_click?", RMF(input_left_click), 0);
-  rb_define_module_function(module, "middle_click?", RMF(input_middle_click), 0);
-  rb_define_module_function(module, "right_click?", RMF(input_right_click), 0);
-  rb_define_module_function(module, "press?", RMF(inputPress), 1);
-  rb_define_module_function(module, "trigger?", RMF(inputTrigger), 1);
-  rb_define_module_function(module, "repeat?", RMF(inputRepeat), 1);
-  rb_define_module_function(module, "press_any?", RMF(input_press_any), 0);
-  rb_define_module_function(module, "trigger_any?", RMF(input_trigger_any), 0);
-  rb_define_module_function(module, "press_all?", RMF(input_are_pressed), -1);
-  rb_define_module_function(module, "trigger_buttons?", RMF(input_are_triggered), -1);
-  rb_define_module_function(module, "trigger_up_down?", RMF(input_trigger_up_down), 0);
-  rb_define_module_function(module, "trigger_left_right?", RMF(input_trigger_left_right), 0);
-  rb_define_module_function(module, "dir4", RMF(inputDir4), 0);
-  rb_define_module_function(module, "dir8", RMF(inputDir8), 0);
-  rb_define_module_function(module, "dir4?", RMF(input_is_dir4), 0);
-  rb_define_module_function(module, "dir8?", RMF(input_is_dir8), 0);
-  rb_define_module_function(module, "mouse_x", RMF(inputMouseX), 0);
-  rb_define_module_function(module, "mouse_y", RMF(inputMouseY), 0);
-  rb_define_module_function(module, "any_char?", RMF(input_is_any_char), 0);
-  rb_define_module_function(module, "string", RMF(input_string), 0);
-  rb_define_module_function(module, "enable_edit=", RMF(input_enable_edit), 1);
+  VALUE input = rb_define_module("Input");
+  rb_iv_set(input, "@mouse_ox", RB_INT2FIX(8));
+  rb_iv_set(input, "@mouse_oy", RB_INT2FIX(-8));
+  module_func(input, "update", RMF(inputUpdate), 0);
+  module_func(input, "left_click?", RMF(input_left_click), 0);
+  module_func(input, "middle_click?", RMF(input_middle_click), 0);
+  module_func(input, "right_click?", RMF(input_right_click), 0);
+  module_func(input, "press?", RMF(inputPress), 1);
+  module_func(input, "trigger?", RMF(inputTrigger), 1);
+  module_func(input, "repeat?", RMF(inputRepeat), 1);
+  module_func(input, "press_any?", RMF(input_press_any), 0);
+  module_func(input, "trigger_any?", RMF(input_trigger_any), 0);
+  module_func(input, "press_all?", RMF(input_are_pressed), -1);
+  module_func(input, "trigger_buttons?", RMF(input_are_triggered), -1);
+  module_func(input, "trigger_up_down?", RMF(input_trigger_up_down), 0);
+  module_func(input, "trigger_left_right?", RMF(input_trigger_left_right), 0);
+  module_func(input, "dir4", RMF(inputDir4), 0);
+  module_func(input, "dir8", RMF(inputDir8), 0);
+  module_func(input, "dir4?", RMF(input_is_dir4), 0);
+  module_func(input, "dir8?", RMF(input_is_dir8), 0);
+  module_func(input, "mouse_x", RMF(inputMouseX), 0);
+  module_func(input, "mouse_y", RMF(inputMouseY), 0);
+  module_func(input, "mouse_ox", RMF(input_mouse_ox), 0);
+  module_func(input, "mouse_oy", RMF(input_mouse_oy), 0);
+  module_func(input, "mouse_ox=", RMF(input_mouse_ox_set), 1);
+  module_func(input, "mouse_oy=", RMF(input_mouse_oy_set), 1);
+  module_func(input, "any_char?", RMF(input_is_any_char), 0);
+  module_func(input, "string", RMF(input_string), 0);
+  module_func(input, "enable_edit=", RMF(input_enable_edit), 1);
   VALUE sym_hash = rb_hash_new();
   rb_hash_set_ifnone(sym_hash, RB_INT2FIX(0));
   /* In RGSS3 all Input::XYZ constants are equal to :XYZ symbols,
@@ -363,7 +405,7 @@ void inputBindingInit()
   for (size_t i = 0; i < buttonCodesN; ++i) {
     ID sym = rb_intern(buttonCodes[i].str);
     VALUE val = RB_INT2FIX(buttonCodes[i].val);
-    rb_const_set(module, sym, val);
+    rb_const_set(input, sym, val);
     rb_hash_aset(sym_hash, rb_id2sym(sym), val);
   }
   getRbData()->buttoncodeHash = sym_hash;

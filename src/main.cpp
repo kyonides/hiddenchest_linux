@@ -89,7 +89,8 @@ int rgssThreadFun(void *userdata)
     SDL_GL_DeleteContext(glCtx);
     return 0;
   }
-  if (!conf.enableBlitting) gl.BlitFramebuffer = 0;
+  if (!conf.enableBlitting)
+    gl.BlitFramebuffer = 0;
   gl.ClearColor(0, 0, 0, 1);
   gl.Clear(GL_COLOR_BUFFER_BIT);
   SDL_GL_SwapWindow(win);
@@ -202,6 +203,15 @@ int main(int argc, char *argv[])
     SDL_Quit();
     return 0;
   }
+  ALCdevice *alcDev = alcOpenDevice(0);
+  if (!alcDev) {
+    showInitError("Error opening OpenAL device");
+    //SDL_DestroyWindow(win);
+    TTF_Quit();
+    IMG_Quit();
+    SDL_Quit();
+    return 0;
+  }
   SDL_DisplayMode scr;
   if (SDL_GetDesktopDisplayMode(0, &scr) != 0) {
     SDL_Log("SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
@@ -227,15 +237,6 @@ int main(int argc, char *argv[])
 #else
   (void) setupWindowIcon;
 #endif
-  ALCdevice *alcDev = alcOpenDevice(0);
-  if (!alcDev) {
-    showInitError("Error opening OpenAL device");
-    SDL_DestroyWindow(win);
-    TTF_Quit();
-    IMG_Quit();
-    SDL_Quit();
-    return 0;
-  }
   SDL_DisplayMode mode;
   SDL_GetDisplayMode(0, 0, &mode);
   // Can't sync to display refresh rate if its value is unknown

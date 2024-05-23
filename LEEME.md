@@ -149,6 +149,8 @@ Pueden utilizar esta soundfont de dominio público: [GMGSx.sf2](https://www.drop
 
 Una vez que hayas descargados todas las soundfonts que tu proyecto pueda necesitar, crea una nueva carpeta llamada SF2 dentro de la carpeta Audio. Luego copia y pega todas tus soundfonts allí. (Ruta: `Audio/SF2`)
 
+El archivo Game.ini también acepta estos nuevos parámetros: `SoundFontWin`, `SoundFontLnx`, `SoundFontPathWin`, `SoundFontPathLnx`.
+
 ## Fonts
 
 En la versión de RMXP del RGSS, las letras o fuentes o tipos se cargaban directamente desde las rutas específicas del sistema, lo que implica que debían instalarse para estar disponibles en sus juegos. Como eso es un dolor gigantesco que depende de cada plataforma, se decidió que se implementaría la conducta que gracias a Enterbrain se agregoó a RPG Maker VX Ace: cargar las fuentes se realiza al buscar la carpeta llamada "Fonts", lo cual obedece a la conducta por defecto de búsqueda de rutas como que pueda estar ubicada en la carpeta del juego o de un RTP).
@@ -184,7 +186,8 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
 * Tanto `Window#set_xy(newx, newy)` como `Sprite#set_xy(newx, newy)` les permiten asignar ambas coordenadas cartesianas al mismo tiempo.
 * Asignen un Viewport a cualquier ventana de RGSS1 usando `Window#viewport = un_viewport`
 * Se soportan muchas más teclas como PrintScreen, Return o Enter o LeftShift o RightAlt o NumPadDivide * o KeyH o KeyM o desde N1 hasta N0 para los números ubicados sobre las letras comunes como N y muchas más.
-* Clases `Bitmap`, `Sprite` y `Window` ahora soportan clics del ratón! Bueno lo hacen indirectamente... Necesitarán usar el arreglo `@area` con cada una de las dimensiones x, y, ancho y altura. Usualmente lo harían en `Window_Selectable` y sus subclases en el método refresh. Los siguientes llamados a script pueden ser utilizados en scripts de escenas:
+* Clases `Bitmap`, `Sprite` y `Window` ¡ahora soportan clics del ratón!
+Bueno lo hacen indirectamente... Necesitarán usar el arreglo `@area` con cada Rect o un Array con una de las dimensiones x, y, ancho y altura. Usualmente lo harían en `Window_Selectable` y sus subclases en el método refresh. Los siguientes llamados a script pueden ser utilizados en scripts de escenas:
     - `Bitmap#alpha_pixel?(x, y)` - Pixel con alfa de 0. ¡No es solo para clics!
     - `Sprite#mouse_above?` alias `Sprite#mouse_inside?` - Ratón sobre Sprite
     - `Sprite#mouse_above_color?` - Ignora píxeles con valor alfa de 0.
@@ -207,7 +210,7 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
     - `image_format` y `image_format=` permiten verificar o asignar el formato preferido de imágenes para sus capturas. Opciones disponibles:
          - :jpg o 0 para formato JPG - opción por defecto
          - :png o 1 para formato PNG
-    - `snapshot_dir` y `snapshot_filename` para definir la carpeta y el nombre base de los archivos de capturas de pantalla.
+    - `shot_dir` y `shot_filename` para definir la carpeta y el nombre base de los archivos de capturas de pantalla.
     - `save_dir` y `save_filename` para definir la carpeta y el nombre base de los archivos de partidas guardadas.
     - `auto_create_dirs` para que se creen las carpetas si cambiaron la ruta de alguna de las carpetas.
     - `soundfont` te muestra tu soundfont actual.
@@ -223,17 +226,16 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
     - `color_bitmap` - Escojan un color para teñir su mapa.
          - Opciones:  :red, :green, :blue, :yellow, :sepia y :gray
            (rojo, verde, azul, amarillo, sepia y gris)
-* Sprites ahora soportan versiones en gris y tono sepia de sus bitmaps! Usen un booleano (true o false) para activar o desactivarlos efectos de color.
+* `Sprite` ahora soporta versiones en gris y tono sepia de sus bitmaps! Usen un booleano (true o false) para activar o desactivarlos efectos de color.
     - `gray_out = booleano` - gris
     - `turn_sepia = booleano` - sepia
     - `invert_colors = booleano` - inversión de colores
     - `grayed_out?` - Para preguntar si ya está en tonos de gris
     - `sepia?` - Para preguntar si ya tiene un tono en sepia.
     - `colors_inverted?` - Por si neceistan verificar si los colores fueron invertidos
-* Usen el método `module_accessor` para crear métodos de módulo, getters y setters ¡todo en uno! Ejemplo: `module_attr_accessor :meow` creará los métodos `self.meow` y `self.meow=(valor)` en un solo paso. Sus setter y getter son `module_writer` y `module_reader` respectivamente.
 * Módulo `Scripts` permite que guarden en una cadena de texto o String de Ruby o en un símbolo como un ID de script via `Scripts << :nombre_script`. Una vez que sean guardados allí, podrán llamar métodos como `Scripts.all` o `Scripts.include?(:nombre_script)` para acceder a los IDs de arreglos (arrays) o confirmar si ya los han incluido.
-* `RPG::Weather.sprite_max = numero`. donde numero es un número entero positivo, permite que definan el máximo de sprites de clima como los de efectos de lluvia o tormenta o nieve. Actualmente está fijado en 400 sprites, pero puede ser elevado o disminuido cuando sea necesario.
-* Clase `FileInt` permite que pregunten si un archivo existe `exist?` incluso si está comprimido en el RGSSAD.
+* `RPG::Weather.sprite_max = numero`. donde numero es un número entero positivo, permite que definan el máximo de sprites de clima como los de efectos de lluvia o tormenta o nieve. Actualmente está fijado en 1000 sprites, pero puede ser elevado o disminuido cuando sea necesario.
+* Clase `FileInt` permite que pregunten si un archivo existe `exist?` incluso si está comprimido en el RGSSAD o pueden llamar a `File#exist_compressed?` en su lugar.
 * Módulo `Audio` incluye más métodos como `bgm_volume`, `bgs_volume`, `se_volume` y `me_volume`.
 
 ### Módulo Input
@@ -244,6 +246,8 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
     - `MOUSERIGHT` o `MouseRight`
 * Funciones adicionales:
     - `mouse_x` y `mouse_y` para preguntar por la posición del puntero del ratón relativo a la pantalla de juego
+    - `mouse_ox`, `mouse_oy`, `mouse_ox=`, `mouse_oy=` puede ayudarles a ajustar las áreas cliqueables de cualquier ventana.
+      Valores Predeterminados: 8 para `mouse_ox` y -8 para `mouse_oy`.
     - `dir4?` y `dir8?` para evitarles el uso de 4 u 8 condicionales en fila.
     - `press_all?` y `trigger_buttons?` para evitarles el uso de varias condicionales en fila.
          - Pueden pasar un argumento tras otro o pasar un Array alias arreglo.
@@ -261,6 +265,7 @@ Para aliviar la posible incorporación de scripts demasiado dependientes de la c
     - `outline_size` - entero entre 1 y 8 - grosor del contorno
     - `shadow_size` - entero entre 1 y 3 - grosor del contorno
     - `shadow_color` - Color en formato RGBA (Rojo Verde Azul Alfa)
+    - `outline`, `out_color` y `outline_color` también están disponibles para RMXP y RMVX.
 
 ## Lista de Arreglos de Errores en HiddenChest
 

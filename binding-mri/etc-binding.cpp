@@ -77,7 +77,6 @@ RB_METHOD(Klass##Equal) \
 
 EQUAL_FUN(Color)
 EQUAL_FUN(Tone)
-EQUAL_FUN(Rect)
 
 #define INIT_FUN(Klass, param_type, param_t_s, last_param_def) \
 RB_METHOD(Klass##Initialize) \
@@ -135,6 +134,16 @@ VALUE rect_from_ary(VALUE ary)
   return rect_initialize(1, c_ary, rect);
 }
 
+static VALUE ary_to_rect(VALUE self)
+{
+  return rect_from_ary(self);
+}
+
+static VALUE rect_equal(VALUE self, VALUE obj)
+{
+  return (rb_equal(self, obj) == Qtrue);
+}
+
 #define SET_FUN(Klass, param_type, param_t_s, last_param_def) \
 	RB_METHOD(Klass##Set) \
 	{ \
@@ -180,10 +189,10 @@ RB_METHOD(ToneStringify)
   Tone *t = getPrivateData<Tone>(self);
   return rb_sprintf("(%f, %f, %f, %f)",
                     t->red, t->green, t->blue, t->gray);
-  }
+}
 
-  RB_METHOD(RectStringify)
-  {
+RB_METHOD(RectStringify)
+{
   RB_UNUSED_PARAM;
   Rect *r = getPrivateData<Rect>(self);
   return rb_sprintf("(%d, %d, %d, %d)",
@@ -199,65 +208,67 @@ INITCOPY_FUN(Rect)
 
 void etcBindingInit()
 {
-  VALUE RColor = rb_define_class("Color", rb_cObject);
-  rb_define_alloc_func(RColor, classAllocate<&ColorType>);
-  rb_define_singleton_method(RColor, "_load", RMF(ColorLoad), -1);
-  serializableBindingInit<Color>(RColor);
-  rb_define_method(RColor, "initialize", RMF(ColorInitialize), -1);
-  rb_define_method(RColor, "initialize_copy", RMF(ColorInitializeCopy), -1);
-  rb_define_method(RColor, "set", RMF(ColorSet), -1);
-  rb_define_method(RColor, "==", RMF(ColorEqual), -1);
-  rb_define_method(RColor, "===", RMF(ColorEqual), -1);
-  rb_define_method(RColor, "eql?", RMF(ColorEqual), -1);
-  rb_define_method(RColor, "to_s", RMF(ColorStringify), -1);
-  rb_define_method(RColor, "inspect", RMF(ColorStringify), -1);
-  rb_define_method(RColor, "red", RMF(ColorGetRed), -1);
-  rb_define_method(RColor, "green", RMF(ColorGetGreen), -1);
-  rb_define_method(RColor, "blue", RMF(ColorGetBlue), -1);
-  rb_define_method(RColor, "alpha", RMF(ColorGetAlpha), -1);
-  rb_define_method(RColor, "red=", RMF(ColorSetRed), -1);
-  rb_define_method(RColor, "green=", RMF(ColorSetGreen), -1);
-  rb_define_method(RColor, "blue=", RMF(ColorSetBlue), -1);
-  rb_define_method(RColor, "alpha=", RMF(ColorSetAlpha), -1);
-  VALUE RTone = rb_define_class("Tone", rb_cObject);
-  rb_define_alloc_func(RTone, classAllocate<&ToneType>);
-  rb_define_singleton_method(RTone, "_load", RMF(ToneLoad), -1);
-  serializableBindingInit<Tone>(RTone);
-  rb_define_method(RTone, "initialize", RMF(ToneInitialize), -1);
-  rb_define_method(RTone, "initialize_copy", RMF(ToneInitializeCopy), -1);
-  rb_define_method(RTone, "set", RMF(ToneSet), -1);
-  rb_define_method(RTone, "==", RMF(ToneEqual), -1);
-  rb_define_method(RTone, "===", RMF(ToneEqual), -1);
-  rb_define_method(RTone, "eql?", RMF(ToneEqual), -1);
-  rb_define_method(RTone, "to_s", RMF(ToneStringify), -1);
-  rb_define_method(RTone, "inspect", RMF(ToneStringify), -1);
-  rb_define_method(RTone, "red", RMF(ToneGetRed), -1);
-  rb_define_method(RTone, "green", RMF(ToneGetGreen), -1);
-  rb_define_method(RTone, "blue", RMF(ToneGetBlue), -1);
-  rb_define_method(RTone, "gray", RMF(ToneGetGray), -1);
-  rb_define_method(RTone, "red=", RMF(ToneSetRed), -1);
-  rb_define_method(RTone, "green=", RMF(ToneSetGreen), -1);
-  rb_define_method(RTone, "blue=", RMF(ToneSetBlue), -1);
-  rb_define_method(RTone, "gray=", RMF(ToneSetGray), -1);
-  VALUE RRect = rb_define_class("Rect", rb_cObject);
-  rb_define_alloc_func(RRect, classAllocate<&RectType>);
-  rb_define_singleton_method(RRect, "_load", RMF(RectLoad), -1);
-  serializableBindingInit<Rect>(RRect);
-  rb_define_method(RRect, "initialize", RMF(rect_initialize), -1);
-  rb_define_method(RRect, "initialize_copy", RMF(RectInitializeCopy), -1);
-  rb_define_method(RRect, "set", RMF(RectSet), -1);
-  rb_define_method(RRect, "==", RMF(RectEqual), -1);
-  rb_define_method(RRect, "===", RMF(RectEqual), -1);
-  rb_define_method(RRect, "eql?", RMF(RectEqual), -1);
-  rb_define_method(RRect, "to_s", RMF(RectStringify), -1);
-  rb_define_method(RRect, "inspect", RMF(RectStringify), -1);
-  rb_define_method(RRect, "x", RMF(RectGetX), -1);
-  rb_define_method(RRect, "y", RMF(RectGetY), -1);
-  rb_define_method(RRect, "width", RMF(RectGetWidth), -1);
-  rb_define_method(RRect, "height", RMF(RectGetHeight), -1);
-  rb_define_method(RRect, "x=", RMF(RectSetX), -1);
-  rb_define_method(RRect, "y=", RMF(RectSetY), -1);
-  rb_define_method(RRect, "width=", RMF(RectSetWidth), -1);
-  rb_define_method(RRect, "height=", RMF(RectSetHeight), -1);
-  rb_define_method(RRect, "empty", RMF(rectEmpty), -1);
+  VALUE color = rb_define_class("Color", rb_cObject);
+  rb_define_alloc_func(color, classAllocate<&ColorType>);
+  rb_define_singleton_method(color, "_load", RMF(ColorLoad), -1);
+  serializableBindingInit<Color>(color);
+  rb_define_method(color, "initialize", RMF(ColorInitialize), -1);
+  rb_define_method(color, "initialize_copy", RMF(ColorInitializeCopy), -1);
+  rb_define_method(color, "set", RMF(ColorSet), -1);
+  rb_define_method(color, "==", RMF(ColorEqual), -1);
+  rb_define_method(color, "===", RMF(ColorEqual), -1);
+  rb_define_method(color, "eql?", RMF(ColorEqual), -1);
+  rb_define_method(color, "to_s", RMF(ColorStringify), -1);
+  rb_define_method(color, "inspect", RMF(ColorStringify), -1);
+  rb_define_method(color, "red", RMF(ColorGetRed), -1);
+  rb_define_method(color, "green", RMF(ColorGetGreen), -1);
+  rb_define_method(color, "blue", RMF(ColorGetBlue), -1);
+  rb_define_method(color, "alpha", RMF(ColorGetAlpha), -1);
+  rb_define_method(color, "red=", RMF(ColorSetRed), -1);
+  rb_define_method(color, "green=", RMF(ColorSetGreen), -1);
+  rb_define_method(color, "blue=", RMF(ColorSetBlue), -1);
+  rb_define_method(color, "alpha=", RMF(ColorSetAlpha), -1);
+  VALUE tone = rb_define_class("Tone", rb_cObject);
+  rb_define_alloc_func(tone, classAllocate<&ToneType>);
+  rb_define_singleton_method(tone, "_load", RMF(ToneLoad), -1);
+  serializableBindingInit<Tone>(tone);
+  rb_define_method(tone, "initialize", RMF(ToneInitialize), -1);
+  rb_define_method(tone, "initialize_copy", RMF(ToneInitializeCopy), -1);
+  rb_define_method(tone, "set", RMF(ToneSet), -1);
+  rb_define_method(tone, "==", RMF(ToneEqual), -1);
+  rb_define_method(tone, "===", RMF(ToneEqual), -1);
+  rb_define_method(tone, "eql?", RMF(ToneEqual), -1);
+  rb_define_method(tone, "to_s", RMF(ToneStringify), -1);
+  rb_define_method(tone, "inspect", RMF(ToneStringify), -1);
+  rb_define_method(tone, "red", RMF(ToneGetRed), -1);
+  rb_define_method(tone, "green", RMF(ToneGetGreen), -1);
+  rb_define_method(tone, "blue", RMF(ToneGetBlue), -1);
+  rb_define_method(tone, "gray", RMF(ToneGetGray), -1);
+  rb_define_method(tone, "red=", RMF(ToneSetRed), -1);
+  rb_define_method(tone, "green=", RMF(ToneSetGreen), -1);
+  rb_define_method(tone, "blue=", RMF(ToneSetBlue), -1);
+  rb_define_method(tone, "gray=", RMF(ToneSetGray), -1);
+  VALUE rect = rb_define_class("Rect", rb_cObject);
+  rb_define_alloc_func(rect, classAllocate<&RectType>);
+  rb_define_singleton_method(rect, "_load", RMF(RectLoad), -1);
+  serializableBindingInit<Rect>(rect);
+  rb_define_method(rect, "initialize", RMF(rect_initialize), -1);
+  rb_define_method(rect, "initialize_copy", RMF(RectInitializeCopy), -1);
+  rb_define_method(rect, "set", RMF(RectSet), -1);
+  rb_define_method(rect, "==", RMF(rect_equal), -1);
+  rb_define_method(rect, "===", RMF(rect_equal), -1);
+  rb_define_method(rect, "eql?", RMF(rect_equal), -1);
+  rb_define_method(rect, "to_s", RMF(RectStringify), -1);
+  rb_define_method(rect, "inspect", RMF(RectStringify), -1);
+  rb_define_method(rect, "x", RMF(RectGetX), -1);
+  rb_define_method(rect, "y", RMF(RectGetY), -1);
+  rb_define_method(rect, "width", RMF(RectGetWidth), -1);
+  rb_define_method(rect, "height", RMF(RectGetHeight), -1);
+  rb_define_method(rect, "x=", RMF(RectSetX), -1);
+  rb_define_method(rect, "y=", RMF(RectSetY), -1);
+  rb_define_method(rect, "width=", RMF(RectSetWidth), -1);
+  rb_define_method(rect, "height=", RMF(RectSetHeight), -1);
+  rb_define_method(rect, "empty", RMF(rectEmpty), -1);
+  VALUE ary = rb_define_class("Array", rb_cObject);
+  rb_define_method(ary, "to_rect", RMF(ary_to_rect), 0);
 }

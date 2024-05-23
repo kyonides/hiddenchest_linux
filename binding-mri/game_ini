@@ -21,7 +21,7 @@ module System
 end
 
 module Game
-  INI_FILENAME = Dir["*.ini"][0] || ".ini"
+  INI_FILENAME = (Dir["*.ini"][0] || ".ini")
   DATA = {}
   DATA.default = ""
   RTP = []
@@ -43,7 +43,7 @@ module Game
 
   def self.process_exe_name(list)
     4.times do |n|
-      if FileInt.exist?(EXE_NAME + list[n])
+      if File.exist?(EXE_NAME + list[n])
         return n
       end
     end
@@ -87,6 +87,9 @@ module Game
         DATA[key] = value
       end
     end
+  end
+
+  def self.set_basic_values
     DATA["Scripts"].sub!("\\", "/")
     const_set("SCRIPTS", DATA["Scripts"])
     const_set("TITLE", DATA["Title"])
@@ -105,14 +108,14 @@ module Game
     const_set("ENCRYPTED_NAME", EXE_NAME + encrypt_ext[n])
     const_set("MAKER", makers[n])
     const_set("RGSS_VERSION", n)
-    w = DATA.delete("Width")
-    h = DATA.delete("Height")
-    w = w.empty? ? START_WIDTH : w.to_i;
-    h = h.empty? ? START_HEIGHT : h.to_i;
+    w = DATA.delete("Width").to_i
+    h = DATA.delete("Height").to_i
+    w = (w == 0 ? START_WIDTH : w)
+    h = (h == 0 ? START_HEIGHT : h)
     const_set("WIDTH", w)
     const_set("HEIGHT", h)
-    @setup_screen = (normal_size? and change_size?);
-    full = (DATA["Fullscreen"][/true/i] != nil);
+    @setup_screen = (normal_size? and change_size?)
+    full = (DATA["Fullscreen"][/true/i] != nil)
     const_set("FULLSCREEN", full)
     puts "RGSS Version: #{n} (#{MAKER})"
     puts "Game Screen Size: #{WIDTH}x#{HEIGHT}"
@@ -120,5 +123,6 @@ module Game
     puts "Trigger Fullscreen: #{FULLSCREEN}"
   end
   process_ini
+  set_basic_values
   set_internal_values
 end

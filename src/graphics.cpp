@@ -721,9 +721,9 @@ struct GraphicsPrivate
 
 Graphics::Graphics(RGSSThreadData *data) :
   screenshot_format_index(0),
-  screenshot_format(""),
-  screenshot_dir(""),
-  screenshot_fn("")
+  screenshot_format("jpg"),
+  screenshot_dir("Screenshots"),
+  screenshot_fn("screenshot")
 {
   p = new GraphicsPrivate(data);
   if (data->config.syncToRefreshrate) {
@@ -1179,7 +1179,8 @@ Scene *Graphics::getScreen() const
 
 void Graphics::repaintWait(const AtomicFlag &exitCond, bool checkReset)
 {
-  if (exitCond) return;
+  if (exitCond)
+    return;
   // Repaint the screen with the last good frame we drew 
   TEXFBO &lastFrame = p->screen.getPP().frontBuffer();
   GLMeta::blitBeginScreen(p->winSize);

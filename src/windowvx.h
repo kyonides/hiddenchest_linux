@@ -45,7 +45,7 @@ public:
   void move(int x, int y, int width, int height);
   bool isOpen() const;
   bool isClosed() const;
-  bool isMouseInside(int, int, int, int) const;
+  bool is_mouse_inside(int, int, int, int) const;
 
   DECL_ATTR( Windowskin,      Bitmap* )
   DECL_ATTR( Contents,        Bitmap* )

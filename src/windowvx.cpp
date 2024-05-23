@@ -277,14 +277,16 @@ struct WindowVXPrivate
 
   void updateBaseTexSize()
   {
-    if (base.tex.width >= geo.w && base.tex.height >= geo.h) return;
+    if (base.tex.width >= geo.w && base.tex.height >= geo.h)
+      return;
     if (base.tex.tex != TEX::ID(0)) {
       TEX::bind(base.tex.tex);
       TEX::setSmooth(false); // XXX make pool set this up at alloc time
     }
     shState->texPool().release(base.tex);
     TEXFBO::clear(base.tex);
-    if (geo.w == 0 || geo.h == 0) return;
+    if (geo.w == 0 || geo.h == 0)
+      return;
     base.tex = shState->texPool().request(geo.w, geo.h);
     TEX::bind(base.tex.tex);
     TEX::setSmooth(true);
@@ -348,8 +350,10 @@ struct WindowVXPrivate
 
   void redrawBaseTex()
   {
-    if (nullOrDisposed(windowskin)) return;
-    if (base.tex.tex == TEX::ID(0)) return;
+    if (nullOrDisposed(windowskin))
+      return;
+    if (base.tex.tex == TEX::ID(0))
+      return;
     FBO::bind(base.tex.fbo);
     /* Clear texture */
     glState.clearColor.pushSet(Vec4());
@@ -646,15 +650,14 @@ WindowVX::~WindowVX()
   dispose();
 }
 
-bool WindowVX::isMouseInside(int x, int y, int w, int h) const
+bool WindowVX::is_mouse_inside(int x, int y, int w, int h) const
 {
   guardDisposed();
-  int mx = shState->input().mouseX();
-  if (mx < x) return false;
-  if (mx > x + w) return false;
-  int my = shState->input().mouseY();
-  if (my < y) return false;
-  return my <= y + h;
+  int mp = shState->input().mouseX() - p->geo.x;
+  if (mp < x || mp > x + w)
+    return false;
+  mp = shState->input().mouseY() - p->geo.y;
+  return (mp >= y && mp <= y + h);
 }
 
 void WindowVX::update()

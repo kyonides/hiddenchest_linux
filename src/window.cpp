@@ -660,7 +660,8 @@ void Window::setXY(int val, int num)
 void Window::setWidth(int value)
 {
   guardDisposed();
-  if (p->size.x == value) return;
+  if (p->size.x == value)
+    return;
   p->size.x = value;
   p->baseVertDirty = true;
 }
@@ -668,7 +669,8 @@ void Window::setWidth(int value)
 void Window::setHeight(int value)
 {
   guardDisposed();
-  if (p->size.y == value) return;
+  if (p->size.y == value)
+    return;
   p->size.y = value;
   p->needOpenness = p->openMode > 0;
   p->processOpenMode();
@@ -677,7 +679,8 @@ void Window::setHeight(int value)
 void Window::setOX(int value)
 {
   guardDisposed();
-  if (p->contentsOffset.x == value) return;
+  if (p->contentsOffset.x == value)
+    return;
   p->contentsOffset.x = value;
   p->controlsVertDirty = true;
 }
@@ -685,7 +688,8 @@ void Window::setOX(int value)
 void Window::setOY(int value)
 {
   guardDisposed();
-  if (p->contentsOffset.y == value) return;
+  if (p->contentsOffset.y == value)
+    return;
   p->contentsOffset.y = value;
   p->controlsVertDirty = true;
 }
@@ -707,16 +711,18 @@ void Window::setWindowskin(Bitmap *value)
   guardDisposed();
   p->windowskin = value;
   if (nullOrDisposed(value))
-  value->ensureNonMega();
+    value->ensureNonMega();
 }
 
 void Window::setContents(Bitmap *value)
 {
   guardDisposed();
-  if (p->contents == value) return;
+  if (p->contents == value)
+    return;
   p->contents = value;
   p->controlsVertDirty = p->openness == 100;
-  if (nullOrDisposed(value)) return;
+  if (nullOrDisposed(value))
+    return;
   value->ensureNonMega();
   p->contentsQuad.setTexPosRect(value->rect(), value->rect());
 }
@@ -724,7 +730,8 @@ void Window::setContents(Bitmap *value)
 void Window::setStretch(bool value)
 {
   guardDisposed();
-  if (value == p->bgStretch) return;
+  if (value == p->bgStretch)
+    return;
   p->bgStretch = value;
   p->baseVertDirty = true;
 }
@@ -732,7 +739,8 @@ void Window::setStretch(bool value)
 void Window::setActive(bool value)
 {
   guardDisposed();
-  if (p->active == value) return;
+  if (p->active == value)
+    return;
   p->active = value;
   p->cursorAniAlphaIdx = 0;
 }
@@ -792,15 +800,14 @@ bool Window::isClosed() const
   return (p->openMode > 0 && p->openness == 0);
 }
 
-bool Window::isMouseInside(int x, int y, int w, int h) const
+bool Window::is_mouse_inside(int x, int y, int w, int h) const
 {
   guardDisposed();
-  int mx = shState->input().mouseX();
-  if (mx < x) return false;
-  if (mx > x + w) return false;
-  int my = shState->input().mouseY();
-  if (my < y) return false;
-  return my <= y + h;
+  int mp = shState->input().mouseX() - p->position.x;
+  if (mp < x || mp > x + w)
+    return false;
+  mp = shState->input().mouseY() - p->position.y;
+  return (mp >= y && mp <= y + h);
 }
 
 void Window::setOpacity(int value)

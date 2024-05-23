@@ -149,6 +149,8 @@ You can use this public domain soundfont: [GMGSx.sf2](https://www.dropbox.com/s/
 
 Once you have downloaded all the soundfonts your project will ever need, create a new directory called SF2 inside your Audio folder. Then copy and paste all of your soundfonts there. (Path: `Audio/SF2`)
 
+The Game.ini file also accepts these new parameters: `SoundFontWin`, `SoundFontLnx`, `SoundFontPathWin`, `SoundFontPathLnx`.
+
 ## Fonts
 
 In the RMXP version of RGSS, fonts are loaded directly from system specific search paths (meaning they must be installed to be available to games). Because this whole thing is a giant platform-dependent headache, I decided to implement the behavior Enterbrain thankfully added in VX Ace: loading fonts will automatically search a folder called "Fonts", which obeys the default searchpath behavior (ie. it can be located directly in the game folder, or an RTP).
@@ -184,7 +186,8 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
 * `Window#set_xy(newx, newy)` and `Sprite#set_xy(newx, newy)` let you assign both Carthesian coordinates at the same time.
 * Assign a viewport to any RGSS1 window by using `Window#viewport = some_viewport`
 * They now support additional keys like PrintScreen, Return or Enter or LeftShift or RightAlt or NumPadDivide * or KeyH or KeyM or N1 through N0 series of number keys.
-* The `Bitmap`, `Sprite` and `Window` classes now support mouse clicks! Well, they indirectly do it... You got to set the `@area` array with every single x, y, width and height dimensions first. Usually you do that in the `Window_Selectable` and its child classes refresh method. The following script calls might be used in scene scripts:
+* The `Bitmap`, `Sprite` and `Window` classes now support mouse clicks!
+Well, they indirectly do it... You got to set the `@area` array with every single Rect or an Array with x, y, width and height dimensions first. Usually you do that in the `Window_Selectable` and its child classes refresh method. The following script calls might be used in scene scripts:
     - `Bitmap#alpha_pixel?(x, y)` - It's not just for clicks!
     - `Sprite#mouse_above?` alias `Sprite#mouse_inside?`
     - `Sprite#mouse_above_color?` - It will ignore pixels with alpha value set at 0.
@@ -207,7 +210,7 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
     - `image_format` and `image_format=` let you check out or assign a preferred image format for your screenshots. Available options are:
          - :jpg or 0 for JPG format - default option
          - :png or 1 for PNG format
-    - `snapshot_dir` and `snapshot_filename` define the directory and base name of your screenshots.
+    - `shot_dir` and `shot_filename` define the directory and base name of your screenshots.
     - `save_dir` and `save_filename` define the directory and base name of your saved games.
     - `auto_create_dirs` lets you create directories whenever you do not want to use any of the default paths.
     - `soundfont` shows your current soundfont.
@@ -222,17 +225,16 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
     - `blur_bitmap` - Blurred version of your map.
     - `color_bitmap` - Pick a single color to taint your map.
          - Options are:  :red, :green, :blue, :yellow, :sepia and :gray
-* Sprites now support grayed out and sepia colored versions of their bitmaps! Use a boolean (true or false) to toggle the color effect.
+* `Sprite` now support grayed out and sepia colored versions of their bitmaps! Use a boolean (true or false) to toggle the color effect.
     - `gray_out = boolean`
     - `turn_sepia = boolean`
     - `invert_colors = boolean`
     - `grayed_out?` - In case you need to verify this via script call
     - `sepia?` - In case you need to verify this via script call
     - `colors_inverted?` - In case you need to verify if they were inverted already
-* Use the `module_accessor` method to create module methods, getters and setters all in one! Example: `module_attr_accessor :meow` will create the `self.meow` and `self.meow=(value)` methods in a single step. Its setter and getter are `module_writer` and `module_reader` respectively.
 * The `Scripts` module allows you to store a Ruby string or symbol as a script ID via `Scripts << :script_name`. Once it has been stored there, you can call its methods, i.e. `Scripts.all` or `Scripts.include?(:script_name)` to access the Scripts IDs Array and confirm if it has been included respectively.
-* `RPG::Weather.sprite_max = Number`. where Number is a positive integer number, lets you define the upper limit of the weather sprites like rain or storm or snow effects. Currently it is set at 400 sprites, but it could handle even more if deemed necessary.
-* `FileInt` class allows you to ask if a file `exist?` even if it is compressed.
+* `RPG::Weather.sprite_max = Number`. where Number is a positive integer number, lets you define the upper limit of the weather sprites like rain or storm or snow effects. Currently it is set at 1000 sprites, but it could handle even more if deemed necessary.
+* `FileInt` class allows you to ask if a file `exist?` even if it is compressed or you can call `File#exist_compressed?` instead.
 * `Audio` module includes more methods like `bgm_volume`, `bgs_volume`, `se_volume` and `me_volume`.
 
 ### Input Module
@@ -243,6 +245,8 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
     - `MOUSERIGHT` or `MouseRight`
 * Additional functions:
     - `mouse_x` and `mouse_y` to query the mouse pointer position relative to the game screen.
+    - `mouse_ox`, `mouse_oy`, `mouse_ox=`, `mouse_oy=` can help you adjust any window's clickable areas.
+       Default Values: 8 for `mouse_ox` and -8 for `mouse_oy`.
     - `dir4?` and `dir8?` to prevent you from using 4 or even 8 conditional statements in a row.
     - `press_all?` and `trigger_buttons?` to save you the effort of typing many conditional statements in a row.
          - You can pass them one argument after another or pass an array.
@@ -260,6 +264,7 @@ To alleviate possible porting of heavily Win32API reliant scripts, we have added
     - `outline_size` - Integer 1 through 8
     - `shadow_size` - Integer 1 through 3
     - `shadow_color` - Color in RGBA format
+    - `outline`, `out_color` & `outline_color` are available for RMXP & RMVX as well.
 
 ## List of Bug Fixes for HiddenChest
 

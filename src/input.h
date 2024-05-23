@@ -23,6 +23,8 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#include "etc.h"
+
 struct InputPrivate;
 struct RGSSThreadData;
 
@@ -64,6 +66,8 @@ public:
     MouseLeft = 130, MouseMiddle = 131, MouseRight = 132,
   };
   void update();
+  int click_timer() const;
+  void set_click_timer(int timer);
   bool is_left_click();
   bool is_middle_click();
   bool is_right_click();
@@ -79,6 +83,11 @@ public:
   /* Non-standard extensions */
   int mouseX();
   int mouseY();
+  int mouse_ox() const;
+  int mouse_oy() const;
+  void mouse_set_ox(int n);
+  void mouse_set_oy(int n);
+  bool mouse_is_inside(int index, Rect *rect);
   bool is_any_char();
   char* string();
   void enableMode(bool state);

@@ -31,6 +31,9 @@
 #include "binding-util.h"
 
 DEF_TYPE(Window);
+DECL_TYPE(Rect);
+
+extern VALUE rect_from_ary(VALUE ary);
 
 template<class C>
 static VALUE viewportElementGetViewport(VALUE self)
@@ -186,15 +189,16 @@ static VALUE window_set_xy(VALUE self, VALUE rx, VALUE ry)
 static VALUE window_is_mouse_inside(VALUE self, VALUE pos)
 {
   Window *win = getPrivateData<Window>(self);
-  if (win == 0) return Qnil;
+  if (!win)
+    return Qnil;
   int index = RB_FIX2INT(pos);
-  VALUE rect = rb_ary_entry(rb_iv_get(self, "@area"), index);
-  if (RB_NIL_P(rect)) return Qnil;
-  int x = RB_FIX2INT(rb_ary_entry(rect, 0));
-  int y = RB_FIX2INT(rb_ary_entry(rect, 1));
-  int w = RB_FIX2INT(rb_ary_entry(rect, 2));
-  int h = RB_FIX2INT(rb_ary_entry(rect, 3));
-  return win->isMouseInside(x, y, w, h) ? Qtrue : Qfalse;
+  VALUE area = rb_ary_entry(rb_iv_get(self, "@area"), index);
+  if (RB_NIL_P(area))
+    return Qnil;
+  else if (ARRAY_TYPE_P(area))
+    area = rect_from_ary(area);
+  Rect *r = static_cast<Rect*>(RTYPEDDATA_DATA(area));
+  return (win->is_mouse_inside(r->x, r->y, r->width, r->height) ? Qtrue : Qfalse);
 }
 
 DEF_PROP_OBJ_REF(Window, Bitmap, Contents,   "contents")

@@ -23,6 +23,7 @@
 #define HCEXTRAS_H
 
 #include <stdarg.h>
+//#include <ruby.h>
 #include "binding-util.h"
 
 #define RMF(func) ((VALUE (*)(ANYARGS))(func))

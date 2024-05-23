@@ -32,6 +32,7 @@
 #include <vector>
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 #include "debugwriter.h"
 #define BUTTON_CODE_COUNT 24
 
@@ -341,6 +342,10 @@ struct InputPrivate
   ButtonState *statesOld;
   Input::ButtonCode repeating;
   unsigned int repeatCount;
+  unsigned int click_timer;
+  unsigned int click_count;
+  int ox;
+  int oy;
   bool press_any = false;
   bool trigger_any = false;
 
@@ -359,16 +364,19 @@ struct InputPrivate
   {
     initStaticKbBindings();
     initMsBindings();
-    /* Main thread should have these posted by now */
+    // Main thread should have these posted by now
     checkBindingChange(rtData);
     states    = stateArray;
     statesOld = stateArray + 520; // + BUTTON_CODE_COUNT;
-    /* Clear buffers */
+    // Clear buffers
     clearBuffer();
     swapBuffers();
     clearBuffer();
     repeating = Input::None;
     repeatCount = 0;
+    click_count = 100;
+    ox = 8;
+    oy = -8;
     dir4Data.active = 0;
     dir4Data.previous = Input::None;
     dir8Data.active = 0;
@@ -376,8 +384,7 @@ struct InputPrivate
 
   inline ButtonState &getStateCheck(int code)
   {
-    if (code < 0) return states[0];
-    return states[code];
+    return (code < 0 ? states[0] : states[code]);
   }
 
   inline ButtonState &getState(Input::ButtonCode code)
@@ -409,7 +416,8 @@ struct InputPrivate
   void checkBindingChange(const RGSSThreadData &rtData)
   {
     BDescVec d;
-    if (!rtData.bindingUpdateMsg.poll(d)) return;
+    if (!rtData.bindingUpdateMsg.poll(d))
+      return;
     applyBindingDesc(d);
   }
 
@@ -417,7 +425,7 @@ struct InputPrivate
   void appendBindings(std::vector<B> &bind)
   {
     for (size_t i = 0; i < bind.size(); ++i)
-    bindings.push_back(&bind[i]);
+      bindings.push_back(&bind[i]);
   }
 
   void applyBindingDesc(const BDescVec &d)
@@ -429,7 +437,8 @@ struct InputPrivate
     for (size_t i = 0; i < d.size(); ++i) {
       const BindingDesc &desc = d[i];
       const SourceDesc &src = desc.src;
-      if (desc.target == Input::None) continue;
+      if (desc.target == Input::None)
+        continue;
       switch (desc.src.type)
       {
       case Invalid :
@@ -485,11 +494,12 @@ struct InputPrivate
   {
     kbStatBindings.clear();
     for (size_t i = 0; i < staticKbBindingsN; ++i)
-    kbStatBindings.push_back(KbBinding(staticKbBindings[i]));
+      kbStatBindings.push_back(KbBinding(staticKbBindings[i]));
   }
 
   void initMsBindings()
   {
+    click_count = 0;
     msBindings.resize(3);
     size_t i = 0;
     msBindings[i++] = MsBinding(SDL_BUTTON_LEFT,   Input::MouseLeft);
@@ -499,6 +509,8 @@ struct InputPrivate
 
   void pollBindings(Input::ButtonCode &repeatCand)
   {
+    if (click_count > 0)
+      click_count--;
     for (size_t i = 0; i < bindings.size(); ++i)
       pollBindingPriv(*bindings[i], repeatCand);
     poll_alt_ctrl_shift();
@@ -508,8 +520,17 @@ struct InputPrivate
 
   void pollBindingPriv(const Binding &b, Input::ButtonCode &repeatCand)
   {
-    if (!b.sourceActive()) return;
-    if (b.target == Input::None) return;
+    if (!b.sourceActive())
+      return;
+    if (b.target == Input::None)
+      return;
+    // * //
+    if (b.target == Input::MouseLeft ||
+        b.target == Input::MouseMiddle ||
+        b.target == Input::MouseRight) {
+      if (click_count == 0)
+        click_count = click_timer;
+    }
     ButtonState &state = getState(b.target);
     ButtonState &oldState = getOldState(b.target);
     state.pressed = true;
@@ -520,7 +541,8 @@ struct InputPrivate
       trigger_any = true;
     }
     /* Unbound keys don't create/break repeat */
-    if (repeatCand != Input::None) return;
+    if (repeatCand != Input::None)
+      return;
     if (repeating != b.target && !oldState.pressed) {
       if (b.sourceRepeatable())
         repeatCand = b.target;
@@ -605,6 +627,16 @@ Input::Input(const RGSSThreadData &rtData)
   p = new InputPrivate(rtData);
 }
 
+int Input::click_timer() const
+{
+  return p->click_timer;
+}
+
+void Input::set_click_timer(int timer)
+{
+  p->click_timer = timer;
+}
+
 void Input::update()
 {
   shState->checkShutdown();
@@ -637,28 +669,26 @@ void Input::update()
 
 bool Input::is_left_click()
 {
-  bool trig = p->getStateCheck(MouseLeft).pressed ? true : false;
-  p->getStateCheck(MouseMiddle).pressed = false;
-  p->getStateCheck(MouseRight).pressed = false;
-  p->getStateCheck(MouseLeft).pressed = false;
-  bool state = p->getStateCheck(MouseLeft).pressed ? true : false;
-  return (trig && !state && !shState->rtData().mouse_moved);
+  bool trig = p->getStateCheck(MouseLeft).triggered;
+  return (trig && !shState->rtData().mouse_moved);
 }
 
 bool Input::is_middle_click()
 {
-  return isPressed(MouseMiddle);
+  bool trig = p->getStateCheck(MouseMiddle).triggered;
+  return (trig && !shState->rtData().mouse_moved);
 }
 
 bool Input::is_right_click()
 {
-  return isPressed(MouseRight);
+  bool trig = p->getStateCheck(MouseRight).triggered;
+  return (trig && !shState->rtData().mouse_moved);
 }
 
 bool Input::isPressed(int button)
 {
   if (button == MouseLeft || button == MouseRight) {
-    bool trig = p->getStateCheck(button).pressed ? true : false;
+    bool trig = p->getStateCheck(button).pressed;
     p->getStateCheck(button).pressed = false;
     return trig;
   }
@@ -667,8 +697,12 @@ bool Input::isPressed(int button)
 
 bool Input::isTriggered(int button)
 {
-  if (button == MouseLeft || button == MouseRight) {
-    bool trig = p->getStateCheck(MouseLeft).triggered ? true : false;
+  if (button == MouseLeft) {
+    bool trig = p->getStateCheck(MouseLeft).triggered;
+    p->getStateCheck(button).triggered = false;
+    return trig;
+  } else if (button == MouseRight) {
+    bool trig = p->getStateCheck(MouseRight).triggered;
     p->getStateCheck(button).triggered = false;
     return trig;
   }
@@ -713,13 +747,53 @@ bool Input::is_dir8()
 int Input::mouseX()
 {
   RGSSThreadData &rtData = shState->rtData();
-  return (EventThread::mouseState.x - rtData.screenOffset.x) * rtData.sizeResoRatio.x;
+  int mx = EventThread::mouseState.x;
+  return (mx + p->ox - rtData.screenOffset.x) * rtData.sizeResoRatio.x;
 }
 
 int Input::mouseY()
 {
   RGSSThreadData &rtData = shState->rtData();
-  return (EventThread::mouseState.y - rtData.screenOffset.y) * rtData.sizeResoRatio.y;
+  int my = EventThread::mouseState.y;
+  return (my + p->oy - rtData.screenOffset.y) * rtData.sizeResoRatio.y;
+}
+
+int Input::mouse_ox() const
+{
+  return p->ox;
+}
+
+int Input::mouse_oy() const
+{
+  return p->oy;
+}
+
+void Input::mouse_set_ox(int n)
+{
+  p->ox = n;
+}
+
+void Input::mouse_set_oy(int n)
+{
+  p->oy = n;
+}
+
+bool Input::mouse_is_inside(int index, Rect *rect)
+{
+  int mx = mouseX();
+  int my = mouseY();
+  if (index == 0) {
+    if (rect->x > mx || rect->width < mx)
+      return false;
+    return (rect->y <= my && rect->height >= my);
+  } else {
+    double center_x = rect->width / 2.0;
+    double center_y = rect->height / 2.0;
+    double dx = mx - center_x;
+    double dy = my - center_y;
+    double dr = dx * dx + dy * dy;
+    return (sqrt(dr) <= center_x);
+  }
 }
 
 bool Input::is_any_char()

@@ -37,6 +37,7 @@
 #include <assert.h>
 #include <string>
 #include <zlib.h>
+#include <SDL_video.h>
 #include <SDL_filesystem.h>
 #include "scripts.h"
 

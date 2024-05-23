@@ -40,8 +40,9 @@ static VALUE game_set_internal_values(VALUE self)
     str = RSTRING_PTR(entry);
     c_rtp.push_back(str);
   }
+  if (START_WIDTH != w || START_HEIGHT != h)
+    shState->init_size(w, h);
   shState->set_title(title);
-  shState->init_size(w, h);
   shState->reset_config(rgss, version, scripts, c_rtp);
   shState->check_encrypted_game_file(enc_name);
   return Qnil;

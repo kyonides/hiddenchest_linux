@@ -52,11 +52,11 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET 10.6)
 
 IF(LINUX)
   if(CMAKE_SIZEOF_VOID_P MATCHES "8" AND NOT(FORCE32) )
-    set(CMAKE_EXECUTABLE_SUFFIX ".bin")
+    set(CMAKE_EXECUTABLE_SUFFIX "")
     set(BIN_RPATH "\$ORIGIN/lib")
     set(LIB_PATH "lib")
   else()
-    set(CMAKE_EXECUTABLE_SUFFIX ".bin86")
+    set(CMAKE_EXECUTABLE_SUFFIX ".b86")
     set(BIN_RPATH "\$ORIGIN/lib")
     set(LIB_PATH "lib")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64")
@@ -463,8 +463,7 @@ target_link_libraries(${PROJECT_NAME}
   ${FLUID_LIBRARIES}
   ${OPENAL_LIBRARY}
   ${ZLIB_LIBRARY}
-  ${PLATFORM_LIBRARIES}
-  stdc++fs
+  ${PLATFORM_LIBRARIES} #stdc++fs
 )
 
 PostBuildMacBundle(${PROJECT_NAME} "" "${PLATFORM_COPY_LIBS}")
