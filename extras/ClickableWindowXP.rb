@@ -1,6 +1,6 @@
 # * ClickableWindow XP * #
 #   Scripter : Kyonides Arkanthes
-#   2024-05-23
+#   2024-05-24
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.
@@ -93,39 +93,55 @@ class Window_Command
   end
 end
 
-class Scene_Title
-=begin
-  alias :kyon_click_window_scn_ttl_main :main
-  def main
-    @time = 0
-    @frames = Sprite.new
-    @frames.z = 1000
-    @frames.bitmap = b = Bitmap.new(240, 32)
-    b.draw_text(4, 0, 232, 32, "Click Timer: #{Input.base_timer}")
-    @timer_rect = Rect.new(4, 0, 132, 32)
-    @timer = Sprite.new
-    @timer.y = 64
-    @timer.z = 1000
-    @timer_bitmap = Bitmap.new(140, 32)
-    @timer_bitmap.draw_text(@timer_rect, "Time Left: #{Input.click_timer}")
-    @timer.bitmap = @timer_bitmap
-    kyon_click_window_scn_ttl_main
-    @timer_bitmap.dispose
-    @timer.dispose
-    @frames.bitmap.dispose
-    @frames.dispose
+class Window_MenuStatus
+  def refresh
+    self.contents.clear
+    @item_max = $game_party.actors.size
+    for i in 0...$game_party.actors.size
+      x = 64
+      y = i * 116
+      @area[i] ||= Rect.new(0, i * 116, self.width - 32, 96)
+      actor = $game_party.actors[i]
+      draw_actor_graphic(actor, x - 40, y + 80)
+      draw_actor_name(actor, x, y)
+      draw_actor_class(actor, x + 144, y)
+      draw_actor_level(actor, x, y + 32)
+      draw_actor_state(actor, x + 90, y + 32)
+      draw_actor_exp(actor, x, y + 64)
+      draw_actor_hp(actor, x + 236, y + 32)
+      draw_actor_sp(actor, x + 236, y + 64)
+    end
   end
+end
 
-  def update_timer
-    @time = Input.click_timer
-    @timer_bitmap.clear
-    @timer_bitmap.draw_text(@timer_rect, "Left: #{@time}")
+class Window_Target
+  def refresh
+    self.contents.clear
+    for i in 0...$game_party.actors.size
+      x = 4
+      y = i * 116
+      @area[i] ||= Rect.new(0, i * 116, self.width - 32, 96)
+      actor = $game_party.actors[i]
+      draw_actor_name(actor, x, y)
+      draw_actor_class(actor, x + 144, y)
+      draw_actor_level(actor, x + 8, y + 32)
+      draw_actor_state(actor, x + 8, y + 64)
+      draw_actor_hp(actor, x + 152, y + 32)
+      draw_actor_sp(actor, x + 152, y + 64)
+    end
   end
-=end
+end
+
+class Window_SaveFile
+  alias :kyon_click_win_win_svfl_init :initialize
+  def initialize(file_index, filename)
+    kyon_click_win_win_svfl_init(file_index, filename)
+    @area << self.contents.rect
+  end
+end
+
+class Scene_Title
   def update
-    #if @time > 0 and Input.click_timer != @time
-    #  update_timer
-    #end
     @command_window.update
     # Added Right Click Check
     if Input.right_click?
@@ -143,8 +159,6 @@ class Scene_Title
       when 2  # Shutdown
         command_shutdown
       end
-    #elsif Input.left_click?
-      #update_timer
     end
   end
 end
@@ -300,6 +314,39 @@ class Scene_Menu
       end
       return
     end
+  end
+end
+
+class Scene_File
+  alias :kyon_click_win_scn_fl_up :update
+  def update
+    kyon_click_win_scn_fl_up
+    if Input.double_left_click?
+      @savefile_windows.each_with_index do |win, n|
+        next unless win.mouse_inside?(0)
+        choose_file(n)
+        on_decision(make_filename(n))
+        $game_temp.last_file_index = n
+        break
+      end
+      return
+    elsif Input.left_click?
+      @savefile_windows.each_with_index do |win, n|
+        next unless win.mouse_inside?(0)
+        choose_file(n)
+        break
+      end
+      return
+    elsif Input.double_right_click?
+      on_cancel
+      return
+    end
+  end
+
+  def choose_file(n)
+    @savefile_windows[@file_index].selected = false
+    @savefile_windows[n].selected = true
+    @file_index = n
   end
 end
 

@@ -89,15 +89,18 @@ class Menu
       return
     end
     @command_window.update
-    if Input.trigger?(Input::B)
+    if Input.trigger?(Input::B) or Input.double_right_click?
       Sound.play_cancel
       $scene = Scene_Map.new
       return
-    elsif Input.trigger?(Input::C)
+    elsif Input.trigger?(Input::C) or Input.double_left_click?
       Sound.play_decision
       $game_system.soundfont_index = @command_window.index
       @info_window.set_text(DELAY_MESSAGE)
       @timer = Graphics.frame_rate * 2
+    elsif Input.trigger?(Input::SHIFT)
+      Sound.play_cursor
+      Graphics.screenshot if Graphics.respond_to?(:screenshot)
     end
   end
 end

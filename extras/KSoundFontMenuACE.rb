@@ -31,7 +31,7 @@ class PathsWindow < Window_Selectable
 
   def draw_all_items
     @item_max.times do |n|
-      rect = item_rect_for_text(n)
+      rect = @area[n] ||= item_rect_for_text(n)
       draw_text(rect, @commands[n])
     end
   end
@@ -98,15 +98,18 @@ class Menu < Scene_Base
       return
     end
     @command_window.update
-    if Input.trigger?(:B)
+    if Input.trigger?(:B) or Input.double_right_click?
       Sound.play_cancel
       SceneManager.return
       return
-    elsif Input.trigger?(:C)
+    elsif Input.trigger?(:C) or Input.double_left_click?
       Sound.play_ok
       $game_system.soundfont_index = @command_window.index
       @info_window.set_text(DELAY_MESSAGE)
       @timer = Graphics.frame_rate * 2
+    elsif Input.trigger?(Input::SHIFT)
+      Sound.play_cursor
+      Graphics.screenshot if Graphics.respond_to?(:screenshot)
     end
   end
 end
