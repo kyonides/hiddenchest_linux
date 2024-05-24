@@ -253,6 +253,7 @@ Well, they indirectly do it... You got to set the `@area` array with every singl
     - `trigger_up_down?` and `trigger_left_right?` are very self evident.
     - `press_any?` and `trigger_any?` treats any non zero value as a valid button trigger.
     - `left_click?`, `middle_click?` and `right_click?`
+    - `double_click?(button)`, `double_left_click?` and `double_right_click?` depend on `default_timer` alias `base_timer` in order to define how long they will be waiting for the second click.
 * You can now use :symbols in any RGSS version.
 
 ## Font Class

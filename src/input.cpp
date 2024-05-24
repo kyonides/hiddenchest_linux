@@ -20,6 +20,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "clicks.h"
 #include "input.h"
 #include "sharedstate.h"
 #include "eventthread.h"
@@ -341,11 +342,18 @@ struct InputPrivate
   ButtonState *states;
   ButtonState *statesOld;
   Input::ButtonCode repeating;
+  Input *input;
   unsigned int repeatCount;
   unsigned int click_timer;
-  unsigned int click_count;
+  unsigned int base_timer;
+  unsigned int left_clicks;
+  unsigned int right_clicks;
+  unsigned int double_target;
   int ox;
   int oy;
+  int last_mx;
+  int last_my;
+  bool same_mouse_pos;
   bool press_any = false;
   bool trigger_any = false;
 
@@ -360,8 +368,10 @@ struct InputPrivate
     int active;
   } dir8Data;
 
-  InputPrivate(const RGSSThreadData &rtData)
+  InputPrivate(const RGSSThreadData &rtData, Input *parent)
   {
+    input = parent;
+    same_mouse_pos = false;
     initStaticKbBindings();
     initMsBindings();
     // Main thread should have these posted by now
@@ -374,7 +384,6 @@ struct InputPrivate
     clearBuffer();
     repeating = Input::None;
     repeatCount = 0;
-    click_count = 100;
     ox = 8;
     oy = -8;
     dir4Data.active = 0;
@@ -398,7 +407,7 @@ struct InputPrivate
     if (code < 0) return states[0];
     return statesOld[code]; // statesOld[mapToIndex[code]];
   }
-
+  
   void swapBuffers()
   {
     ButtonState *tmp = states;
@@ -499,7 +508,12 @@ struct InputPrivate
 
   void initMsBindings()
   {
-    click_count = 0;
+    base_timer = CLICK_TIMER;
+    click_timer = 0;
+    left_clicks = 0;
+    right_clicks = 0;
+    last_mx = 0;
+    last_my = 0;
     msBindings.resize(3);
     size_t i = 0;
     msBindings[i++] = MsBinding(SDL_BUTTON_LEFT,   Input::MouseLeft);
@@ -507,10 +521,19 @@ struct InputPrivate
     msBindings[i++] = MsBinding(SDL_BUTTON_RIGHT,  Input::MouseRight);
   }
 
+  void update_timers()
+  {
+    if (click_timer > 0) {
+      click_timer--;
+      return;
+    }
+    left_clicks = 0;
+    right_clicks = 0;
+    double_target = Input::None;
+  }
+
   void pollBindings(Input::ButtonCode &repeatCand)
   {
-    if (click_count > 0)
-      click_count--;
     for (size_t i = 0; i < bindings.size(); ++i)
       pollBindingPriv(*bindings[i], repeatCand);
     poll_alt_ctrl_shift();
@@ -524,21 +547,47 @@ struct InputPrivate
       return;
     if (b.target == Input::None)
       return;
-    // * //
-    if (b.target == Input::MouseLeft ||
-        b.target == Input::MouseMiddle ||
-        b.target == Input::MouseRight) {
-      if (click_count == 0)
-        click_count = click_timer;
-    }
     ButtonState &state = getState(b.target);
     ButtonState &oldState = getOldState(b.target);
     state.pressed = true;
     press_any = true;
-    /* Must have been released before to trigger */
+    // Must have been released before to trigger it
     if (!oldState.pressed) {
       state.triggered = true;
       trigger_any = true;
+      // Double Click Check
+      if (b.target == Input::MouseLeft) {
+        right_clicks = 0;
+        left_clicks++;
+        if (left_clicks == 1) {
+          click_timer = base_timer;
+          double_target = Input::MouseLeft;
+          last_mx = input->mouseX();
+          last_my = input->mouseY();
+        } else if (left_clicks == 2) {
+          click_timer = 0;
+          same_mouse_pos = (input->mouseX() == last_mx && input->mouseY() == last_my);
+        }
+      } else if (b.target == Input::MouseRight) {
+        left_clicks = 0;
+        right_clicks++;
+        if (right_clicks == 1) {
+          click_timer = base_timer;
+          double_target = Input::MouseRight;
+          last_mx = input->mouseX();
+          last_my = input->mouseY();
+        } else if (left_clicks == 2) {
+          click_timer = 0;
+          same_mouse_pos = (input->mouseX() == last_mx && input->mouseY() == last_my);
+        }
+      } else {
+        last_mx = 0;
+        last_my = 0;
+        left_clicks = 0;
+        right_clicks = 0;
+        double_target = Input::None;
+        same_mouse_pos = false;
+      }
     }
     /* Unbound keys don't create/break repeat */
     if (repeatCand != Input::None)
@@ -592,10 +641,12 @@ struct InputPrivate
     dir8Data.active = 0;
     for (size_t i = 0; i < 4; ++i) {
       Input::ButtonCode one = dirs[i];
-      if (!getState(one).pressed) continue;
+      if (!getState(one).pressed)
+        continue;
       for (int j = 0; j < 3; ++j) {
         Input::ButtonCode other = otherDirs[i][j];
-        if (!getState(other).pressed) continue;
+        if (!getState(other).pressed)
+          continue;
         dir8Data.active = combos[(one/2)-1][(other/2)-1];
         return;
       }
@@ -624,7 +675,7 @@ struct InputPrivate
 
 Input::Input(const RGSSThreadData &rtData)
 {
-  p = new InputPrivate(rtData);
+  p = new InputPrivate(rtData, this);
 }
 
 int Input::click_timer() const
@@ -632,9 +683,14 @@ int Input::click_timer() const
   return p->click_timer;
 }
 
-void Input::set_click_timer(int timer)
+int Input::base_timer() const
 {
-  p->click_timer = timer;
+  return p->base_timer;
+}
+
+void Input::set_base_timer(int timer)
+{
+  p->base_timer = timer;
 }
 
 void Input::update()
@@ -643,6 +699,7 @@ void Input::update()
   p->checkBindingChange(shState->rtData());
   p->swapBuffers();
   p->clearBuffer();
+  p->update_timers();
   ButtonCode repeatCand = None;
   // Poll all bindings
   p->pollBindings(repeatCand);
@@ -683,6 +740,28 @@ bool Input::is_right_click()
 {
   bool trig = p->getStateCheck(MouseRight).triggered;
   return (trig && !shState->rtData().mouse_moved);
+}
+
+bool Input::is_double_left_click()
+{
+  if (!p->getStateCheck(MouseLeft).triggered || p->double_target != MouseLeft)
+    return false;
+  return (p->left_clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
+}
+
+bool Input::is_double_right_click()
+{
+  if (!p->getStateCheck(MouseRight).triggered || p->double_target != MouseRight)
+    return false;
+  return (p->right_clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
+}
+
+bool Input::is_double_click(int btn)
+{
+  if (!p->getStateCheck(btn).triggered || p->double_target != btn)
+    return false;
+  int clicks = (btn == MouseLeft ? p->left_clicks : btn == MouseRight ? p->right_clicks : 2000); 
+  return (clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
 bool Input::isPressed(int button)

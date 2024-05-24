@@ -66,11 +66,16 @@ public:
     MouseLeft = 130, MouseMiddle = 131, MouseRight = 132,
   };
   void update();
+  int timer() const;
   int click_timer() const;
-  void set_click_timer(int timer);
+  int base_timer() const;
+  void set_base_timer(int timer);
   bool is_left_click();
   bool is_middle_click();
   bool is_right_click();
+  bool is_double_left_click();
+  bool is_double_right_click();
+  bool is_double_click(int btn);
   bool isPressed(int button);
   bool isTriggered(int button);
   bool isRepeated(int button);

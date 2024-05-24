@@ -20,6 +20,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "clicks.h"
 #include "input.h"
 #include "sharedstate.h"
 #include "exception.h"
@@ -40,13 +41,33 @@ static int getButtonArg(VALUE number)
   //rb_p(number);
   if (FIXNUM_P(number))
     return RB_FIX2INT(number);
-  //rb_p(rb_str_new_cstr("Not a Fixnum"));
   if (SYMBOL_P(number)) {// && rgssVer == 3
     VALUE sym_hash = getRbData()->buttoncodeHash;
     return RB_FIX2INT(rb_hash_aref(sym_hash, number));
   }
-  //rb_p(rb_str_new_cstr("Not a Symbol"));
   return 0;
+}
+
+static VALUE input_click_timer(VALUE self)
+{
+  int n = shState->input().click_timer();
+  return RB_INT2FIX(n);
+}
+
+static VALUE input_default_timer(VALUE self)
+{
+  int n = shState->input().base_timer();
+  return RB_INT2FIX(n);
+}
+
+static VALUE input_default_timer_set(VALUE self, VALUE val)
+{
+  val = rb_funcall(val, rb_intern("to_i"), 0);
+  int n = RB_FIX2INT(val);
+  if (n < 0)
+    return rb_iv_get(self, "@default_timer");
+  shState->input().set_base_timer(n);
+  return rb_iv_set(self, "@default_timer", val);
 }
 
 static VALUE inputPress(VALUE self, VALUE number)
@@ -205,6 +226,22 @@ static VALUE input_middle_click(VALUE self)
 static VALUE input_right_click(VALUE self)
 {
   return shState->input().is_right_click() ? Qtrue : Qfalse;
+}
+
+static VALUE input_double_click(VALUE self, VALUE button)
+{
+  int btn = RB_FIX2INT(button);
+  return shState->input().is_double_click(btn) ? Qtrue : Qfalse; 
+}
+
+static VALUE input_double_left_click(VALUE self)
+{
+  return shState->input().is_double_left_click() ? Qtrue : Qfalse; 
+}
+
+static VALUE input_double_right_click(VALUE self)
+{
+  return shState->input().is_double_right_click() ? Qtrue : Qfalse; 
 }
 
 static VALUE input_is_any_char(VALUE self)
@@ -371,33 +408,42 @@ void inputBindingInit()
 {
   VALUE input = rb_define_module("Input");
   rb_iv_set(input, "@mouse_ox", RB_INT2FIX(8));
-  rb_iv_set(input, "@mouse_oy", RB_INT2FIX(-8));
-  module_func(input, "update", RMF(inputUpdate), 0);
-  module_func(input, "left_click?", RMF(input_left_click), 0);
-  module_func(input, "middle_click?", RMF(input_middle_click), 0);
-  module_func(input, "right_click?", RMF(input_right_click), 0);
-  module_func(input, "press?", RMF(inputPress), 1);
-  module_func(input, "trigger?", RMF(inputTrigger), 1);
-  module_func(input, "repeat?", RMF(inputRepeat), 1);
-  module_func(input, "press_any?", RMF(input_press_any), 0);
-  module_func(input, "trigger_any?", RMF(input_trigger_any), 0);
-  module_func(input, "press_all?", RMF(input_are_pressed), -1);
-  module_func(input, "trigger_buttons?", RMF(input_are_triggered), -1);
-  module_func(input, "trigger_up_down?", RMF(input_trigger_up_down), 0);
-  module_func(input, "trigger_left_right?", RMF(input_trigger_left_right), 0);
-  module_func(input, "dir4", RMF(inputDir4), 0);
-  module_func(input, "dir8", RMF(inputDir8), 0);
-  module_func(input, "dir4?", RMF(input_is_dir4), 0);
-  module_func(input, "dir8?", RMF(input_is_dir8), 0);
-  module_func(input, "mouse_x", RMF(inputMouseX), 0);
-  module_func(input, "mouse_y", RMF(inputMouseY), 0);
-  module_func(input, "mouse_ox", RMF(input_mouse_ox), 0);
-  module_func(input, "mouse_oy", RMF(input_mouse_oy), 0);
-  module_func(input, "mouse_ox=", RMF(input_mouse_ox_set), 1);
-  module_func(input, "mouse_oy=", RMF(input_mouse_oy_set), 1);
-  module_func(input, "any_char?", RMF(input_is_any_char), 0);
-  module_func(input, "string", RMF(input_string), 0);
-  module_func(input, "enable_edit=", RMF(input_enable_edit), 1);
+  rb_iv_set(input, "@mouse_oy", RB_INT2FIX(-4));
+  rb_iv_set(input, "@default_timer", RB_INT2FIX(CLICK_TIMER));
+  module_func(input, "update", inputUpdate, 0);
+  module_func(input, "click_timer", input_click_timer, 0);
+  module_func(input, "base_timer", input_default_timer, 0);
+  module_func(input, "base_timer=", input_default_timer_set, 1);
+  module_func(input, "default_timer", input_default_timer, 0);
+  module_func(input, "default_timer=", input_default_timer_set, 1);
+  module_func(input, "left_click?", input_left_click, 0);
+  module_func(input, "middle_click?", input_middle_click, 0);
+  module_func(input, "right_click?", input_right_click, 0);
+  module_func(input, "double_left_click?", input_double_left_click, 0);
+  module_func(input, "double_right_click?", input_double_right_click, 0);
+  module_func(input, "double_click?", input_double_click, 1);
+  module_func(input, "press?", inputPress, 1);
+  module_func(input, "trigger?", inputTrigger, 1);
+  module_func(input, "repeat?", inputRepeat, 1);
+  module_func(input, "press_any?", input_press_any, 0);
+  module_func(input, "trigger_any?", input_trigger_any, 0);
+  module_func(input, "press_all?", input_are_pressed, -1);
+  module_func(input, "trigger_buttons?", input_are_triggered, -1);
+  module_func(input, "trigger_up_down?", input_trigger_up_down, 0);
+  module_func(input, "trigger_left_right?", input_trigger_left_right, 0);
+  module_func(input, "dir4", inputDir4, 0);
+  module_func(input, "dir8", inputDir8, 0);
+  module_func(input, "dir4?", input_is_dir4, 0);
+  module_func(input, "dir8?", input_is_dir8, 0);
+  module_func(input, "mouse_x", inputMouseX, 0);
+  module_func(input, "mouse_y", inputMouseY, 0);
+  module_func(input, "mouse_ox", input_mouse_ox, 0);
+  module_func(input, "mouse_oy", input_mouse_oy, 0);
+  module_func(input, "mouse_ox=", input_mouse_ox_set, 1);
+  module_func(input, "mouse_oy=", input_mouse_oy_set, 1);
+  module_func(input, "any_char?", input_is_any_char, 0);
+  module_func(input, "string", input_string, 0);
+  module_func(input, "enable_edit=", input_enable_edit, 1);
   VALUE sym_hash = rb_hash_new();
   rb_hash_set_ifnone(sym_hash, RB_INT2FIX(0));
   /* In RGSS3 all Input::XYZ constants are equal to :XYZ symbols,

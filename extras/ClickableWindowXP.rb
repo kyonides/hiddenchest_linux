@@ -1,6 +1,6 @@
 # * ClickableWindow XP * #
 #   Scripter : Kyonides Arkanthes
-#   2024-05-22
+#   2024-05-23
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.
@@ -9,15 +9,6 @@
 # this work.
 
 class Window_Selectable
-  def initialize(x, y, width, height)
-    super(x, y, width, height)
-    @item_max = 1
-    @column_max = 1
-    @index = -1
-    # Initialized Area Array that will hold all Rect's
-    @area = []
-  end
-
   def update
     super
     return unless self.active
@@ -26,7 +17,7 @@ class Window_Selectable
     if Input.left_click?
       # Set Index to invisible if clicked outside this window
       self.index = -1
-      # Check each area or list of Rect's
+      # Check each area - a list of Rect's
       @area.size.times do |n|
         next unless mouse_inside?(n)
         @index = n
@@ -82,20 +73,59 @@ class Window_Selectable
     end
     update_cursor_rect
   end
+ 
+  def get_area_rect(n)
+    rw = self.width / @column_max - 32
+    rx = 8 + n % @column_max * (rw + 32)
+    ry = n / @column_max * 32 - self.oy
+    Rect.new(rx, ry, rw, 32)
+  end
 end
 
 class Window_Command
   def draw_item(n, color)
+    @area[n] ||= get_area_rect(n)
     c = self.contents
     c.font.color = color
-    rect = @area[n] ||= Rect.new(4, 32 * n, c.width - 8, 32)
+    rect = Rect.new(4, 32 * n, c.width - 8, 32)
     c.fill_rect(rect, Color.new(0, 0, 0, 0))
     c.draw_text(rect, @commands[n])
   end
 end
 
 class Scene_Title
+=begin
+  alias :kyon_click_window_scn_ttl_main :main
+  def main
+    @time = 0
+    @frames = Sprite.new
+    @frames.z = 1000
+    @frames.bitmap = b = Bitmap.new(240, 32)
+    b.draw_text(4, 0, 232, 32, "Click Timer: #{Input.base_timer}")
+    @timer_rect = Rect.new(4, 0, 132, 32)
+    @timer = Sprite.new
+    @timer.y = 64
+    @timer.z = 1000
+    @timer_bitmap = Bitmap.new(140, 32)
+    @timer_bitmap.draw_text(@timer_rect, "Time Left: #{Input.click_timer}")
+    @timer.bitmap = @timer_bitmap
+    kyon_click_window_scn_ttl_main
+    @timer_bitmap.dispose
+    @timer.dispose
+    @frames.bitmap.dispose
+    @frames.dispose
+  end
+
+  def update_timer
+    @time = Input.click_timer
+    @timer_bitmap.clear
+    @timer_bitmap.draw_text(@timer_rect, "Left: #{@time}")
+  end
+=end
   def update
+    #if @time > 0 and Input.click_timer != @time
+    #  update_timer
+    #end
     @command_window.update
     # Added Right Click Check
     if Input.right_click?
@@ -104,7 +134,7 @@ class Scene_Title
         @command_window.index = 2
       end
     # Added Left Click Check
-    elsif Input.trigger?(Input::C) or Input.left_click?
+    elsif Input.trigger?(Input::C) or Input.double_left_click?
       case @command_window.index
       when 0  # New game
         command_new_game
@@ -113,6 +143,8 @@ class Scene_Title
       when 2  # Shutdown
         command_shutdown
       end
+    #elsif Input.left_click?
+      #update_timer
     end
   end
 end
@@ -164,7 +196,7 @@ class Scene_Map
       end
     end
     # Added Right Click Check
-    if Input.trigger?(Input::B) or Input.right_click?
+    if Input.trigger?(Input::B) or Input.double_right_click?
       unless $game_system.map_interpreter.running? or
              $game_system.menu_disabled
         $game_temp.menu_calling = true
@@ -195,13 +227,13 @@ end
 class Scene_Menu
   def update_command
     # Added Right Click Check
-    if Input.trigger?(Input::B) or Input.right_click?
+    if Input.trigger?(Input::B) or Input.double_right_click?
       $game_system.se_play($data_system.cancel_se)
       $scene = Scene_Map.new
       return
     end
     # Added Left Click Check
-    if Input.trigger?(Input::C) or Input.left_click?
+    if Input.trigger?(Input::C) or Input.double_left_click?
       if $game_party.actors.size == 0 and @command_window.index < 4
         $game_system.se_play($data_system.buzzer_se)
         return
@@ -242,7 +274,7 @@ class Scene_Menu
 
   def update_status
     # Added Right Click Check
-    if Input.trigger?(Input::B) or Input.right_click?
+    if Input.trigger?(Input::B) or Input.double_right_click?
       $game_system.se_play($data_system.cancel_se)
       @command_window.active = true
       @status_window.active = false
@@ -250,7 +282,7 @@ class Scene_Menu
       return
     end
     # Added Left Click Check
-    if Input.trigger?(Input::C) or Input.left_click?
+    if Input.trigger?(Input::C) or Input.double_left_click?
       case @command_window.index
       when 1  # skill
         if $game_party.actors[@status_window.index].restriction >= 2
@@ -275,12 +307,12 @@ class Scene_End
   def update
     @command_window.update
     # Added Right Click Check
-    if Input.trigger?(Input::B) or Input.right_click?
+    if Input.trigger?(Input::B) or Input.double_right_click?
       $game_system.se_play($data_system.cancel_se)
       $scene = Scene_Menu.new(5)
       return
     # Added Left Click Check
-    elsif Input.trigger?(Input::C) or Input.left_click?
+    elsif Input.trigger?(Input::C) or Input.double_left_click?
       case @command_window.index
       when 0  # to title
         command_to_title

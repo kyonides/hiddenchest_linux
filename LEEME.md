@@ -254,6 +254,7 @@ Bueno lo hacen indirectamente... Necesitarán usar el arreglo `@area` con cada R
     - `trigger_up_down?` y `trigger_left_right?` para las direcciones opuestas.
     - `press_any?` y `trigger_any?` se ejecuta cuando un botón envía un valor distinto a cero.
     - `left_click?`, `middle_click?` y `right_click?`
+    - `double_click?(button)`, `double_left_click?` y `double_right_click?` dependen de `default_timer` alias `base_timer` para definir cuánto tiempo de espera habrá entre clicks.
 * Se pueden usar :símbolos en todas las versiones de RGSS.
 
 ## Clase Font

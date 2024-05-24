@@ -1,0 +1,1 @@
+#define CLICK_TIMER 20
