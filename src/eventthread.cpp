@@ -153,12 +153,14 @@ void EventThread::process(RGSSThreadData &rtData)
     case SDL_MOUSEBUTTONDOWN :
     case SDL_MOUSEBUTTONUP :
     case SDL_MOUSEMOTION :
-      if (event.button.which == SDL_TOUCH_MOUSEID) continue;
+      if (event.button.which == SDL_TOUCH_MOUSEID)
+        continue;
       break;
     case SDL_FINGERDOWN :
     case SDL_FINGERUP :
     case SDL_FINGERMOTION :
-      if (event.tfinger.fingerId >= MAX_FINGERS) continue;
+      if (event.tfinger.fingerId >= MAX_FINGERS)
+        continue;
       break;
     }// Now process the rest
     switch (event.type)
@@ -203,7 +205,8 @@ void EventThread::process(RGSSThreadData &rtData)
     case SDL_KEYDOWN :
       if (event.key.keysym.scancode == SDL_SCANCODE_RETURN &&
          (event.key.keysym.mod & toggleFSMod)) {
-        if (shState->graphics().get_block_fullscreen()) break;
+        if (shState->graphics().get_block_fullscreen())
+          break;
         setFullscreen(win, !fullscreen);
         if (!fullscreen && havePendingTitle) {
           SDL_SetWindowTitle(win, pendingTitle);
@@ -213,7 +216,8 @@ void EventThread::process(RGSSThreadData &rtData)
         break;
       }
       if (event.key.keysym.scancode == SDL_SCANCODE_F1) {
-        if (shState->graphics().get_block_fone()) break;
+        if (shState->graphics().get_block_fone())
+          break;
         if (!sMenu) {
           sMenu = new SettingsMenu(rtData);
           updateCursorState(false, gameScreen);
@@ -227,7 +231,8 @@ void EventThread::process(RGSSThreadData &rtData)
           displayingFPS = true;
         } else {
           displayingFPS = false;
-          if (!rtData.config.printFPS) fps.sendUpdates.clear();
+          if (!rtData.config.printFPS)
+            fps.sendUpdates.clear();
           if (fullscreen) {
             strncpy(pendingTitle, rtData.config.windowTitle.c_str(),
                     sizeof(pendingTitle));
@@ -239,9 +244,12 @@ void EventThread::process(RGSSThreadData &rtData)
         break;
       }
       if (event.key.keysym.scancode == SDL_SCANCODE_F12) {
-        if (shState->graphics().get_block_ftwelve()) break;
-        if (!rtData.config.enableReset) break;
-        if (resetting) break;
+        if (shState->graphics().get_block_ftwelve())
+          break;
+        if (!rtData.config.enableReset)
+          break;
+        if (resetting)
+          break;
         resetting = true;
         rtData.rqResetFinish.clear();
         rtData.rqReset.set();
@@ -251,8 +259,10 @@ void EventThread::process(RGSSThreadData &rtData)
       break;
     case SDL_KEYUP :
       if (event.key.keysym.scancode == SDL_SCANCODE_F12) {
-        if (shState->graphics().get_block_ftwelve()) break;
-        if (!rtData.config.enableReset) break;
+        if (shState->graphics().get_block_ftwelve())
+          break;
+        if (!rtData.config.enableReset)
+          break;
         resetting = false;
         rtData.rqResetFinish.set();
         break;
@@ -272,7 +282,8 @@ void EventThread::process(RGSSThreadData &rtData)
       joyState.axes[event.jaxis.axis] = event.jaxis.value;
       break;
     case SDL_JOYDEVICEADDED :
-      if (event.jdevice.which > 0) break;
+      if (event.jdevice.which > 0)
+        break;
       js = SDL_JoystickOpen(0);
       break;
     case SDL_JOYDEVICEREMOVED :
@@ -306,7 +317,8 @@ void EventThread::process(RGSSThreadData &rtData)
       switch(event.type - usrIdStart)
       {
       case REQUEST_SETFULLSCREEN :
-        if (shState->graphics().get_block_fullscreen()) break;
+        if (shState->graphics().get_block_fullscreen())
+          break;
         setFullscreen(win, static_cast<bool>(event.user.code));
         break;
       case REQUEST_WINRESIZE :
@@ -323,8 +335,10 @@ void EventThread::process(RGSSThreadData &rtData)
         updateCursorState(cursorInWindow, gameScreen);
         break;
       case UPDATE_FPS :
-        if (rtData.config.printFPS) Debug() << "FPS:" << event.user.code;
-        if (!fps.sendUpdates) break;
+        if (rtData.config.printFPS)
+          Debug() << "FPS:" << event.user.code;
+        if (!fps.sendUpdates)
+          break;
         snprintf(buffer, sizeof(buffer), "%s - %d FPS",
                  rtData.config.windowTitle.c_str(), event.user.code);
         // Updating the window title in fullscreen mode seems to cause flickering
@@ -334,7 +348,7 @@ void EventThread::process(RGSSThreadData &rtData)
           break;
         }
         SDL_SetWindowTitle(win, buffer);
-          break;
+        break;
       case UPDATE_SCREEN_RECT :
         gameScreen.x = event.user.windowID;
         gameScreen.y = event.user.code;
@@ -344,10 +358,12 @@ void EventThread::process(RGSSThreadData &rtData)
         break;
       }
     }
-    if (terminate) break;
+    if (terminate)
+      break;
   }// Just in case
   rtData.syncPoint.resumeThreads();
-  if (SDL_JoystickGetAttached(js)) SDL_JoystickClose(js);
+  if (SDL_JoystickGetAttached(js))
+    SDL_JoystickClose(js);
   delete sMenu;
 }
 
@@ -357,57 +373,36 @@ int EventThread::eventFilter(void *data, SDL_Event *event)
   switch (event->type)
   {
   case SDL_APP_WILLENTERBACKGROUND :
-          Debug() << "SDL_APP_WILLENTERBACKGROUND";
-
-          if (HAVE_ALC_DEVICE_PAUSE)
-                  alc.DevicePause(rtData.alcDev);
-
-          rtData.syncPoint.haltThreads();
-
-          return 0;
-
+    Debug() << "SDL_APP_WILLENTERBACKGROUND";
+    if (HAVE_ALC_DEVICE_PAUSE)
+      alc.DevicePause(rtData.alcDev);
+    rtData.syncPoint.haltThreads();
+    return 0;
   case SDL_APP_DIDENTERBACKGROUND :
-          Debug() << "SDL_APP_DIDENTERBACKGROUND";
-          return 0;
-
+    Debug() << "SDL_APP_DIDENTERBACKGROUND";
+    return 0;
   case SDL_APP_WILLENTERFOREGROUND :
-          Debug() << "SDL_APP_WILLENTERFOREGROUND";
-          return 0;
-
+    Debug() << "SDL_APP_WILLENTERFOREGROUND";
+    return 0;
   case SDL_APP_DIDENTERFOREGROUND :
-          Debug() << "SDL_APP_DIDENTERFOREGROUND";
-
-          if (HAVE_ALC_DEVICE_PAUSE)
-                  alc.DeviceResume(rtData.alcDev);
-
-          rtData.syncPoint.resumeThreads();
-
-          return 0;
-
+    Debug() << "SDL_APP_DIDENTERFOREGROUND";
+    if (HAVE_ALC_DEVICE_PAUSE)
+      alc.DeviceResume(rtData.alcDev);
+    rtData.syncPoint.resumeThreads();
+    return 0;
   case SDL_APP_TERMINATING :
-          Debug() << "SDL_APP_TERMINATING";
-          return 0;
-
+    Debug() << "SDL_APP_TERMINATING";
+    return 0;
   case SDL_APP_LOWMEMORY :
-          Debug() << "SDL_APP_LOWMEMORY";
-          return 0;
-
-//	case SDL_RENDER_TARGETS_RESET :
-//		Debug() << "****** SDL_RENDER_TARGETS_RESET";
-//		return 0;
-
-//	case SDL_RENDER_DEVICE_RESET :
-//		Debug() << "****** SDL_RENDER_DEVICE_RESET";
-//		return 0;
+    Debug() << "SDL_APP_LOWMEMORY";
+    return 0;
   }
-
   return 1;
 }
 
 void EventThread::cleanup()
 {
   SDL_Event event;
-
   while (SDL_PollEvent(&event))
     if ((event.type - usrIdStart) == REQUEST_MESSAGEBOX)
       free(event.user.data1);
@@ -424,6 +419,8 @@ void EventThread::resetInputStates()
 void EventThread::setFullscreen(SDL_Window *win, bool mode)
 {
   SDL_SetWindowFullscreen(win, mode ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+  if (!fullscreen)
+    shState->graphics().center_window();
   fullscreen = mode;
 }
 
@@ -478,7 +475,7 @@ void EventThread::showMessageBox(const char *body, int flags)
   event.user.data1 = strdup(body);
   event.type = usrIdStart + REQUEST_MESSAGEBOX;
   SDL_PushEvent(&event);
-  /* Keep repainting screen while box is open */
+  // Keep repainting screen while box is open
   shState->graphics().repaintWait(msgBoxDone);
   /* Prevent endless loops */
   resetInputStates();
@@ -496,7 +493,8 @@ bool EventThread::getShowCursor() const
 
 void EventThread::notifyFrame()
 {
-  if (!fps.sendUpdates) return;
+  if (!fps.sendUpdates)
+    return;
   uint64_t current = SDL_GetPerformanceCounter();
   uint64_t diff = current - fps.lastFrame;
   fps.lastFrame = current;
@@ -510,7 +508,8 @@ void EventThread::notifyFrame()
   fps.acc += currFPS;
   ++fps.accDiv;
   fps.displayCounter += diff;
-  if (fps.displayCounter < freq && !fps.immFiniFlag) return;
+  if (fps.displayCounter < freq && !fps.immFiniFlag)
+    return;
   fps.displayCounter = 0;
   fps.immFiniFlag.clear();
   int32_t avgFPS = fps.acc / fps.accDiv;
@@ -536,7 +535,8 @@ void EventThread::notifyGameScreenChange(const SDL_Rect &screen)
 
 void SyncPoint::haltThreads()
 {
-  if (mainSync.locked) return;
+  if (mainSync.locked)
+    return;
   /* Lock the reply sync first to avoid races */
   reply.lock();
   /* Lock main sync and sleep until RGSS thread
@@ -551,7 +551,8 @@ void SyncPoint::haltThreads()
 
 void SyncPoint::resumeThreads()
 {
-  if (!mainSync.locked) return;
+  if (!mainSync.locked)
+    return;
   mainSync.unlock(false);
   secondSync.unlock(true);
 }
@@ -569,7 +570,8 @@ void SyncPoint::waitMainSync()
 
 void SyncPoint::passSecondarySync()
 {
-  if (!secondSync.locked) return;
+  if (!secondSync.locked)
+    return;
   secondSync.waitForUnlock();
 }
 

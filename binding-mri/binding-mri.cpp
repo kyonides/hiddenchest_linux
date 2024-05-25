@@ -197,7 +197,9 @@ static void mriBindingInit()
 
 static void showMsg(const std::string &msg)
 {
+  //shState->graphics().freeze();
   shState->eThread().showMessageBox(msg.c_str());
+  //shState->graphics().transition(2, 0, 0);
 }
 
 static void printP(int argc, VALUE *argv, ch convMethod, ch sep)

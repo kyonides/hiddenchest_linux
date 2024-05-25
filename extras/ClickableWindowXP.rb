@@ -141,6 +141,43 @@ class Window_SaveFile
 end
 
 class Scene_Title
+  alias :kyon_click_win_scn_ttl_main :main
+  def start
+    @title = Sprite.new
+    @title.set_xyz(0, 60, 100)
+    @title.bitmap = b = Bitmap.new(Graphics.width, 60)
+    font = b.font
+    font.size = 52
+    font.outline = true
+    font.outline_size = 4
+    b.draw_text(b.rect, Game::TITLE, 1)
+    @day_index = 0
+    @days = %w{Sunday Monday Tuesday Wednesday Thursday Friday Saturday}
+    # Make day of the week graphic
+    @block = Sprite.new
+    @block.set_xyz(12, Graphics.height - 40, 100)
+    @bitmap = Bitmap.new(200, 36)
+    font = @bitmap.font
+    font.size = 32
+    font.outline = true
+    font.outline_size = 2
+    @bitmap.draw_text(@bitmap.rect, @days[@day_index], 1)
+    @block.bitmap = @bitmap
+  end
+
+  def terminate
+    @bitmap.dispose
+    @block.dispose
+    @title.bitmap.dispose
+    @title.dispose
+  end
+
+  def main
+    start unless $BTEST
+    kyon_click_win_scn_ttl_main
+    terminate unless $BTEST
+  end
+
   def update
     @command_window.update
     # Added Right Click Check
@@ -159,6 +196,11 @@ class Scene_Title
       when 2  # Shutdown
         command_shutdown
       end
+    elsif Input.repeat?(Input::KeyD) or Input.repeat_left_click?
+      $game_system.se_play($data_system.cursor_se)
+      @day_index = (@day_index + 1) % 7
+      @bitmap.clear
+      @bitmap.draw_text(@bitmap.rect, @days[@day_index], 1)
     end
   end
 end

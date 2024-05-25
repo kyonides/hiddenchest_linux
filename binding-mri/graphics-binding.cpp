@@ -263,7 +263,8 @@ static VALUE graphicsGetFullscreen(VALUE self)
 
 static VALUE graphicsSetFullscreen(VALUE self, VALUE boolean)
 {
-  if (rb_iv_get(self, "@block_fullscreen") == Qtrue) return Qfalse;
+  if (rb_iv_get(self, "@block_fullscreen") == Qtrue)
+    return Qfalse;
   shState->graphics().set_fullscreen(boolean == Qtrue);
   return shState->graphics().get_fullscreen() ? Qtrue : Qfalse;
 }

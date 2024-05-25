@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
   if ((START_WIDTH == scr.w && START_HEIGHT == scr.h) || conf.fullscreen)
     winFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
   win = SDL_CreateWindow("",
-                         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_CENTERED,
                          START_WIDTH, START_HEIGHT, winFlags);
   if (!win) {
     showInitError(std::string("Error creating window: ") + SDL_GetError());

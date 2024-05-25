@@ -72,6 +72,7 @@ public:
   int width() const;
   int height() const;
   void resizeScreen(int width, int height);
+  void center_window(int width=0, int height=0);
   void playMovie(const char *filename);
   void reset();
   /* Non-standard extension */

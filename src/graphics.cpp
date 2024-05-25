@@ -47,18 +47,18 @@
 #include <iostream>
 // Increased Screen Resolution for RGSS1
 #include "resolution.h"
-#define DEF_FRAMERATE 60 //(rgssVer == 1 ?  40 :  60)
+#define DEF_FRAMERATE 60
 
 struct PingPong
 {
-  TEXFBO rt[2];
-  uint8_t srcInd, dstInd;
+  TEXFBO rt[3];
+  uint8_t srcInd, dstInd, oldInd;
   int screenW, screenH;
 
   PingPong(int screenW, int screenH)
   : srcInd(0), dstInd(1), screenW(screenW), screenH(screenH)
   {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
       TEXFBO::init(rt[i]);
       TEXFBO::allocEmpty(rt[i], screenW, screenH);
       TEXFBO::linkFBO(rt[i]);
@@ -69,7 +69,7 @@ struct PingPong
 
   ~PingPong()
   {
-    for (int i = 0; i < 2; ++i)
+    for (int i = 0; i < 3; ++i)
       TEXFBO::fini(rt[i]);
   }
 
@@ -82,12 +82,17 @@ struct PingPong
   {
     return rt[dstInd];
   }
+
+  TEXFBO &oldBuffer()
+  {
+    return rt[oldInd];
+  }
   // Better not call this during render cycles
   void resize(int width, int height)
   {
     screenW = width;
     screenH = height;
-    for (int i = 0; i < 2; ++i)
+    for (int i = 0; i < 3; ++i)
       TEXFBO::allocEmpty(rt[i], width, height);
   }
 
@@ -98,6 +103,7 @@ struct PingPong
 
   void swapRender()
   {
+    std::swap(dstInd, oldInd);
     std::swap(srcInd, dstInd);
     bind();
   }
@@ -105,7 +111,7 @@ struct PingPong
   void clearBuffers()
   {
     glState.clearColor.pushSet(Vec4(0, 0, 0, 1));
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
       FBO::bind(rt[i].fbo);
       FBO::clear();
     }
@@ -115,7 +121,7 @@ struct PingPong
 private:
   void bind()
   {
-    FBO::bind(rt[dstInd].fbo);
+    FBO::bind(rt[oldInd].fbo);
   }
 };
 
@@ -140,7 +146,8 @@ public:
     glState.viewport.set(IntRect(0, 0, w, h));
     FBO::clear();
     Scene::composite();
-    if (!brightEffect) return;
+    if (!brightEffect)
+      return;
     SimpleColorShader &shader = shState->shaders().simpleColor;
     shader.bind();
     shader.applyViewportProj();
@@ -309,8 +316,8 @@ public:
          * and since we're inside the draw cycle, it will
          * be turned on, so turn it off temporarily */
         glState.scissorTest.pushSet(false);
-        GLMeta::blitBegin(pp.frontBuffer());
-        GLMeta::blitSource(pp.backBuffer());
+        GLMeta::blitBegin(pp.oldBuffer());
+        GLMeta::blitSource(pp.frontBuffer());
         GLMeta::blitRectangle(geometry.rect, Vec2i());
         GLMeta::blitEnd();
         glState.scissorTest.pop();
@@ -325,7 +332,8 @@ public:
       screenQuad.draw();
       glState.blend.pop();
     }
-    if (!toneRGBEffect && !colorEffect && !flashEffect) return;
+    if (!toneRGBEffect && !colorEffect && !flashEffect)
+      return;
     FlatColorShader &shader = shState->shaders().flatColor;
     shader.bind();
     shader.applyViewportProj();
@@ -452,14 +460,14 @@ struct FPSLimiter
 
   void delay()
   {
-    if (disabled) return;
+    if (disabled)
+      return;
     int64_t tickDelta = SDL_GetPerformanceCounter() - lastTickCount;
     int64_t toDelay = tpf - tickDelta;
-    /* Compensate for the last delta
-     * to the ideal timestep */
+    /* Compensate for the last delta to the ideal timestep */
     toDelay -= adj.idealDiff;
     if (toDelay < 0)
-      toDelay = 0;
+      toDelay = 1;
     delayTicks(toDelay);
     uint64_t now = lastTickCount = SDL_GetPerformanceCounter();
     int64_t diff = now - adj.last;
@@ -481,8 +489,7 @@ struct FPSLimiter
    * there's no choice but to skip frame(s) to catch up */
   bool frameSkipRequired() const
   {
-    if (disabled) return false;
-    return adj.idealDiff > tpf;
+    return (disabled ? false : adj.idealDiff > tpf);
   }
 
 private:
@@ -621,7 +628,7 @@ struct GraphicsPrivate
   void set_buffer(TEXFBO &buffer)
   {
     GLMeta::blitBegin(buffer);
-    GLMeta::blitSource(screen.getPP().frontBuffer());
+    GLMeta::blitSource(screen.getPP().oldBuffer());
     GLMeta::blitRectangle(IntRect(0, 0, scRes.x, scRes.y), Vec2i());
     GLMeta::blitEnd();
   }
@@ -696,7 +703,7 @@ struct GraphicsPrivate
   {
     screen.composite();
     GLMeta::blitBeginScreen(winSize);
-    GLMeta::blitSource(screen.getPP().frontBuffer());
+    GLMeta::blitSource(screen.getPP().oldBuffer());
     FBO::clear();
     metaBlitBufferFlippedScaled();
     GLMeta::blitEnd();
@@ -708,7 +715,8 @@ struct GraphicsPrivate
 
   void checkSyncLock()
   {
-    if (!threadData->syncPoint.mainSyncLocked()) return;
+    if (!threadData->syncPoint.mainSyncLocked())
+      return;
     /* Releasing the GL context before sleeping and making it
      * current again on wakeup seems to avoid the context loss
      * when the app moves into the background on Android */
@@ -795,7 +803,8 @@ void Graphics::update()
   p->last_update = shState->runTime();
   p->checkShutDownReset();
   p->checkSyncLock();
-  if (p->frozen) return;
+  if (p->frozen)
+    return;
   if (p->fpsLimiter.frameSkipRequired()) {
     if (p->threadData->config.frameSkip) { // Skip frame
       p->fpsLimiter.delay();
@@ -803,9 +812,12 @@ void Graphics::update()
       p->threadData->ethread->notifyFrame();
       return;
     } else { // Just reset frame adjust counter
+      p->fpsLimiter.delay();
+      ++p->frameCount;
+      p->threadData->ethread->notifyFrame();
       p->fpsLimiter.resetFrameAdjust();
     }
-  }// p->fpsLimiter.delay();//call_delay(); p->threadData->ethread->notifyFrame();
+  }//call_delay();
   p->checkResize();
   p->redrawScreen();
 }
@@ -821,7 +833,8 @@ void Graphics::freeze()
 void Graphics::transition(int duration, const char *filename, int vague)
 {
   p->checkSyncLock();
-  if (!p->frozen) return;
+  if (!p->frozen)
+    return;
   vague = clamp(vague, 1, 256);
   Bitmap *transMap = *filename ? new Bitmap(filename) : 0;
   setBrightness(255);
@@ -831,8 +844,8 @@ void Graphics::transition(int duration, const char *filename, int vague)
    * composition step. Since the backbuffer is unused during
    * the transition, we can reuse it as the target buffer for
    * the final rendered image. */
-  TEXFBO &currentScene = p->screen.getPP().frontBuffer();
-  TEXFBO &transBuffer  = p->screen.getPP().backBuffer();
+  TEXFBO &currentScene = p->screen.getPP().oldBuffer();
+  TEXFBO &transBuffer  = p->screen.getPP().frontBuffer();
   // If no transition bitmap is provided, we can use a simplified shader
   TransShader &transShader = shState->shaders().trans;
   SimpleTransShader &simpleShader = shState->shaders().simpleTrans;
@@ -885,7 +898,7 @@ void Graphics::transition(int duration, const char *filename, int vague)
     FBO::clear();
     p->screenQuad.draw();
     p->checkResize();
-    /* Then blit it flipped and scaled to the screen */
+    // Then blit it flipped and scaled to the screen
     FBO::unbind();
     FBO::clear();
     GLMeta::blitBeginScreen(Vec2i(p->winSize));
@@ -915,9 +928,11 @@ DEF_ATTR_SIMPLE(Graphics, FrameCount, int, p->frameCount)
 
 void Graphics::setFrameRate(int value)
 {
-  p->frameRate = clamp(value, 10, 120);
-  if (p->threadData->config.syncToRefreshrate) return;
-  if (p->threadData->config.fixedFramerate > 0) return;
+  p->frameRate = clamp(value, 10, 140);
+  if (p->threadData->config.syncToRefreshrate)
+    return;
+  if (p->threadData->config.fixedFramerate > 0)
+    return;
   p->fpsLimiter.setDesiredFPS(p->frameRate);
 }
 
@@ -1082,11 +1097,20 @@ void Graphics::resizeScreen(int width, int height)
   FloatRect screenRect(0, 0, width, height);
   p->screenQuad.setTexPosRect(screenRect, screenRect);
   shState->eThread().requestWindowResize(width, height);
+  center_window(width, height);
+}
+
+void Graphics::center_window(int width, int height)
+{
+  if (!width)
+    width = p->scRes.x;
+  if (!height)
+    height = p->scRes.y;
   SDL_DisplayMode scr;
   SDL_GetDesktopDisplayMode(0, &scr);
-  int w = (scr.w - width) / 2;
-  int h = (scr.h - height) / 2;
-  SDL_SetWindowPosition(p->threadData->window, w, h);
+  width = (scr.w - width) / 2;
+  height = (scr.h - height) / 2;
+  SDL_SetWindowPosition(p->threadData->window, width, height);
 }
 
 void Graphics::playMovie(const char *filename)
@@ -1182,7 +1206,7 @@ void Graphics::repaintWait(const AtomicFlag &exitCond, bool checkReset)
   if (exitCond)
     return;
   // Repaint the screen with the last good frame we drew 
-  TEXFBO &lastFrame = p->screen.getPP().frontBuffer();
+  TEXFBO &lastFrame = p->screen.getPP().oldBuffer();
   GLMeta::blitBeginScreen(p->winSize);
   GLMeta::blitSource(lastFrame);
   while (!exitCond) {

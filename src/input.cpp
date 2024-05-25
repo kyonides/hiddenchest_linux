@@ -179,7 +179,7 @@ struct MsBinding : public Binding
 
   bool sourceRepeatable() const
   {
-    return false;
+    return true;
   }
 
   int index;
@@ -336,7 +336,7 @@ struct InputPrivate
   std::vector<JsHatBinding> jsHBindings;
   std::vector<JsButtonBinding> jsBBindings;
   std::vector<MsBinding> msBindings;
-  /* Collective binding array */
+  // Collective binding array
   std::vector<Binding*> bindings;
   ButtonState stateArray[520 * 2]; // stateArray[BUTTON_CODE_COUNT*2];
   ButtonState *states;
@@ -385,7 +385,7 @@ struct InputPrivate
     repeating = Input::None;
     repeatCount = 0;
     ox = 8;
-    oy = -8;
+    oy = -4;
     dir4Data.active = 0;
     dir4Data.previous = Input::None;
     dir8Data.active = 0;
@@ -726,20 +726,23 @@ void Input::update()
 
 bool Input::is_left_click()
 {
-  bool trig = p->getStateCheck(MouseLeft).triggered;
-  return (trig && !shState->rtData().mouse_moved);
+  if (!p->getStateCheck(MouseLeft).triggered)
+    return false;
+  return !shState->rtData().mouse_moved;
 }
 
 bool Input::is_middle_click()
 {
-  bool trig = p->getStateCheck(MouseMiddle).triggered;
-  return (trig && !shState->rtData().mouse_moved);
+  if (!p->getStateCheck(MouseMiddle).triggered)
+    return false;
+  return !shState->rtData().mouse_moved;
 }
 
 bool Input::is_right_click()
 {
-  bool trig = p->getStateCheck(MouseRight).triggered;
-  return (trig && !shState->rtData().mouse_moved);
+  if (!p->getStateCheck(MouseRight).triggered)
+    return false;
+  return !shState->rtData().mouse_moved;
 }
 
 bool Input::is_double_left_click()
@@ -760,7 +763,7 @@ bool Input::is_double_click(int btn)
 {
   if (!p->getStateCheck(btn).triggered || p->double_target != btn)
     return false;
-  int clicks = (btn == MouseLeft ? p->left_clicks : btn == MouseRight ? p->right_clicks : 2000); 
+  int clicks = (btn == MouseLeft ? p->left_clicks : btn == MouseRight ? p->right_clicks : 9);
   return (clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 

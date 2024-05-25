@@ -137,7 +137,8 @@ struct UnidirMessage
   /* Done from the receiving side */
   bool poll(T &out) const
   {
-    if (!changed) return false;
+    if (!changed)
+      return false;
     SDL_LockMutex(mutex);
     out = current;
     changed.clear();

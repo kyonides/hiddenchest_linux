@@ -38,7 +38,6 @@ static VALUE inputUpdate(VALUE self)
 // FIXME: RMXP allows only few more types that don't make sense (symbols in pre 3, floats)
 static int getButtonArg(VALUE number)
 {
-  //rb_p(number);
   if (FIXNUM_P(number))
     return RB_FIX2INT(number);
   if (SYMBOL_P(number)) {// && rgssVer == 3
@@ -56,8 +55,7 @@ static VALUE input_click_timer(VALUE self)
 
 static VALUE input_default_timer(VALUE self)
 {
-  int n = shState->input().base_timer();
-  return RB_INT2FIX(n);
+  return rb_iv_get(self, "@default_timer");
 }
 
 static VALUE input_default_timer_set(VALUE self, VALUE val)
@@ -154,6 +152,16 @@ static VALUE input_trigger_left_right(VALUE self)
   if (shState->input().isTriggered(Input::Right))
     return Qtrue;
   return Qfalse;
+}
+
+static VALUE input_repeat_left_click(VALUE self)
+{
+  return shState->input().isRepeated(Input::MouseLeft) ? Qtrue : Qfalse;
+}
+
+static VALUE input_repeat_right_click(VALUE self)
+{
+  return shState->input().isRepeated(Input::MouseRight) ? Qtrue : Qfalse;
 }
 
 static VALUE inputDir4(VALUE self)
@@ -426,11 +434,13 @@ void inputBindingInit()
   module_func(input, "trigger?", inputTrigger, 1);
   module_func(input, "repeat?", inputRepeat, 1);
   module_func(input, "press_any?", input_press_any, 0);
-  module_func(input, "trigger_any?", input_trigger_any, 0);
   module_func(input, "press_all?", input_are_pressed, -1);
+  module_func(input, "trigger_any?", input_trigger_any, 0);
   module_func(input, "trigger_buttons?", input_are_triggered, -1);
   module_func(input, "trigger_up_down?", input_trigger_up_down, 0);
   module_func(input, "trigger_left_right?", input_trigger_left_right, 0);
+  module_func(input, "repeat_left_click?", input_repeat_left_click, 0);
+  module_func(input, "repeat_right_click?", input_repeat_right_click, 0);
   module_func(input, "dir4", inputDir4, 0);
   module_func(input, "dir8", inputDir8, 0);
   module_func(input, "dir4?", input_is_dir4, 0);
