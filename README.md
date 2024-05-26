@@ -171,7 +171,7 @@ If a requested font is not found, no error is generated. Instead, a built-in fon
 To alleviate possible porting of heavily Win32API reliant scripts, we have added certain functionality that you won't find in the RGSS spec. Currently this amounts to the following:
 
 * A special module has been included, namely `HIDDENCHEST`. Its constants consist of `AUTHOR`, `VERSION`, `RELEASE_DATE`, and `DESCRIPTION`.
-* The constant `OS::NAME` will let Ruby scripts know if the current OS is either a Linux distro or Windows.
+* The constant `System::NAME` will let Ruby scripts know if the current OS is either a Linux distro or Windows.
 * Expand RGSS1 tilesets to fill the enlarged screen and adapts the Window_Message settings to the increased screen resolutions.
 * While running Windows executables that had a resolution that matched the operating system's, the game would automatically run in fullscreen mode. That was not the case with Linux binaries. HiddenChest now supports this behavior on all platforms.
 * Implementation of window openness feature in RMXP games without affecting VX and VX Ace ones. It works in a different fashion in VX Ace like using a 0 through 100 value range while VX Ace requires a maximum value of 255.
@@ -217,7 +217,7 @@ Well, they indirectly do it... You got to set the `@area` array with every singl
     - `soundfonts` consists of a list of available soundfonts.
     - `soundfont_index` retrieves the index of the current soundfont if any.
     - `choose_soundfont` and an integer as its only parameter lets you change the current soundfont on the fly.
-* The `Game` module includes the following constants: `TITLE`, `VERSION`, `SCRIPTS`, `DEBUG` & `FULLSCREEN`. They are automatically extracted from the Game.ini file.
+* The `Game` module includes the following constants: `TITLE`, `VERSION`, `SCRIPTS`, `ICON`, `DEBUG` & `FULLSCREEN`. They are automatically extracted from the Game.ini file.
 * The `Backdrop` module, available on all RGSS versions, lets you create a temporary snapshot of a previous map to use it in any scene class at will. Use any of the following calls to create the bitmap you will need in your (custom) scene. Later you can assign its bitmap to an instance variable of your choice by calling its `bitmap` or `bitmap_dup` method. After freezing the scene with `Graphics.freeze`, call `clear_bitmap` to dispose it properly or dispose your sprite's bitmap directly in case you want to keep it for later use and you previously used the `bitmap_dup` method.
     - `keep_bitmap` - Your map without any special effects.
     - `gray_bitmap` - Grayish version of your map.

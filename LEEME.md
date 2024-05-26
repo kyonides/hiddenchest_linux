@@ -171,7 +171,7 @@ Si una fuente solicitada no es hallada, no se genera ningún error. En su lugar 
 Para aliviar la posible incorporación de scripts demasiado dependientes de la clase Win32API, se han añadido ciertas funcionalidades que no hallarán en las especificaciones de ningún RGSS. Actualmente esto comprende lo siguiente:
 
 * Un módulo especial ha sido incluido, es `HIDDENCHEST`. Sus constantes consisten de `AUTHOR`, `VERSION`, `RELEASE_DATE`, y `DESCRIPTION`.
-* La constante `OS::NAME` permitirá a scripts de Ruby saber si su Sistema Operativo es una distribución de Linux o Windows.
+* La constante `System::NAME` permitirá a scripts de Ruby saber si su Sistema Operativo es una distribución de Linux o Windows.
 * Expandidos tilesets de RGSS1 para llenar la pantalla con una mayor resolución de pantalla y adapta las configuraciones de Window_Message a dicho tamaño.
 * Cuando se ejecutaba un exe de Windows que tenía una resolución idéntica a la del sistema operativo, el juego automáticamente corría en modo de pantalla completa. Ese no era el caso de los binarios de Linux. HiddenChest ahora soporta este comportamiento en todas las plataformas.
 * Implementación de window openness (apertura y cierre de ventanas) en juegos de RMXP sin afectar las que existieran en VX y VX Ace. Funciona de una forma algo diferente a la de VX Ace como el uso de valores en un rango de 0 a 100 cuando en VX Ace se requería de un máximo de 255.
@@ -217,7 +217,7 @@ Bueno lo hacen indirectamente... Necesitarán usar el arreglo `@area` con cada R
     - `soundfonts` consiste en una lista de soundfonts disponibles.
     - `soundfont_index` te entrega el índice de la soundfont actual si la hay.
     - `choose_soundfont` más un número entero como único parámetro te permite cambiar la soundfont en plena ejecución.
-* Módulo `Game` incluye las siguientes constantes: `TITLE`, `VERSION`, `SCRIPTS`, `DEBUG` y `FULLSCREEN`. Estas son extraídas del archivo Game.ini de forma automática.
+* Módulo `Game` incluye las siguientes constantes: `TITLE`, `VERSION`, `SCRIPTS`, `ICON`, `DEBUG` y `FULLSCREEN`. Estas son extraídas del archivo Game.ini de forma automática.
 * Módulo `Backdrop`, disponibles en todas las versiones de RGSS, permite crear una captura temporal del mapa previo para usarlo como fondo de una escena distinta. Usen cualquiera de los siguientes llamados para crear el bitmap que necesitarán en su escena personalizada. Después pueden asignarle su bitmap a una variable de @instancia de su elección al llamar a su método `bitmap` o `bitmap_dup` (duplicado). Luego de congelar la escena con `Graphics.freeze`, llamen a `clear_bitmap` para desecharlo apropiadamente o desechen el bitmap de su sprite directamente en caso de que deseen guardarlo para más adelante y hayan utilizado el método `bitmap_dup` anteriormente.
     - `keep_bitmap` - Su mapa sin efectos especiales
     - `gray_bitmap` - Versión en Gris de su mapa
