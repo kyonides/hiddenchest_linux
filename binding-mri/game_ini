@@ -58,7 +58,7 @@ module Game
       return
     end
     lines.size.times do
-      key, value = lines.shift.split("=")
+      key, value = lines.shift.split(/[\s]{0,}=[\s]{0,}/i)
       unless key and value
         next
       end

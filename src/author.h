@@ -1,6 +1,6 @@
 #define HIDDENAUTHOR "Kyonides Arkanthes"
-#define HIDDENVERSION "1.1.70"
-#define HIDDENDATE "2024-05-24"
+#define HIDDENVERSION "1.1.71"
+#define HIDDENDATE "2024-05-26"
 #define CODENAME "Click-a-Mole"
 #define SYSTEM_STRING "linux"
 #define SYSTEM_REAL_STRING "Linux"
