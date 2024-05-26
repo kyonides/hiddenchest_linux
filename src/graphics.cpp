@@ -1,10 +1,10 @@
 /* --- Modified! ---
 ** graphics.cpp
 **
-** This file is part of mkxpplus and mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** 2018-2019 (C) Modified by Kyonides-Arkanthes
+** 2018-2024 (C) Modified by Kyonides-Arkanthes
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -48,17 +48,19 @@
 // Increased Screen Resolution for RGSS1
 #include "resolution.h"
 #define DEF_FRAMERATE 60
+#define RATE_MIN 10
+#define RATE_MAX 140
 
 struct PingPong
 {
-  TEXFBO rt[3];
-  uint8_t srcInd, dstInd, oldInd;
+  TEXFBO rt[2];
+  uint8_t srcInd, dstInd;
   int screenW, screenH;
 
   PingPong(int screenW, int screenH)
   : srcInd(0), dstInd(1), screenW(screenW), screenH(screenH)
   {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 2; ++i) {
       TEXFBO::init(rt[i]);
       TEXFBO::allocEmpty(rt[i], screenW, screenH);
       TEXFBO::linkFBO(rt[i]);
@@ -69,7 +71,7 @@ struct PingPong
 
   ~PingPong()
   {
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 2; ++i)
       TEXFBO::fini(rt[i]);
   }
 
@@ -82,17 +84,12 @@ struct PingPong
   {
     return rt[dstInd];
   }
-
-  TEXFBO &oldBuffer()
-  {
-    return rt[oldInd];
-  }
   // Better not call this during render cycles
   void resize(int width, int height)
   {
     screenW = width;
     screenH = height;
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 2; ++i)
       TEXFBO::allocEmpty(rt[i], width, height);
   }
 
@@ -103,7 +100,6 @@ struct PingPong
 
   void swapRender()
   {
-    std::swap(dstInd, oldInd);
     std::swap(srcInd, dstInd);
     bind();
   }
@@ -111,7 +107,7 @@ struct PingPong
   void clearBuffers()
   {
     glState.clearColor.pushSet(Vec4(0, 0, 0, 1));
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 2; ++i) {
       FBO::bind(rt[i].fbo);
       FBO::clear();
     }
@@ -121,7 +117,7 @@ struct PingPong
 private:
   void bind()
   {
-    FBO::bind(rt[oldInd].fbo);
+    FBO::bind(rt[dstInd].fbo);
   }
 };
 
@@ -316,8 +312,8 @@ public:
          * and since we're inside the draw cycle, it will
          * be turned on, so turn it off temporarily */
         glState.scissorTest.pushSet(false);
-        GLMeta::blitBegin(pp.oldBuffer());
-        GLMeta::blitSource(pp.frontBuffer());
+        GLMeta::blitBegin(pp.frontBuffer());
+        GLMeta::blitSource(pp.backBuffer());
         GLMeta::blitRectangle(geometry.rect, Vec2i());
         GLMeta::blitEnd();
         glState.scissorTest.pop();
@@ -464,7 +460,7 @@ struct FPSLimiter
       return;
     int64_t tickDelta = SDL_GetPerformanceCounter() - lastTickCount;
     int64_t toDelay = tpf - tickDelta;
-    /* Compensate for the last delta to the ideal timestep */
+    // Compensate for the last delta to the ideal timestep
     toDelay -= adj.idealDiff;
     if (toDelay < 0)
       toDelay = 1;
@@ -628,7 +624,7 @@ struct GraphicsPrivate
   void set_buffer(TEXFBO &buffer)
   {
     GLMeta::blitBegin(buffer);
-    GLMeta::blitSource(screen.getPP().oldBuffer());
+    GLMeta::blitSource(screen.getPP().frontBuffer());
     GLMeta::blitRectangle(IntRect(0, 0, scRes.x, scRes.y), Vec2i());
     GLMeta::blitEnd();
   }
@@ -703,7 +699,7 @@ struct GraphicsPrivate
   {
     screen.composite();
     GLMeta::blitBeginScreen(winSize);
-    GLMeta::blitSource(screen.getPP().oldBuffer());
+    GLMeta::blitSource(screen.getPP().frontBuffer());
     FBO::clear();
     metaBlitBufferFlippedScaled();
     GLMeta::blitEnd();
@@ -825,6 +821,7 @@ void Graphics::update()
 void Graphics::freeze()
 {
   p->frozen = true;
+  shState->input().clear_clicks();
   p->checkShutDownReset();
   p->checkResize();
   p->compositeToBuffer(p->frozenScene);
@@ -844,8 +841,8 @@ void Graphics::transition(int duration, const char *filename, int vague)
    * composition step. Since the backbuffer is unused during
    * the transition, we can reuse it as the target buffer for
    * the final rendered image. */
-  TEXFBO &currentScene = p->screen.getPP().oldBuffer();
-  TEXFBO &transBuffer  = p->screen.getPP().frontBuffer();
+  TEXFBO &currentScene = p->screen.getPP().frontBuffer();
+  TEXFBO &transBuffer  = p->screen.getPP().backBuffer();
   // If no transition bitmap is provided, we can use a simplified shader
   TransShader &transShader = shState->shaders().trans;
   SimpleTransShader &simpleShader = shState->shaders().simpleTrans;
@@ -928,7 +925,7 @@ DEF_ATTR_SIMPLE(Graphics, FrameCount, int, p->frameCount)
 
 void Graphics::setFrameRate(int value)
 {
-  p->frameRate = clamp(value, 10, 140);
+  p->frameRate = clamp(value, RATE_MIN, RATE_MAX);
   if (p->threadData->config.syncToRefreshrate)
     return;
   if (p->threadData->config.fixedFramerate > 0)
@@ -1205,8 +1202,8 @@ void Graphics::repaintWait(const AtomicFlag &exitCond, bool checkReset)
 {
   if (exitCond)
     return;
-  // Repaint the screen with the last good frame we drew 
-  TEXFBO &lastFrame = p->screen.getPP().oldBuffer();
+  // Repaint the screen with the last good frame we drew
+  TEXFBO &lastFrame = p->screen.getPP().frontBuffer();
   GLMeta::blitBeginScreen(p->winSize);
   GLMeta::blitSource(lastFrame);
   while (!exitCond) {

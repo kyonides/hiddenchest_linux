@@ -122,6 +122,7 @@ struct SharedState
   
   const char* get_title();
   void set_title(const char *title);
+	void set_icon(const char *icon);
 
 	static SharedState *instance;
 	static int rgssVersion;

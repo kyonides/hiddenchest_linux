@@ -70,6 +70,7 @@ public:
   int click_timer() const;
   int base_timer() const;
   void set_base_timer(int timer);
+  void clear_clicks();
   bool is_left_click();
   bool is_middle_click();
   bool is_right_click();

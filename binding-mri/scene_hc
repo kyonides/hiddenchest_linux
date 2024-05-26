@@ -4,13 +4,34 @@ module HiddenChest
 
 class Scene
   BITMAPS = %w{app_logo_s01 app_logo_s02 app_logo_s03 app_logo}
-  BITMAPS_TOTAL = BITMAPS.size
   def initialize
     Font.default_outline = true
     @timer = Graphics.frame_rate / 6
     @logo_pos = 0
     @bitmaps = []
     @sprites = []
+    @icons =  BITMAPS
+    @total = BITMAPS.size
+    @name = "HiddenChest"
+    @version = VERSION
+    @date = RELEASE_DATE
+    @author = AUTHOR
+    if Game.respond_to?(:setup_screen)
+      @custom = true
+      @icons = [Game::ICON]
+      @total = 1
+      if Game::TITLE.size > 0
+        @name = Game::TITLE
+      end
+      if Game::VERSION.size > 0
+        @version = Game::VERSION
+      end
+      if Game::AUTHOR.size > 0
+        @author = Game::AUTHOR
+      end
+      time = Time.now
+      @date = sprintf("%4d-%02d-%02d", time.year, time.month, time.day)
+    end
   end
 
   def main
@@ -21,7 +42,9 @@ class Scene
       @bg.z = 0
       @bg.bitmap = Backdrop.bitmap
     end
-    BITMAPS_TOTAL.times{|n| @bitmaps << Bitmap.new(BITMAPS[n], nil) }
+    unless @custom
+      @total.times{|n| @bitmaps << Bitmap.new(@icons[n], nil) }
+    end
     @sprites << @blur = Sprite.new
     @blur.z = 11000
     @blur.bitmap = Bitmap.new(width, height)
@@ -37,7 +60,11 @@ class Scene
     @logo.x = @frame.x + 4
     @logo.y = @frame.y + 4
     @logo.z = 11050
-    @logo.bitmap = Bitmap.new(BITMAPS[0], nil)
+    if @custom and !@icons[0].empty?
+      @logo.bitmap = Bitmap.new(@icons[0])
+    else
+      @logo.bitmap = Bitmap.new(@icons[0], nil)
+    end
     @sprites << @title = Sprite.new
     @title.x = @logo.x + 76
     @title.y = @logo.y - 24
@@ -47,15 +74,15 @@ class Scene
     f.size = 36
     f.outline_size = 4
     f.outline_color.set(0, 80, 255)
-    b.draw_text(0, 0, title_width, 36, "HiddenChest", 1)
+    b.draw_text(0, 0, title_width, 36, @name, 1)
     f.size = 23
     f.outline_size = 2
     f.outline_color.set(0, 180, 160)
-    b.draw_text(0, 40, title_width, 24, "Version " + VERSION, 1)
+    b.draw_text(0, 40, title_width, 24, "Version " + @version, 1)
     f.size = 22
     f.outline_color.set(80, 80, 80)
-    b.draw_text(0, 68, title_width, 24, "Release Date: " + RELEASE_DATE, 1)
-    b.draw_text(0, 100, title_width, 24, "by " + AUTHOR, 1)
+    b.draw_text(0, 68, title_width, 24, "Release Date: " + @date, 1)
+    b.draw_text(0, 100, title_width, 24, "by " + @author, 1)
     @sprites << @advice = Sprite.new
     @advice.y = @logo.y + 116
     @advice.z = 11000
@@ -67,6 +94,7 @@ class Scene
     b.draw_text(0, 0, width, 36, HiddenChest.error_type, 1)
     f.size = width < 800 ? 18 : 23
     ly = 42
+    f.outline_color.set(60, 60, 60)
     msg = HiddenChest.error_msg.split("\n")
     lines = msg.size
     lines.times do |n|
@@ -87,15 +115,17 @@ class Scene
     Graphics.freeze
     @sprites.each{|sprite| sprite.dispose }
     @bitmaps.each{|bitmap| bitmap.dispose }
-    Backdrop.clear_bitmap if HiddenChest.show_backdrop
+    if HiddenChest.show_backdrop
+      Backdrop.clear_bitmap
+    end
   end
 
   def update
     @timer -= 1
-    if @timer == 0
+    if @timer == 0 and @total > 1
       @timer = Graphics.frame_rate / 4
-      @logo_pos = (@logo_pos + 1) % BITMAPS_TOTAL
-      @logo.bitmap = @bitmaps[@logo_pos]
+      @logo_pos = (@logo_pos + 1) % @total
+      @logo.bitmap = @icons[@logo_pos]
     end
     if Input.trigger_any?
       $scene = nil

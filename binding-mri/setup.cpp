@@ -61,6 +61,10 @@ static VALUE set_sound_font_by_pos(VALUE self, VALUE n)
   return set_sound_font_init(self, RB_FIX2INT(n));
 }
 
+static void set_window_icon(const char *icon_path)
+{
+}
+
 void init_setup()
 {
   VALUE set = rb_define_module("Setup");
@@ -75,4 +79,5 @@ void init_setup()
     const char *sf = RSTRING_PTR(sfont);
     shState->midiState().set_default_soundfont(sf);
   }
+  
 }

@@ -196,7 +196,7 @@ class Scene_Title
       when 2  # Shutdown
         command_shutdown
       end
-    elsif Input.repeat?(Input::KeyD) or Input.repeat_left_click?
+    elsif Input.repeat?(Input::KeyD) or Input.repeat_right_click?
       $game_system.se_play($data_system.cursor_se)
       @day_index = (@day_index + 1) % 7
       @bitmap.clear

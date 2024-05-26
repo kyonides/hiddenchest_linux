@@ -103,7 +103,8 @@ static VALUE fileIntBinmode(VALUE self)
 
 static VALUE fileInt_exist(VALUE self, VALUE name)
 {
-  const char* fn = StringValueCStr(name);
+  name = rb_funcall(name, rb_intern("to_s"), 0);
+  const char* fn = RSTRING_PTR(name);
   return shState->fileSystem().exists_ext(fn) ? Qtrue : Qfalse;
 }
 

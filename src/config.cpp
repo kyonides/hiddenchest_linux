@@ -110,7 +110,8 @@ static bool validUtf8(const char *string)
 static std::string prefPath(const char *org, const char *app)
 {
   char *path = SDL_GetPrefPath(org, app);
-  if (!path) return std::string();
+  if (!path)
+		return std::string();
   std::string str(path);
   SDL_free(path);
   return str;
@@ -136,7 +137,7 @@ void Config::read(int argc, char *argv[])
 	PO_DESC(rgssVersion, int, 0) \
 	PO_DESC(debugMode, bool, false) \
 	PO_DESC(printFPS, bool, false) \
-	PO_DESC(winResizable, bool, false) \
+	PO_DESC(winResizable, bool, true) \
 	PO_DESC(fullscreen, bool, false) \
 	PO_DESC(fixedAspectRatio, bool, true) \
 	PO_DESC(smoothScaling, bool, true) \
@@ -238,12 +239,13 @@ void Config::read(int argc, char *argv[])
 static std::string baseName(const std::string &path)
 {
   size_t pos = path.find_last_of("/\\");
-  if (pos == path.npos) return path;
-  return path.substr(pos + 1);
+  return pos == path.npos ? path : path.substr(pos + 1);
 }
 
 static void setupScreenSize(Config &conf)
 {
-  if (conf.defScreenW < 1) conf.defScreenW = START_WIDTH;
-  if (conf.defScreenH < 1) conf.defScreenH = START_HEIGHT;
+  if (conf.defScreenW < 1)
+		conf.defScreenW = START_WIDTH;
+  if (conf.defScreenH < 1)
+		conf.defScreenH = START_HEIGHT;
 }

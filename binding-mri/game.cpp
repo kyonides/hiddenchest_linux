@@ -13,7 +13,7 @@
 
 static VALUE game_set_internal_values(VALUE self)
 {
-  VALUE rgss_version, width, height, ttl, ver, scr, enc, entry, rtp_ary;
+  VALUE rgss_version, width, height, ttl, ver, scr, enc, entry, rtp_ary, icon;
   rgss_version = rb_const_get(self, rb_intern("RGSS_VERSION"));
   width = rb_const_get(self, rb_intern("WIDTH"));
   height = rb_const_get(self, rb_intern("HEIGHT"));
@@ -22,6 +22,7 @@ static VALUE game_set_internal_values(VALUE self)
   scr = rb_const_get(self, rb_intern("SCRIPTS"));
   enc = rb_const_get(self, rb_intern("ENCRYPTED_NAME"));
   rtp_ary = rb_const_get(self, rb_intern("RTP"));
+  icon = rb_const_get(self, rb_intern("ICON"));
   int rgss, w, h, rtp_len;
   rgss = RB_FIX2INT(rgss_version);
   w = RB_FIX2INT(width);
@@ -45,6 +46,10 @@ static VALUE game_set_internal_values(VALUE self)
   shState->set_title(title);
   shState->reset_config(rgss, version, scripts, c_rtp);
   shState->check_encrypted_game_file(enc_name);
+  if (RSTRING_LEN(icon) > 4) {
+    const char *icon_path = RSTRING_PTR(icon);
+    shState->set_icon(icon_path);
+  }
   return Qnil;
 }
 

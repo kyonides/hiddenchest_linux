@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Copyright (C) 2019-2023 Extended by Kyonides Arkanthes <kyonides@gmail.com>
+** Copyright (C) 2019-2024 Extended by Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** HiddenChest is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -110,10 +110,20 @@ void hc_c_splash(ch error, int code, ch type)
   rb_iv_set(hidden, "@error_type", rstr(type));
   rb_iv_set(hidden, "@error_msg", rstr(error));
   int state;
-  if (code == 1)
+  if (code == 1) {
     rb_eval_string_protect(module_hc, &state);
-  else
+  } else {
+    Debug() << "Processing game_ini";
+    VALUE game = rb_define_module("Game");
+    if (rb_iv_get(game, "@setup_screen") == Qnil) {
+      rb_eval_string_protect(game_ini, &state);
+      if (state) {
+        rb_p(rb_errinfo());
+        state = 0;
+      }
+    }
     rb_eval_string_protect(scene_hc, &state);
+  }
   if (state) {
     rb_p(rb_errinfo());
     Debug() << "C Splash - Error Type:" << code << "- State:" << state;
@@ -197,9 +207,7 @@ static void mriBindingInit()
 
 static void showMsg(const std::string &msg)
 {
-  //shState->graphics().freeze();
   shState->eThread().showMessageBox(msg.c_str());
-  //shState->graphics().transition(2, 0, 0);
 }
 
 static void printP(int argc, VALUE *argv, ch convMethod, ch sep)
@@ -360,32 +368,18 @@ static bool file_exist(VALUE name, const char* ext)
 
 static int rb_check_rgss_version()
 {
-  fileIntBindingInit();
   init_scripts();
   init_system();
   init_game();
   int state;
   rb_eval_string_protect(game_ini, &state);
-  VALUE error = rb_errinfo();
-  if (state && error != Qnil) {
-    VALUE klass, message, backtrace;
-    klass = rb_obj_as_string(rb_obj_class(error));
-    message = rb_funcall(error, rb_intern("message"), 0);
-    backtrace = rb_funcall(error, rb_intern("backtrace"), 0);
-    rb_print(2, klass, message);
-    rb_print(RARRAY_LEN(backtrace), backtrace);
-    return state;
+  if (state) {
+    rb_p(rb_errinfo());
+    state = 0;
   }
   rb_eval_string_protect(setup_ini, &state);
-  error = rb_errinfo();
-  if (state && error != Qnil) {
-    VALUE klass, message, backtrace;
-    klass = rb_obj_as_string(rb_obj_class(error));
-    message = rb_funcall(error, rb_intern("message"), 0);
-    backtrace = rb_funcall(error, rb_intern("backtrace"), 0);
-    rb_print(2, klass, message);
-    rb_print(RARRAY_LEN(backtrace), backtrace);
-  }
+  if (state)
+    rb_p(rb_errinfo());
   return state;
 }
 
@@ -590,6 +584,7 @@ static void mriBindingExecute()
       rb_ary_push(lpaths, pathv);
     }
   }
+  fileIntBindingInit();
   int state = rb_check_rgss_version();
   if (state) {
     ruby_cleanup(0);

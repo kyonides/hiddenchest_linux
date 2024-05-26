@@ -20,6 +20,7 @@
 */
 
 #include "sharedstate.h"
+#include <SDL_image.h>
 #include "util.h"
 #include "filesystem.h"
 #include "graphics.h"
@@ -208,6 +209,16 @@ void SharedState::set_title(const char *title)
   p->config.game.title = title;
   p->config.windowTitle = title;
   SDL_SetWindowTitle(p->sdlWindow, title);
+}
+
+void SharedState::set_icon(const char *icon)
+{
+  SDL_RWops *icon_src = SDL_RWFromFile(icon, "rb");
+  SDL_Surface *icon_img = IMG_Load_RW(icon_src, SDL_TRUE);
+  if (!icon_img)
+    return;
+  SDL_SetWindowIcon(p->sdlWindow, icon_img);
+  SDL_FreeSurface(icon_img);
 }
 
 Scene* SharedState::screen() const

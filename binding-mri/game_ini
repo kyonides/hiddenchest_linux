@@ -91,10 +91,17 @@ module Game
 
   def self.set_basic_values
     DATA["Scripts"].sub!("\\", "/")
-    const_set("SCRIPTS", DATA["Scripts"])
-    const_set("TITLE", DATA["Title"])
-    const_set("VERSION", DATA["Version"])
-    const_set("EXE_NAME", INI_FILENAME.split('.')[0])
+    const_set("SCRIPTS", DATA.delete("Scripts").to_s)
+    const_set("TITLE", DATA.delete("Title").to_s)
+    const_set("VERSION", DATA.delete("Version").to_s)
+    const_set("AUTHOR", DATA.delete("Author").to_s)
+    const_set("EXE_NAME", INI_FILENAME.split('.')[0].to_s)
+    icon_name = DATA.delete("Icon").to_s
+    icon_name = Dir[icon_name + "*"][0]
+    unless FileInt.exist?(icon_name)
+      icon_name = ""
+    end
+    const_set("ICON", icon_name)
     projects = [".rhproj", ".rxproj", ".rvproj", ".rvproj2"]
     encrypt_ext = [".rhc", ".rgssad", ".rgss2a", ".rgss3a"]
     makers = ["HiddenChest", "XP", "VX", "VX Ace"]
@@ -117,9 +124,9 @@ module Game
     @setup_screen = (normal_size? and change_size?)
     full = (DATA["Fullscreen"][/true/i] != nil)
     const_set("FULLSCREEN", full)
-    puts "RGSS Version: #{n} (#{MAKER})"
-    puts "Game Screen Size: #{WIDTH}x#{HEIGHT}"
-    puts "Enable Debug: #{DEBUG}"
+    puts "RGSS Version:       #{n} (#{MAKER})"
+    puts "Game Screen Size:   #{WIDTH}x#{HEIGHT}"
+    puts "Enable Debug:       #{DEBUG}"
     puts "Trigger Fullscreen: #{FULLSCREEN}"
   end
   process_ini

@@ -1,7 +1,7 @@
 /*
 ** input.cpp
 **
-** This file is part of mkxpplus and mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
 ** Extended (C) 2018-2019 Kyonides-Arkanthes <kyonides@gmail.com>
@@ -346,8 +346,7 @@ struct InputPrivate
   unsigned int repeatCount;
   unsigned int click_timer;
   unsigned int base_timer;
-  unsigned int left_clicks;
-  unsigned int right_clicks;
+  unsigned int clicks;
   unsigned int double_target;
   int ox;
   int oy;
@@ -416,8 +415,8 @@ struct InputPrivate
   }
 
   void clearBuffer()
-  { //  const size_t size = sizeof(ButtonState) * BUTTON_CODE_COUNT;
-    memset(states, 0, 300 * 2);// size);
+  {
+    memset(states, 0, 300 * 2);
     press_any = false;
     trigger_any = false;
   }
@@ -510,8 +509,7 @@ struct InputPrivate
   {
     base_timer = CLICK_TIMER;
     click_timer = 0;
-    left_clicks = 0;
-    right_clicks = 0;
+    clicks = 0;
     last_mx = 0;
     last_my = 0;
     msBindings.resize(3);
@@ -527,8 +525,7 @@ struct InputPrivate
       click_timer--;
       return;
     }
-    left_clicks = 0;
-    right_clicks = 0;
+    clicks = 0;
     double_target = Input::None;
   }
 
@@ -556,37 +553,16 @@ struct InputPrivate
       state.triggered = true;
       trigger_any = true;
       // Double Click Check
-      if (b.target == Input::MouseLeft) {
-        right_clicks = 0;
-        left_clicks++;
-        if (left_clicks == 1) {
-          click_timer = base_timer;
-          double_target = Input::MouseLeft;
-          last_mx = input->mouseX();
-          last_my = input->mouseY();
-        } else if (left_clicks == 2) {
-          click_timer = 0;
-          same_mouse_pos = (input->mouseX() == last_mx && input->mouseY() == last_my);
-        }
-      } else if (b.target == Input::MouseRight) {
-        left_clicks = 0;
-        right_clicks++;
-        if (right_clicks == 1) {
-          click_timer = base_timer;
-          double_target = Input::MouseRight;
-          last_mx = input->mouseX();
-          last_my = input->mouseY();
-        } else if (left_clicks == 2) {
+      if (b.target == Input::MouseLeft || b.target == Input::MouseRight) {
+        clicks = b.target == double_target ? 2 : 1;
+        if (clicks == 1) {
+          set_click(b.target);
+        } else if (clicks == 2) {
           click_timer = 0;
           same_mouse_pos = (input->mouseX() == last_mx && input->mouseY() == last_my);
         }
       } else {
-        last_mx = 0;
-        last_my = 0;
-        left_clicks = 0;
-        right_clicks = 0;
-        double_target = Input::None;
-        same_mouse_pos = false;
+        clear_unused_clicks();
       }
     }
     /* Unbound keys don't create/break repeat */
@@ -598,6 +574,24 @@ struct InputPrivate
       else /* Unrepeatable keys still break current repeat */
         repeating = Input::None;
     }
+  }
+
+  void set_click(int button)
+  {
+    click_timer = base_timer;
+    double_target = button;
+    last_mx = input->mouseX();
+    last_my = input->mouseY();
+  }
+
+  void clear_unused_clicks()
+  {
+    click_timer = 0;
+    last_mx = 0;
+    last_my = 0;
+    clicks = 0;
+    double_target = Input::None;
+    same_mouse_pos = false;
   }
 
   void updateDir4()
@@ -613,14 +607,16 @@ struct InputPrivate
       if (getState(dir4Data.previous).pressed) {
         for (size_t i = 0; i < 3; ++i) {
           Input::ButtonCode other = otherDirs[(dir4Data.previous/2)-1][i];
-          if (!getState(other).pressed) continue;
+          if (!getState(other).pressed)
+            continue;
           dir4Data.active = other;
           return;
         }
       }
     }
     for (size_t i = 0; i < 4; ++i) {
-      if (!getState(dirs[i]).pressed) continue;
+      if (!getState(dirs[i]).pressed)
+        continue;
       dir4Data.active = dirs[i];
       dir4Data.previous = dirs[i];
       return;
@@ -671,7 +667,6 @@ struct InputPrivate
       getState(Input::RightShift).triggered;
   }
 };
-
 
 Input::Input(const RGSSThreadData &rtData)
 {
@@ -724,6 +719,11 @@ void Input::update()
   p->repeating = None;
 }
 
+void Input::clear_clicks()
+{
+  p->clear_unused_clicks();
+}
+
 bool Input::is_left_click()
 {
   if (!p->getStateCheck(MouseLeft).triggered)
@@ -749,21 +749,21 @@ bool Input::is_double_left_click()
 {
   if (!p->getStateCheck(MouseLeft).triggered || p->double_target != MouseLeft)
     return false;
-  return (p->left_clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
+  return (p->clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
 bool Input::is_double_right_click()
 {
   if (!p->getStateCheck(MouseRight).triggered || p->double_target != MouseRight)
     return false;
-  return (p->right_clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
+  return (p->clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
 bool Input::is_double_click(int btn)
 {
   if (!p->getStateCheck(btn).triggered || p->double_target != btn)
     return false;
-  int clicks = (btn == MouseLeft ? p->left_clicks : btn == MouseRight ? p->right_clicks : 9);
+  int clicks = (btn == MouseLeft || btn == MouseRight)? p->clicks : 9;
   return (clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
