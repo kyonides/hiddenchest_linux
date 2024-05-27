@@ -29,6 +29,9 @@
 #include "viewportelement-binding.h"
 #include "binding-util.h"
 #include "binding-types.h"
+#include "debugwriter.h"
+
+extern VALUE rect_from_ary(VALUE ary);
 
 rb_data_type_t SpriteType = { "Sprite",
   { 0, freeInstance<Sprite>, 0, 0, { 0 } }, 0, 0, 0 };
@@ -43,6 +46,7 @@ static VALUE spriteInitialize(int argc, VALUE* argv, VALUE self)
   wrapProperty(self, &s->getTone(), "tone", ToneType);
   rb_iv_set(self, "opacity", RB_INT2FIX(255));
   rb_iv_set(self, "blend_type", RB_INT2FIX(0));
+  rb_iv_set(self, "@area", rb_ary_new());
   return self;
 }
 
@@ -86,7 +90,8 @@ static VALUE sprite_gray_out(VALUE self, VALUE boolean)
 {
   checkDisposed<Sprite>(self);
   VALUE bit = rb_iv_get(self, "bitmap");
-  if (bit == Qnil) return Qnil;
+  if (bit == Qnil)
+    return Qnil;
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (boolean == Qtrue) {
     rb_iv_set(self, "before_gray", rb_obj_dup(bit));
@@ -106,7 +111,8 @@ static VALUE sprite_turn_sepia(VALUE self, VALUE boolean)
 {
   checkDisposed<Sprite>(self);
   VALUE bit = rb_iv_get(self, "bitmap");
-  if (RB_NIL_P(bit)) return Qnil;
+  if (RB_NIL_P(bit))
+    return Qnil;
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (boolean == Qtrue) {
     rb_iv_set(self, "non_sepia", rb_obj_dup(bit));
@@ -127,7 +133,8 @@ static VALUE sprite_invert_colors(VALUE self, VALUE boolean)
 {
   checkDisposed<Sprite>(self);
   VALUE bit = rb_iv_get(self, "bitmap");
-  if (RB_NIL_P(bit)) return Qnil;
+  if (RB_NIL_P(bit))
+    return Qnil;
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (boolean == Qtrue) {
     rb_iv_set(self, "non_inverted", rb_obj_dup(bit));
@@ -198,15 +205,25 @@ static VALUE SpriteSetTone(VALUE self, VALUE tone)
   return tone;
 }
 
+static VALUE sprite_area(VALUE self)
+{
+  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  return !s ? Qnil : rb_iv_get(self, "@area");
+}
+
 static VALUE SpriteGetX(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   return RB_INT2FIX( s->getX() );
 }
 
 static VALUE SpriteSetX(VALUE self, VALUE x)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   x = rb_funcall(x, rb_intern("to_i"), 0);
   GUARD_EXC( s->setX( RB_FIX2INT(x) ); )
   return RB_INT2FIX( s->getX() );
@@ -215,12 +232,16 @@ static VALUE SpriteSetX(VALUE self, VALUE x)
 static VALUE SpriteGetY(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   return RB_INT2FIX( s->getY() );
 }
 
 static VALUE SpriteSetY(VALUE self, VALUE y)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   y = rb_funcall(y, rb_intern("to_i"), 0);
   GUARD_EXC( s->setY( RB_FIX2INT(y) ); )
   return RB_INT2FIX( s->getY() );
@@ -229,12 +250,16 @@ static VALUE SpriteSetY(VALUE self, VALUE y)
 static VALUE SpriteGetZ(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   return RB_INT2FIX( s->getZ() );
 }
 
 static VALUE SpriteSetZ(VALUE self, VALUE z)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   z = rb_funcall(z, rb_intern("to_i"), 0);
   GUARD_EXC( s->setZ( RB_FIX2INT(z) ); )
   return RB_INT2FIX( s->getZ() );
@@ -243,6 +268,8 @@ static VALUE SpriteSetZ(VALUE self, VALUE z)
 static VALUE sprite_set_xy(VALUE self, VALUE x, VALUE y)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   x = rb_funcall(x, rb_intern("to_i"), 0);
   y = rb_funcall(y, rb_intern("to_i"), 0);
   GUARD_EXC( s->set_xy( RB_FIX2INT(x), RB_FIX2INT(y) ); )
@@ -252,6 +279,8 @@ static VALUE sprite_set_xy(VALUE self, VALUE x, VALUE y)
 static VALUE sprite_set_xyz(VALUE self, VALUE x, VALUE y, VALUE z)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   x = rb_funcall(x, rb_intern("to_i"), 0);
   y = rb_funcall(y, rb_intern("to_i"), 0);
   z = rb_funcall(z, rb_intern("to_i"), 0);
@@ -263,12 +292,16 @@ static VALUE sprite_set_xyz(VALUE self, VALUE x, VALUE y, VALUE z)
 static VALUE SpriteGetOX(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   return RB_INT2FIX( s->getOX() );
 }
 
 static VALUE SpriteSetOX(VALUE self, VALUE ox)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   GUARD_EXC( s->setOX( RB_FIX2INT(ox) ); )
   return RB_INT2FIX( s->getOX() );
 }
@@ -276,12 +309,16 @@ static VALUE SpriteSetOX(VALUE self, VALUE ox)
 static VALUE SpriteGetOY(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   return RB_INT2FIX( s->getOY() );
 }
 
 static VALUE SpriteSetOY(VALUE self, VALUE oy)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   GUARD_EXC( s->setOY( RB_FIX2INT(oy) ); )
   return RB_INT2FIX( s->getOY() );
 }
@@ -289,12 +326,16 @@ static VALUE SpriteSetOY(VALUE self, VALUE oy)
 static VALUE SpriteGetBushDepth(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   return RB_INT2FIX( s->getBushDepth() );
 }
 
 static VALUE SpriteSetBushDepth(VALUE self, VALUE depth)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   GUARD_EXC( s->setBushDepth( RB_FIX2INT(depth) ); )
   return RB_INT2FIX( s->getBushDepth() );
 }
@@ -308,6 +349,8 @@ static VALUE SpriteGetBushOpacity(VALUE self)
 static VALUE SpriteSetBushOpacity(VALUE self, VALUE opacity)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   GUARD_EXC( s->setBushOpacity( NUM2DBL(opacity) ); )
   VALUE op = DBL2NUM(s->getBushOpacity());
   op = rb_funcall(op, rb_intern("to_i"), 0);
@@ -346,13 +389,16 @@ static VALUE SpriteSetBlendType(VALUE self, VALUE type)
 static VALUE SpriteGetWaveRotate(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
   return s->getWaveRotate() ? Qtrue : Qfalse;
 }
 
 static VALUE SpriteSetWaveRotate(VALUE self, VALUE bln)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   s->setWaveRotate(bln == Qtrue);
   return s->getWaveRotate() ? Qtrue : Qfalse;
 }
@@ -438,14 +484,16 @@ static VALUE SpriteSetZoomY(VALUE self, VALUE number)
 static VALUE SpriteGetAngle(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   return rb_float_new( s->getAngle() );
 }
 
 static VALUE SpriteSetAngle(VALUE self, VALUE number)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   GUARD_EXC( s->setAngle( NUM2DBL(number) ); )
   return rb_float_new( s->getAngle() );
 }
@@ -453,14 +501,16 @@ static VALUE SpriteSetAngle(VALUE self, VALUE number)
 static VALUE SpriteGetMirror(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   return s->getMirror() ? Qtrue : Qfalse;
 }
 
 static VALUE SpriteSetMirror(VALUE self, VALUE bln)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   s->setMirror(bln == Qtrue);
   return bln;
 }
@@ -468,14 +518,16 @@ static VALUE SpriteSetMirror(VALUE self, VALUE bln)
 static VALUE SpriteGetMirrorY(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   return s->getMirrorY() ? Qtrue : Qfalse;
 }
 
 static VALUE SpriteSetMirrorY(VALUE self, VALUE bln)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   s->setMirrorY(bln == Qtrue);
   return bln;
 }
@@ -483,28 +535,32 @@ static VALUE SpriteSetMirrorY(VALUE self, VALUE bln)
 static VALUE SpriteWidth(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   return RB_INT2FIX( s->getWidth() );
 }
 
 static VALUE SpriteHeight(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   return RB_INT2FIX( s->getHeight() );
 }
 
 static VALUE SpriteGetReduceSpeed(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   return RB_INT2FIX( s->getReduceSpeed() );
 }
 
 static VALUE SpriteSetReduceSpeed(VALUE self, VALUE rspeed)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   s->setReduceSpeed(RB_FIX2INT(rspeed));
   return rspeed;
 }
@@ -512,7 +568,8 @@ static VALUE SpriteSetReduceSpeed(VALUE self, VALUE rspeed)
 static VALUE SpriteIncreaseWidth(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   s->increaseWidth();
   return Qtrue;
 }
@@ -520,7 +577,8 @@ static VALUE SpriteIncreaseWidth(VALUE self)
 static VALUE SpriteIncreaseHeight(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   s->increaseHeight();
   return Qtrue;
 }
@@ -528,7 +586,8 @@ static VALUE SpriteIncreaseHeight(VALUE self)
 static VALUE SpriteIncreaseWidthHeight(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   s->increaseWidthHeight();
   return Qtrue;
 }
@@ -536,7 +595,8 @@ static VALUE SpriteIncreaseWidthHeight(VALUE self)
 static VALUE SpriteReduceWidth(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   s->reduceWidth();
   return Qtrue;
 }
@@ -544,7 +604,8 @@ static VALUE SpriteReduceWidth(VALUE self)
 static VALUE SpriteReduceHeight(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   s->reduceHeight();
   return Qtrue;
 }
@@ -552,7 +613,8 @@ static VALUE SpriteReduceHeight(VALUE self)
 static VALUE SpriteReduceWidthHeight(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   s->reduceWidthHeight();
   return Qtrue;
 }
@@ -560,43 +622,67 @@ static VALUE SpriteReduceWidthHeight(VALUE self)
 static VALUE SpriteIsWidthIncreased(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isWidthIncreased() ? Qtrue : Qfalse;
 }
 
 static VALUE SpriteIsHeightIncreased(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isHeightIncreased() ? Qtrue : Qfalse;
 }
 
 static VALUE SpriteIsWidthReduced(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isWidthReduced() ? Qtrue : Qfalse;
 }
 
 static VALUE SpriteIsHeightReduced(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isHeightReduced() ? Qtrue : Qfalse;
 }
 
-static VALUE SpriteisMouseInside(VALUE self)
+static VALUE sprite_is_mouse_inside(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
-  return s->isMouseInside() ? Qtrue : Qfalse;
+  if (!s)
+    return Qnil;
+  return s->mouse_is_inside() ? Qtrue : Qfalse;
 }
 
-static VALUE SpriteisMouseAboveColorFound(VALUE self)
+static VALUE sprite_is_mouse_above_color(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isMouseAboveColorFound() ? Qtrue : Qfalse;
+}
+
+static VALUE sprite_is_click_area(VALUE self, VALUE pos)
+{
+  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
+  VALUE area = rb_iv_get(self, "@area");
+  if (area == Qnil)
+    return Qfalse;
+  int index = RB_FIX2INT(pos);
+  area = rb_ary_entry(area, index);
+  if (RB_NIL_P(area))
+    return Qfalse;
+  else if (ARRAY_TYPE_P(area))
+    area = rect_from_ary(area);
+  Rect *r = static_cast<Rect*>(RTYPEDDATA_DATA(area));
+  return s->mouse_is_inside_area(r) ? Qtrue : Qfalse;
 }
 
 template<rb_data_type_t *SpriteType>
@@ -621,6 +707,7 @@ void SpriteBindingInit()
   rb_define_method(RSprite, "color=", RMF(SpriteSetColor), 1);
   rb_define_method(RSprite, "tone", RMF(SpriteGetTone), 0);
   rb_define_method(RSprite, "tone=", RMF(SpriteSetTone), 1);
+  rb_define_method(RSprite, "area", RMF(sprite_area), 0);
   rb_define_method(RSprite, "x", RMF(SpriteGetX), 0);
   rb_define_method(RSprite, "x=", RMF(SpriteSetX), 1);
   rb_define_method(RSprite, "y", RMF(SpriteGetY), 0);
@@ -667,9 +754,10 @@ void SpriteBindingInit()
   rb_define_method(RSprite, "reduce_width_height!", RMF(SpriteReduceWidthHeight), 0);
   rb_define_method(RSprite, "reduced_width?", RMF(SpriteIsWidthReduced), 0);
   rb_define_method(RSprite, "reduced_height?", RMF(SpriteIsHeightReduced), 0);
-  rb_define_method(RSprite, "mouse_inside?", RMF(SpriteisMouseInside), 0);
-  rb_define_method(RSprite, "mouse_above?", RMF(SpriteisMouseInside), 0);
-  rb_define_method(RSprite, "mouse_above_color?", RMF(SpriteisMouseAboveColorFound), 0);
+  rb_define_method(RSprite, "mouse_inside?", RMF(sprite_is_mouse_inside), 0);
+  rb_define_method(RSprite, "mouse_above?", RMF(sprite_is_mouse_inside), 0);
+  rb_define_method(RSprite, "mouse_above_color?", RMF(sprite_is_mouse_above_color), 0);
+  rb_define_method(RSprite, "click_area?", RMF(sprite_is_click_area), 1);
   rb_define_method(RSprite, "gray_out=", RMF(sprite_gray_out), 1);
   rb_define_method(RSprite, "turn_sepia=", RMF(sprite_turn_sepia), 1);
   rb_define_method(RSprite, "invert_colors=", RMF(sprite_invert_colors), 1);

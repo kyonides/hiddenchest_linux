@@ -1,9 +1,9 @@
 # * KSoundFontMenu ACE * # 
 #   Scripter : Kyonides Arkanthes
-#   2024-05-29
+#   2024-05-27
 
 # Note: It seems like the MIDI file should be playing BEFORE you proceed to call
-#       Setup.choose_soundfont while loading a save game. Otherwise, the MIDI
+#       Game.choose_soundfont while loading a save game. Otherwise, the MIDI
 #       synthetizer might ignore your request at that specific point.
 #       Calling the same method at the beginning of KSoundFont::Menu ensures it
 #       will always play the MIDI using the chosen soundfont.
@@ -70,17 +70,18 @@ class Menu < Scene_Base
     super
     @timer = 0
     pos = $game_system.soundfont_index
-    Setup.choose_soundfont(pos)
-    soundfont = Setup.soundfonts[pos]
+    Game.choose_soundfont(pos)
+    soundfonts = Game.soundfonts
+    soundfont = soundfonts[pos]
     if soundfont.empty?
       soundfont = "No SoundFont"
     else
       soundfont = soundfont.split("/")[-1].sub(".sf2", "")
     end
-    @help_window = Window_Help.new(1)
-    @help_window.set_text(TITLE)
+    @help_window = Window_Help.new
+    @help_window.set_text(TITLE, 1)
     hwy = @help_window.height
-    @command_window = PathsWindow.new(192, Setup.soundfonts)
+    @command_window = PathsWindow.new(192, soundfonts)
     @command_window.y = hwy
     @command_window.index = pos
     @info_window = SmallInfoWindow.new(192, hwy, 240, 96)
@@ -125,7 +126,7 @@ class Game_System
   end
 
   def find_soundfont_index
-    Setup.soundfont_index || 0
+    Game.soundfont_index || 0
   end
 
   def soundfont_index
@@ -133,12 +134,12 @@ class Game_System
   end
 
   def soundfont_index=(n)
-    Setup.choose_soundfont(n)
+    Game.choose_soundfont(n)
     @soundfont_index = n
   end
 
   def on_after_load
     kyon_soundfont_menu_gm_sys_on_after_load
-    Setup.choose_soundfont($game_system.soundfont_index)
+    Game.choose_soundfont($game_system.soundfont_index)
   end
 end

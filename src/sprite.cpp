@@ -35,6 +35,7 @@
 #include <math.h>
 #include <SDL_rect.h>
 #include <sigc++/connection.h>
+#include "debugwriter.h"
 
 #define ROWH 6
 
@@ -707,22 +708,36 @@ bool Sprite::isHeightReduced()
   return p->reducedHeight == p->bitmap->height();
 }
 
-bool Sprite::isMouseInside()
+bool Sprite::mouse_is_inside()
 {
   guardDisposed();
   if (!p->isVisible)
     return false;
-  int mx = shState->input().mouseX();
+  int mp = shState->input().mouseX();
   int x = p->trans.getPosition().x;
-  if (mx < x)
+  if (mp < x || mp > x + p->srcRect->width)
     return false;
-  if (mx > x + p->srcRect->width)
-    return false;
-  int my = shState->input().mouseY();
+  mp = shState->input().mouseY();
   int y = p->trans.getPosition().y;
-  if (my < y)
+  if (mp < y)
     return false;
-  return my <= y + p->srcRect->height;
+  return mp <= y + p->srcRect->height;
+}
+
+bool Sprite::mouse_is_inside_area(Rect *rect)
+{
+  guardDisposed();
+  if (!p->isVisible)
+    return false;
+  int mp = shState->input().mouseX();
+  int sp = p->trans.getPosition().x;
+  if (mp < sp + rect->x || mp > sp + rect->x + rect->width)
+    return false;
+  mp = shState->input().mouseY();
+  sp = p->trans.getPosition().y;
+  if (mp < sp + rect->y)
+    return false;
+  return mp <= sp + rect->y + rect->height;
 }
 
 bool Sprite::isMouseAboveColorFound()

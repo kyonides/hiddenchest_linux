@@ -57,7 +57,6 @@ void init_game();
 void init_scripts();
 void init_terms();
 void init_system();
-void init_setup();
 void init_backdrop();
 int system_is_really_linux();
 const char *scripts;
@@ -145,15 +144,6 @@ void hc_rb_splash(VALUE exception)
 
 static void mriBindingInit()
 {
-  init_setup();
-  tableBindingInit();
-  etcBindingInit();
-  init_font_binding();
-  bitmapBindingInit();
-  SpriteBindingInit();
-  MsgBoxSpriteBindingInit();
-  viewportBindingInit();
-  planeBindingInit();
   if (rgssVer < 2) {
     windowBindingInit();
     tilemapBindingInit();
@@ -162,10 +152,6 @@ static void mriBindingInit()
     tilemapVXBindingInit();
   }
   inputBindingInit();
-  audioBindingInit();
-  graphicsBindingInit();
-  init_terms();
-  init_backdrop();
   module_func(rb_mKernel, "msgbox", mriPrint, -1);
   module_func(rb_mKernel, "msgbox_p", mriP, -1);
   module_func(rb_mKernel, "print", mriPrint, -1);
@@ -368,18 +354,9 @@ static bool file_exist(VALUE name, const char* ext)
 
 static int rb_check_rgss_version()
 {
-  init_scripts();
-  init_system();
   init_game();
   int state;
   rb_eval_string_protect(game_ini, &state);
-  if (state) {
-    rb_p(rb_errinfo());
-    state = 0;
-  }
-  rb_eval_string_protect(setup_ini, &state);
-  if (state)
-    rb_p(rb_errinfo());
   return state;
 }
 
@@ -453,7 +430,8 @@ static void runRGSSscripts(BacktraceData &btData)
   decodeBuffer.resize(0x64000);
   for (long i = 0; i < scriptCount; ++i) {
     VALUE script = rb_ary_entry(script_ary, i);
-    if (!RB_TYPE_P(script, RUBY_T_ARRAY)) continue;
+    if (!RB_TYPE_P(script, RUBY_T_ARRAY))
+      continue;
     VALUE scriptName   = rb_ary_entry(script, 1);
     VALUE scriptString = rb_ary_entry(script, 2);
     rb_ary_push(names, scriptName);
@@ -585,14 +563,29 @@ static void mriBindingExecute()
     }
   }
   fileIntBindingInit();
+  tableBindingInit();
+  etcBindingInit();
+  init_font_binding();
+  bitmapBindingInit();
+  SpriteBindingInit();
+  MsgBoxSpriteBindingInit();
+  viewportBindingInit();
+  planeBindingInit();
+  audioBindingInit();
+  graphicsBindingInit();
+  init_terms();
+  init_backdrop();
+  init_scripts();
+  init_system();
+  RbData rbData;
+  shState->setBindingData(&rbData);
   int state = rb_check_rgss_version();
   if (state) {
+    rb_p(rb_errinfo());
     ruby_cleanup(0);
     shState->rtData().rqTermAck.set();
     return;
   }
-  RbData rbData;
-  shState->setBindingData(&rbData);
   BacktraceData btData;
   mriBindingInit();
   std::string &customScript = conf.customScript;

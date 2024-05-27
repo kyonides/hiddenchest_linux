@@ -164,8 +164,8 @@ static VALUE graphics_snap2color_bitmap(VALUE self, VALUE color)
 static VALUE graphics_save_screenshot(VALUE self)
 {
   bool result = false;
-  VALUE set = rb_const_get(rb_cObject, rb_intern("Setup"));
-  safe_mkdir(rb_iv_get(set, "@shot_dir"));
+  VALUE game = rb_const_get(rb_cObject, rb_intern("Game"));
+  safe_mkdir(rb_iv_get(game, "@shot_dir"));
   result = shState->graphics().save_screenshot();
   return result;
 }

@@ -1,6 +1,4 @@
 module System
-  SOUNDFONT = ""
-  SOUNDFONT_DIR = ""
   LOGO = "app_logo"
   DESCRIPTION = "An RGSS based engine derived from mkxp developed by Ancurio"
   def self.user_language
@@ -25,20 +23,35 @@ module Game
   DATA = {}
   DATA.default = ""
   RTP = []
-  def self.setup_screen
-    @setup_screen
+  SOUNDFONT_REGEX = "/*.sf{2,3}"
+  extend self
+  attr_reader(:shot_formats, :shot_format, :shot_dir)
+  attr_reader(:shot_filename, :save_filename)
+  attr_reader(:soundfont, :soundfonts)
+  attr_accessor(:save_dir, :save_filename, :click_timer, :setup_screen)
+  def self.clear
+    @shot_formats = ["jpg", "png"]
+    @shot_format = "jpg"
+    @shot_dir = "Screenshots"
+    @shot_filename = "screenshot"
+    @save_dir = "Saves"
+    @save_filename = "Save"
+    @click_timer = 10
+    @soundfont = ""
   end
 
-  def self.setup_screen=(bool)
-    @setup_screen = bool
+  def self.auto_create_dir
+    unless Dir.exist?(@shot_dir)
+      Dir.mkdir(@shot_dir)
+    end
   end
 
   def self.normal_size?
-    (WIDTH >= 320 and HEIGHT >= 240)
+    (WIDTH >= 320 && HEIGHT >= 240)
   end
 
   def self.change_size?
-    (WIDTH != START_WIDTH or HEIGHT != START_HEIGHT)
+    (WIDTH != START_WIDTH || HEIGHT != START_HEIGHT)
   end
 
   def self.process_exe_name(list)
@@ -67,29 +80,27 @@ module Game
         if value.size > 1
           RTP << value
         end
-      elsif key[/SoundFontWin/i] != nil
-        if System.windows?
-          System.const_set("SOUNDFONT", value)
-        end
-      elsif key[/SoundFontLnx/i] != nil
-        if System.linux?
-          System.const_set("SOUNDFONT", value)
-        end
-      elsif key[/SoundFontPathWin/i] != nil
-        if System.windows?
-          System.const_set("SOUNDFONT_DIR", value)
-        end
-      elsif key[/SoundFontPathLnx/i] != nil
-        if System.linux?
-          System.const_set("SOUNDFONT_DIR", value)
-        end
       else
         DATA[key] = value
       end
     end
   end
 
-  def self.set_basic_values
+  def add_soundfonts(dir)
+    names = Dir[dir + SOUNDFONT_REGEX].sort
+    names.size.times {|n| @soundfonts << names[n] }
+  end
+
+  def set_basic_values
+    if System.windows?
+      dir = DATA.delete("SoundFontPathWin").to_s
+      default = DATA.delete("SoundFontWin").to_s
+    elsif System.linux?
+      dir = DATA.delete("SoundFontPathLnx").to_s
+      default = DATA.delete("SoundFontLnx").to_s
+    end
+    System.const_set("SOUNDFONT_DIR", dir)
+    System.const_set("SOUNDFONT", default)
     DATA["Scripts"].sub!("\\", "/")
     const_set("SCRIPTS", DATA.delete("Scripts").to_s)
     const_set("TITLE", DATA.delete("Title").to_s)
@@ -106,9 +117,9 @@ module Game
     encrypt_ext = [".rhc", ".rgssad", ".rgss2a", ".rgss3a"]
     makers = ["HiddenChest", "XP", "VX", "VX Ace"]
     debug = (DATA["Debug"][/true/i] != nil)
-    n = process_exe_name(projects)
+    n = process_exe_name(encrypt_ext)
     if n == 0
-      n = process_exe_name(encrypt_ext)
+      n = process_exe_name(projects)
       debug = false
     end
     const_set("DEBUG", debug)
@@ -121,15 +132,79 @@ module Game
     h = (h == 0 ? START_HEIGHT : h)
     const_set("WIDTH", w)
     const_set("HEIGHT", h)
-    @setup_screen = (normal_size? and change_size?)
+    if normal_size?
+      @setup_screen = change_size?
+    end
     full = (DATA["Fullscreen"][/true/i] != nil)
     const_set("FULLSCREEN", full)
     puts "RGSS Version:       #{n} (#{MAKER})"
     puts "Game Screen Size:   #{WIDTH}x#{HEIGHT}"
     puts "Enable Debug:       #{DEBUG}"
     puts "Trigger Fullscreen: #{FULLSCREEN}"
+    @soundfont = System::SOUNDFONT.to_s
+    @soundfonts = []
+    add_soundfonts(System::SOUNDFONT_DIR)
+    add_soundfonts(Dir.pwd + "/Audio/SF2")
+    if @soundfont.empty?
+      if @soundfonts.size > 0
+        @soundfont = @soundfonts[0]
+      end
+    else
+      @soundfonts.delete(@soundfont)
+      @soundfonts.unshift(@soundfont)
+    end
   end
-  process_ini
-  set_basic_values
-  set_internal_values
+
+  def soundfont_index
+    @soundfonts.index(@soundfont)
+  end
+
+  def setup
+    show_screen
+    clear
+    auto_create_dir
+    process_ini
+    set_basic_values
+    set_internal_values
+    dispose_screen
+  end
+
+  def show_screen
+    Graphics.freeze
+    @visual = nil
+    filename = "Graphics/Titles/loadscreen"
+    if FileInt.exist?(filename)
+      @visual = true
+      @backdrop = Sprite.new
+      @backdrop.bitmap = Bitmap.new(filename)
+      @title = Sprite.new
+      @title.set_xy(40, Graphics.height - 80)
+      b = Bitmap.new(320, 64)
+      font = b.font
+      font.size = 28
+      font.outline = true
+      font.outline_size = 2
+      b.draw_text(b.rect, "Loading...")
+      @title.bitmap = b
+    end
+    Graphics.transition
+  end
+
+  def dispose_screen
+    Graphics.freeze
+    if @visual
+      @title.bitmap.dispose
+      @title.dispose
+      @backdrop.bitmap.dispose
+      @backdrop.dispose
+      @visual = nil
+    end
+  end
+end
+
+begin
+  Game.setup
+rescue => e
+  puts e.class, e.message
+  puts e.backtrace
 end

@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "-w")
+set(CMAKE_CXX_FLAGS "-w -O0")
+set(CMAKE_CXX_FLAGS_DEBUG "-w -O0")
+set(CMAKE_C_FLAGS_DEBUG "-w -O0")
 set(RUBY "2.7")
 Project(hiddenchest)
 
@@ -336,6 +338,7 @@ if (BINDING STREQUAL "MRI")
   set(BINDING_SOURCE
     binding-mri/binding-mri.cpp
     binding-mri/binding-util.cpp
+    binding-mri/game.cpp
     binding-mri/table-binding.cpp
     binding-mri/etc-binding.cpp
     binding-mri/bitmap-binding.cpp
@@ -355,10 +358,8 @@ if (BINDING STREQUAL "MRI")
     binding-mri/tilemapvx-binding.cpp
     binding-mri/backdrop.cpp
     binding-mri/scripts.cpp
-    binding-mri/setup.cpp
     binding-mri/system.cpp
     binding-mri/terms.cpp
-    binding-mri/game.cpp
   )
 elseif(BINDING STREQUAL "MRUBY")
   message(FATAL_ERROR "Mruby support in CMake needs to be finished")

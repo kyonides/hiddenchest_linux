@@ -40,7 +40,8 @@ inline void disposableAddChild(VALUE disp, VALUE child)
 inline void disposableDisposeChildren(VALUE disp)
 {
   VALUE children = rb_iv_get(disp, "children");
-  if (RB_NIL_P(children)) return;
+  if (RB_NIL_P(children))
+    return;
   ID dispFun = rb_intern("_HC_dispose_alias");
   for (long i = 0; i < RARRAY_LEN(children); ++i)
     rb_funcall(rb_ary_entry(children, i), dispFun, 0);
@@ -51,11 +52,13 @@ RB_METHOD(disposableDispose)
 {
   RB_UNUSED_PARAM;
   C *d = getPrivateData<C>(self);
-  if (!d) return Qnil;
+  if (!d)
+    return Qnil;
   // Nothing to do if already disposed
-  if (d->isDisposed()) return Qnil;
-  if (rgssVer == 1)
-    disposableDisposeChildren(self);
+  if (d->isDisposed())
+    return Qnil;
+  //if (rgssVer == 1)
+    //disposableDisposeChildren(self);
   d->dispose();
   return Qnil;
 }
@@ -65,7 +68,8 @@ RB_METHOD(disposableIsDisposed)
 {
   RB_UNUSED_PARAM;
   C *d = getPrivateData<C>(self);
-  if (!d) return Qtrue;
+  if (!d)
+    return Qtrue;
   return d->isDisposed() ? Qtrue : Qfalse;
 }
 
@@ -76,8 +80,8 @@ static void disposableBindingInit(VALUE klass)
   rb_define_method(klass, "disposed?", RUBY_METHOD_FUNC(disposableIsDisposed<C>), -1);
   // Make sure we always have access to the original method, even
   // if it is overridden by user scripts
-  if (rgssVer == 1)
-    rb_define_alias(klass, "_HC_dispose_alias", "dispose");
+  //if (rgssVer == 1)
+    //rb_define_alias(klass, "_HC_dispose_alias", "dispose");
 }
 
 template<class C>

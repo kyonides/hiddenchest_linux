@@ -56,7 +56,8 @@ struct SharedMidiState
 	{
 		/* We might have initialized, but if the consecutive libfluidsynth
 		 * load failed, no resources will have been allocated */
-		if (!inited || !HAVE_FLUID) return;
+		if (!inited || !HAVE_FLUID)
+			return;
 		for (size_t i = 0; i < synths.size(); ++i) {
 			assert(!synths[i].inUse);
 			fluid.delete_synth(synths[i].synth);
@@ -72,10 +73,8 @@ struct SharedMidiState
 			return;
 		inited = true;
 		initFluidFunctions();
-
 		if (!HAVE_FLUID)
 			return;
-
 		flSettings = fluid.new_settings();
 		fluid.settings_setnum(flSettings, "synth.gain", 1.0f);
 		fluid.settings_setnum(flSettings, "synth.sample-rate", SYNTH_SAMPLERATE);
