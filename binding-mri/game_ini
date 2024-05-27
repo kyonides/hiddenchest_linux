@@ -1,6 +1,6 @@
 module System
   LOGO = "app_logo"
-  DESCRIPTION = "An RGSS based engine derived from mkxp developed by Ancurio"
+  DESCRIPTION = "An RGSS-based engine"
   def self.user_language
     @user_language
   end
@@ -160,19 +160,27 @@ module Game
   end
 
   def setup
-    show_screen
     clear
     auto_create_dir
     process_ini
     set_basic_values
     set_internal_values
-    dispose_screen
+    $scene = nil
   end
 
-  def show_screen
+class Scene
+  def main
     Graphics.freeze
+    start
+    Graphics.transition
+    Game.setup
+    Graphics.freeze
+    terminate
+  end
+
+  def start
     @visual = nil
-    filename = "Graphics/Titles/loadscreen"
+    filename = "Graphics/Splash/screen"
     if FileInt.exist?(filename)
       @visual = true
       @backdrop = Sprite.new
@@ -187,11 +195,9 @@ module Game
       b.draw_text(b.rect, "Loading...")
       @title.bitmap = b
     end
-    Graphics.transition
   end
 
-  def dispose_screen
-    Graphics.freeze
+  def terminate
     if @visual
       @title.bitmap.dispose
       @title.dispose
@@ -202,8 +208,13 @@ module Game
   end
 end
 
+end
+
 begin
-  Game.setup
+  $scene = Game::Scene.new
+  while $scene
+    $scene.main
+  end
 rescue => e
   puts e.class, e.message
   puts e.backtrace
