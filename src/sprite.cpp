@@ -724,7 +724,7 @@ bool Sprite::mouse_is_inside()
   return mp <= y + p->srcRect->height;
 }
 
-bool Sprite::mouse_is_inside_area(Rect *rect)
+bool Sprite::mouse_is_inside_area(Rect *rect, bool state)
 {
   guardDisposed();
   if (!p->isVisible)
@@ -733,11 +733,12 @@ bool Sprite::mouse_is_inside_area(Rect *rect)
   int sp = p->trans.getPosition().x;
   if (mp < sp + rect->x || mp > sp + rect->x + rect->width)
     return false;
+  int mpoy = state ? 8 : 0;
   mp = shState->input().mouseY();
-  sp = p->trans.getPosition().y;
+  sp = p->trans.getPosition().y - mpoy;
   if (mp < sp + rect->y)
     return false;
-  return mp <= sp + rect->y + rect->height;
+  return mp <= sp + rect->y + rect->height + mpoy;
 }
 
 bool Sprite::isMouseAboveColorFound()

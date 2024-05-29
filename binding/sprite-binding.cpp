@@ -667,7 +667,7 @@ static VALUE sprite_is_mouse_above_color(VALUE self)
   return s->isMouseAboveColorFound() ? Qtrue : Qfalse;
 }
 
-static VALUE sprite_is_click_area(VALUE self, VALUE pos)
+static VALUE check_click_area(VALUE self, VALUE pos, bool state)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
@@ -682,7 +682,17 @@ static VALUE sprite_is_click_area(VALUE self, VALUE pos)
   else if (ARRAY_TYPE_P(area))
     area = rect_from_ary(area);
   Rect *r = static_cast<Rect*>(RTYPEDDATA_DATA(area));
-  return s->mouse_is_inside_area(r) ? Qtrue : Qfalse;
+  return s->mouse_is_inside_area(r, state) ? Qtrue : Qfalse;
+}
+
+static VALUE sprite_is_click_area(VALUE self, VALUE pos)
+{
+  return check_click_area(self, pos, false);
+}
+
+static VALUE sprite_is_press_click_area(VALUE self, VALUE pos)
+{
+  return check_click_area(self, pos, true);
 }
 
 template<rb_data_type_t *SpriteType>
@@ -758,6 +768,7 @@ void SpriteBindingInit()
   rb_define_method(RSprite, "mouse_above?", RMF(sprite_is_mouse_inside), 0);
   rb_define_method(RSprite, "mouse_above_color?", RMF(sprite_is_mouse_above_color), 0);
   rb_define_method(RSprite, "click_area?", RMF(sprite_is_click_area), 1);
+  rb_define_method(RSprite, "press_click_area?", RMF(sprite_is_press_click_area), 1);
   rb_define_method(RSprite, "gray_out=", RMF(sprite_gray_out), 1);
   rb_define_method(RSprite, "turn_sepia=", RMF(sprite_turn_sepia), 1);
   rb_define_method(RSprite, "invert_colors=", RMF(sprite_invert_colors), 1);
