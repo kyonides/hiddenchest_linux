@@ -19,6 +19,8 @@ module System
 end
 
 module Game
+  SCENE_SCRIPT = "Data/Splash"
+  SCENE_SCRIPT_EXT = ".rhc"
   INI_FILENAME = (Dir["*.ini"][0] || ".ini")
   DATA = {}
   DATA.default = ""
@@ -86,12 +88,12 @@ module Game
     end
   end
 
-  def add_soundfonts(dir)
+  def self.add_soundfonts(dir)
     names = Dir[dir + SOUNDFONT_REGEX].sort
     names.size.times {|n| @soundfonts << names[n] }
   end
 
-  def set_basic_values
+  def self.set_basic_values
     if System.windows?
       dir = DATA.delete("SoundFontPathWin").to_s
       default = DATA.delete("SoundFontWin").to_s
@@ -155,11 +157,24 @@ module Game
     end
   end
 
-  def soundfont_index
+  def self.soundfont_index
     @soundfonts.index(@soundfont)
   end
 
-  def setup
+  def self.custom_scene_file
+    SCENE_SCRIPT + SCENE_SCRIPT_EXT
+  end
+
+  def self.setup_custom_scene
+    if FileInt.exist?(SCENE_SCRIPT + ".rb")
+      lines = File.binread(SCENE_SCRIPT + ".rb")
+      lines = Zlib::Deflate.deflate(lines)
+      save_data(lines, custom_scene_file)
+      return true
+    end
+  end
+
+  def self.setup
     clear
     auto_create_dir
     process_ini
@@ -168,7 +183,7 @@ module Game
     $scene = nil
   end
 
-class Scene
+class SplashScene
   def main
     Graphics.freeze
     start
@@ -186,13 +201,14 @@ class Scene
       @backdrop = Sprite.new
       @backdrop.bitmap = Bitmap.new(filename)
       @title = Sprite.new
-      @title.set_xy(40, Graphics.height - 80)
-      b = Bitmap.new(320, 64)
+      @title.x = (Graphics.width - 400) / 2
+      @title.y = (Graphics.height - 60) / 2
+      b = Bitmap.new(400, 60)
       font = b.font
-      font.size = 28
+      font.size = 40
       font.outline = true
-      font.outline_size = 2
-      b.draw_text(b.rect, "Loading...")
+      font.outline_size = 3
+      b.draw_text(b.rect, "Loading...", 1)
       @title.bitmap = b
     end
   end
@@ -211,11 +227,18 @@ end
 end
 
 begin
-  $scene = Game::Scene.new
+  $LOAD_PATH << Dir.pwd
+  Game.setup_custom_scene
+  if FileInt.exist?(Game.custom_scene_file)
+    lines = load_data(Game.custom_scene_file)
+    lines = Zlib::Inflate.inflate(lines)
+    eval lines
+  end
+  $scene = Game::SplashScene.new
   while $scene
     $scene.main
   end
 rescue => e
-  puts e.class, e.message
-  puts e.backtrace
+  puts e.class, e.message, e.backtrace
+  Game.setup
 end

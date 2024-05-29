@@ -17,6 +17,7 @@
 #include <string>
 #include "exception.h"
 #include "debugwriter.h"
+#include <zlib.h>
 
 extern const char module_rpg1[];
 extern const char module_rpg2[];

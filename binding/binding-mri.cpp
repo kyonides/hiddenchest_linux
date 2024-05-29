@@ -53,6 +53,10 @@ extern const char setup_ini[];
 static void mriBindingExecute();
 static void mriBindingTerminate();
 static void mriBindingReset();
+
+extern "C" {
+void init_zlib();
+}
 void init_game();
 void init_scripts();
 void init_terms();
@@ -151,7 +155,6 @@ static void mriBindingInit()
     windowVXBindingInit();
     tilemapVXBindingInit();
   }
-  inputBindingInit();
   module_func(rb_mKernel, "msgbox", mriPrint, -1);
   module_func(rb_mKernel, "msgbox_p", mriP, -1);
   module_func(rb_mKernel, "print", mriPrint, -1);
@@ -427,7 +430,7 @@ static void runRGSSscripts(BacktraceData &btData)
   Debug() << "Loading Scripts now";
   long scriptCount = RARRAY_LEN(script_ary);
   std::string decodeBuffer;
-  decodeBuffer.resize(0x64000);
+  decodeBuffer.resize(0x128000);
   for (long i = 0; i < scriptCount; ++i) {
     VALUE script = rb_ary_entry(script_ary, i);
     if (!RB_TYPE_P(script, RUBY_T_ARRAY))
@@ -445,7 +448,8 @@ static void runRGSSscripts(BacktraceData &btData)
       bufferLen = decodeBuffer.length();
       result = uncompress(bufferPtr, &bufferLen, sourcePtr, RSTRING_LEN(scriptString));
       bufferPtr[bufferLen] = '\0';
-      if (result != Z_BUF_ERROR) break;
+      if (result != Z_BUF_ERROR)
+        break;
       decodeBuffer.resize(decodeBuffer.size()*2);
     }
     if (result != Z_OK) {
@@ -461,7 +465,8 @@ static void runRGSSscripts(BacktraceData &btData)
       i != conf.preloadScripts.end(); ++i)
     runCustomScript(*i);
   VALUE exc = rb_gv_get("$!");
-  if (exc != Qnil) return;
+  if (exc != Qnil)
+    return;
   int script_pos = 3, name_pos = 1;
   VALUE section, script, string, fname;
   for (long i = 0; i < scriptCount; ++i) {
@@ -476,14 +481,20 @@ static void runRGSSscripts(BacktraceData &btData)
     btData.scriptNames.insert(buf, scriptName);
     int state;
     evalString(string, fname, &state);
-    if (state) break;
-    if (rb_iv_get(hidden, "@not_found") == Qtrue) break;
+    if (state)
+      break;
+    if (rb_iv_get(hidden, "@not_found") == Qtrue)
+      break;
   }
-  if (rb_obj_class(rb_gv_get("$!")) != getRbData()->exc[Reset]) return;
+  if (rb_obj_class(rb_gv_get("$!")) != getRbData()->exc[Reset])
+    return;
   while (true) {
-    if (rb_gv_get("$scene") == Qnil) break;
-    if (rb_obj_class(rb_gv_get("$!")) != getRbData()->exc[Reset]) break;
-    if (rb_iv_get(hidden, "@not_found") == Qtrue) break;
+    if (rb_gv_get("$scene") == Qnil)
+      break;
+    if (rb_obj_class(rb_gv_get("$!")) != getRbData()->exc[Reset])
+      break;
+    if (rb_iv_get(hidden, "@not_found") == Qtrue)
+      break;
     process_main_script_reset();
   }
   shState->rtData().rqReset.clear();
@@ -515,10 +526,12 @@ static void showExc(VALUE exc, const BacktraceData &btData)
   char *p = s + strlen(s);
   char *e;
   while (p != s)
-    if (*--p == ':') break;
+    if (*--p == ':')
+      break;
   e = p;
   while (p != s)
-    if (*--p == ':') break;
+    if (*--p == ':')
+      break;
   /* s         p  e
    * SectionXXX:YY: in 'blabla' */
   *e = '\0';
@@ -562,6 +575,9 @@ static void mriBindingExecute()
       rb_ary_push(lpaths, pathv);
     }
   }
+  RbData rbData;
+  shState->setBindingData(&rbData);
+  init_zlib();
   fileIntBindingInit();
   tableBindingInit();
   etcBindingInit();
@@ -573,12 +589,11 @@ static void mriBindingExecute()
   planeBindingInit();
   audioBindingInit();
   graphicsBindingInit();
+  inputBindingInit();
   init_terms();
   init_backdrop();
   init_scripts();
   init_system();
-  RbData rbData;
-  shState->setBindingData(&rbData);
   int state = rb_check_rgss_version();
   if (state) {
     rb_p(rb_errinfo());

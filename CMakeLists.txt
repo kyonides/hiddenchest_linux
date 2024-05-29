@@ -324,42 +324,43 @@ if (BINDING STREQUAL "MRI")
   pkg_check_modules(MRI REQUIRED ruby-${MRIVERSION})
   list(APPEND DEFINES BINDING_MRI)
   set(BINDING_HEADERS
-    binding-mri/binding-util.h
-    binding-mri/binding-types.h
-    binding-mri/serializable-binding.h
-    binding-mri/disposable-binding.h
-    binding-mri/sceneelement-binding.h
-    binding-mri/viewportelement-binding.h
-    binding-mri/flashable-binding.h
-    binding-mri/msgboxsprite-binding.h
-    binding-mri/hcextras.h
-    binding-mri/output.h
+    binding/binding-util.h
+    binding/binding-types.h
+    binding/serializable-binding.h
+    binding/disposable-binding.h
+    binding/sceneelement-binding.h
+    binding/viewportelement-binding.h
+    binding/flashable-binding.h
+    binding/msgboxsprite-binding.h
+    binding/hcextras.h
+    binding/output.h
   )
   set(BINDING_SOURCE
-    binding-mri/binding-mri.cpp
-    binding-mri/binding-util.cpp
-    binding-mri/game.cpp
-    binding-mri/table-binding.cpp
-    binding-mri/etc-binding.cpp
-    binding-mri/bitmap-binding.cpp
-    binding-mri/font-binding.cpp
-    binding-mri/graphics-binding.cpp
-    binding-mri/input-binding.cpp
-    binding-mri/sprite-binding.cpp
-    binding-mri/msgboxsprite-binding.cpp
-    binding-mri/viewport-binding.cpp
-    binding-mri/plane-binding.cpp
-    binding-mri/window-binding.cpp
-    binding-mri/tilemap-binding.cpp
-    binding-mri/audio-binding.cpp
-    binding-mri/module_rpg.cpp
-    binding-mri/filesystem-binding.cpp
-    binding-mri/windowvx-binding.cpp
-    binding-mri/tilemapvx-binding.cpp
-    binding-mri/backdrop.cpp
-    binding-mri/scripts.cpp
-    binding-mri/system.cpp
-    binding-mri/terms.cpp
+    binding/binding-mri.cpp
+    binding/binding-util.cpp
+    binding/game.cpp
+    binding/table-binding.cpp
+    binding/etc-binding.cpp
+    binding/bitmap-binding.cpp
+    binding/font-binding.cpp
+    binding/graphics-binding.cpp
+    binding/input-binding.cpp
+    binding/sprite-binding.cpp
+    binding/msgboxsprite-binding.cpp
+    binding/viewport-binding.cpp
+    binding/plane-binding.cpp
+    binding/window-binding.cpp
+    binding/tilemap-binding.cpp
+    binding/audio-binding.cpp
+    binding/module_rpg.cpp
+    binding/filesystem-binding.cpp
+    binding/windowvx-binding.cpp
+    binding/tilemapvx-binding.cpp
+    binding/backdrop.cpp
+    binding/scripts.cpp
+    binding/system.cpp
+    binding/terms.cpp
+    binding/zlib.c
   )
 elseif(BINDING STREQUAL "MRUBY")
   message(FATAL_ERROR "Mruby support in CMake needs to be finished")
@@ -449,6 +450,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${VORBISFILE_INCLUDE_DIRS}
   ${FLUID_INCLUDE_DIRS}
   ${OPENAL_INCLUDE_DIR}
+  ${ZLIB_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}
