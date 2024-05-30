@@ -47,6 +47,7 @@ static VALUE spriteInitialize(int argc, VALUE* argv, VALUE self)
   rb_iv_set(self, "opacity", RB_INT2FIX(255));
   rb_iv_set(self, "blend_type", RB_INT2FIX(0));
   rb_iv_set(self, "@area", rb_ary_new());
+  rb_iv_set(self, "drag_margin_y", 8);
   return self;
 }
 
@@ -515,20 +516,20 @@ static VALUE SpriteSetMirror(VALUE self, VALUE bln)
   return bln;
 }
 
-static VALUE SpriteGetMirrorY(VALUE self)
+static VALUE sprite_mirror_y(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qfalse;
-  return s->getMirrorY() ? Qtrue : Qfalse;
+  return s->mirror_y() ? Qtrue : Qfalse;
 }
 
-static VALUE SpriteSetMirrorY(VALUE self, VALUE bln)
+static VALUE sprite_mirror_y_set(VALUE self, VALUE bln)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qfalse;
-  s->setMirrorY(bln == Qtrue);
+  s->set_mirror_y(bln == Qtrue);
   return bln;
 }
 
@@ -548,107 +549,107 @@ static VALUE SpriteHeight(VALUE self)
   return RB_INT2FIX( s->getHeight() );
 }
 
-static VALUE SpriteGetReduceSpeed(VALUE self)
+static VALUE sprite_reduce_speed(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return RB_INT2FIX(0);
-  return RB_INT2FIX( s->getReduceSpeed() );
+  return RB_INT2FIX( s->reduce_speed() );
 }
 
-static VALUE SpriteSetReduceSpeed(VALUE self, VALUE rspeed)
+static VALUE sprite_reduce_speed_set(VALUE self, VALUE rspeed)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return RB_INT2FIX(0);
-  s->setReduceSpeed(RB_FIX2INT(rspeed));
+  s->set_reduce_speed(RB_FIX2INT(rspeed));
   return rspeed;
 }
 
-static VALUE SpriteIncreaseWidth(VALUE self)
+static VALUE sprite_increase_width(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qfalse;
-  s->increaseWidth();
+  s->increase_width();
   return Qtrue;
 }
 
-static VALUE SpriteIncreaseHeight(VALUE self)
+static VALUE sprite_increase_height(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qfalse;
-  s->increaseHeight();
+  s->increase_height();
   return Qtrue;
 }
 
-static VALUE SpriteIncreaseWidthHeight(VALUE self)
+static VALUE sprite_increase_width_height(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qfalse;
-  s->increaseWidthHeight();
+  s->increase_width_height();
   return Qtrue;
 }
 
-static VALUE SpriteReduceWidth(VALUE self)
+static VALUE sprite_reduce_width(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qnil;
-  s->reduceWidth();
+  s->reduce_width();
   return Qtrue;
 }
 
-static VALUE SpriteReduceHeight(VALUE self)
+static VALUE sprite_reduce_height(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qnil;
-  s->reduceHeight();
+  s->reduce_height();
   return Qtrue;
 }
 
-static VALUE SpriteReduceWidthHeight(VALUE self)
+static VALUE sprite_reduce_width_height(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qnil;
-  s->reduceWidthHeight();
+  s->reduce_width_height();
   return Qtrue;
 }
 
-static VALUE SpriteIsWidthIncreased(VALUE self)
+static VALUE sprite_is_width_increased(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qnil;
-  return s->isWidthIncreased() ? Qtrue : Qfalse;
+  return s->is_width_increased() ? Qtrue : Qfalse;
 }
 
-static VALUE SpriteIsHeightIncreased(VALUE self)
+static VALUE sprite_is_height_increased(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qnil;
-  return s->isHeightIncreased() ? Qtrue : Qfalse;
+  return s->is_height_increased() ? Qtrue : Qfalse;
 }
 
-static VALUE SpriteIsWidthReduced(VALUE self)
+static VALUE sprite_is_width_reduced(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qnil;
-  return s->isWidthReduced() ? Qtrue : Qfalse;
+  return s->is_width_reduced() ? Qtrue : Qfalse;
 }
 
-static VALUE SpriteIsHeightReduced(VALUE self)
+static VALUE sprite_is_height_reduced(VALUE self)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qnil;
-  return s->isHeightReduced() ? Qtrue : Qfalse;
+  return s->is_height_reduced() ? Qtrue : Qfalse;
 }
 
 static VALUE sprite_is_mouse_inside(VALUE self)
@@ -695,6 +696,22 @@ static VALUE sprite_is_press_click_area(VALUE self, VALUE pos)
   return check_click_area(self, pos, true);
 }
 
+static VALUE sprite_is_drag_margin_y(VALUE self)
+{
+  return rb_iv_get(self, "drag_margin_y");
+}
+
+static VALUE sprite_is_drag_margin_y_set(VALUE self, VALUE my)
+{
+  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
+  if (!s)
+    return Qnil;
+  my = rb_funcall(my, rb_intern("to_i"), 0);
+  int dmy = RB_FIX2INT(my);
+  s->set_drag_margin_y(dmy);
+  return rb_iv_set(self, "drag_margin_y", my);
+}
+
 template<rb_data_type_t *SpriteType>
 static VALUE SpriteAllocate(VALUE klass)
 {
@@ -738,12 +755,12 @@ void SpriteBindingInit()
   rb_define_method(RSprite, "angle=", RMF(SpriteSetAngle), 1);
   rb_define_method(RSprite, "mirror", RMF(SpriteGetMirror), 0);
   rb_define_method(RSprite, "mirror=", RMF(SpriteSetMirror), 1);
-  rb_define_method(RSprite, "mirror_y", RMF(SpriteGetMirrorY), 0);
-  rb_define_method(RSprite, "mirror_y=", RMF(SpriteSetMirrorY), 1);
+  rb_define_method(RSprite, "mirror_y", RMF(sprite_mirror_y), 0);
+  rb_define_method(RSprite, "mirror_y=", RMF(sprite_mirror_y_set), 1);
   rb_define_method(RSprite, "flip", RMF(SpriteGetMirror), 0);
   rb_define_method(RSprite, "flip=", RMF(SpriteSetMirror), 1);
-  rb_define_method(RSprite, "flip_y", RMF(SpriteGetMirrorY), 0);
-  rb_define_method(RSprite, "flip_y=", RMF(SpriteSetMirrorY), 1);
+  rb_define_method(RSprite, "flip_y", RMF(sprite_mirror_y), 0);
+  rb_define_method(RSprite, "flip_y=", RMF(sprite_mirror_y_set), 1);
   rb_define_method(RSprite, "bush_depth", RMF(SpriteGetBushDepth), 0);
   rb_define_method(RSprite, "bush_depth=", RMF(SpriteSetBushDepth), 1);
   rb_define_method(RSprite, "opacity", RMF(SpriteGetOpacity), 0);
@@ -752,23 +769,25 @@ void SpriteBindingInit()
   rb_define_method(RSprite, "blend_type=", RMF(SpriteSetBlendType), 1);
   rb_define_method(RSprite, "width", RMF(SpriteWidth), 0);
   rb_define_method(RSprite, "height", RMF(SpriteHeight), 0);
-  rb_define_method(RSprite, "reduce_speed", RMF(SpriteGetReduceSpeed), 0);
-  rb_define_method(RSprite, "reduce_speed=", RMF(SpriteSetReduceSpeed), 1);
-  rb_define_method(RSprite, "increase_width!", RMF(SpriteIncreaseWidth), 0);
-  rb_define_method(RSprite, "increase_height!", RMF(SpriteIncreaseHeight), 0);
-  rb_define_method(RSprite, "increase_width_height!", RMF(SpriteIncreaseWidthHeight), 0);
-  rb_define_method(RSprite, "increased_width?", RMF(SpriteIsWidthIncreased), 0);
-  rb_define_method(RSprite, "increased_height?", RMF(SpriteIsHeightIncreased), 0);
-  rb_define_method(RSprite, "reduce_width!", RMF(SpriteReduceWidth), 0);
-  rb_define_method(RSprite, "reduce_height!", RMF(SpriteReduceHeight), 0);
-  rb_define_method(RSprite, "reduce_width_height!", RMF(SpriteReduceWidthHeight), 0);
-  rb_define_method(RSprite, "reduced_width?", RMF(SpriteIsWidthReduced), 0);
-  rb_define_method(RSprite, "reduced_height?", RMF(SpriteIsHeightReduced), 0);
+  rb_define_method(RSprite, "reduce_speed", RMF(sprite_reduce_speed), 0);
+  rb_define_method(RSprite, "reduce_speed=", RMF(sprite_reduce_speed_set), 1);
+  rb_define_method(RSprite, "increase_width!", RMF(sprite_increase_width), 0);
+  rb_define_method(RSprite, "increase_height!", RMF(sprite_increase_height), 0);
+  rb_define_method(RSprite, "increase_width_height!", RMF(sprite_increase_width_height), 0);
+  rb_define_method(RSprite, "increased_width?", RMF(sprite_is_width_increased), 0);
+  rb_define_method(RSprite, "increased_height?", RMF(sprite_is_height_increased), 0);
+  rb_define_method(RSprite, "reduce_width!", RMF(sprite_reduce_width), 0);
+  rb_define_method(RSprite, "reduce_height!", RMF(sprite_reduce_height), 0);
+  rb_define_method(RSprite, "reduce_width_height!", RMF(sprite_reduce_width_height), 0);
+  rb_define_method(RSprite, "reduced_width?", RMF(sprite_is_width_reduced), 0);
+  rb_define_method(RSprite, "reduced_height?", RMF(sprite_is_height_reduced), 0);
   rb_define_method(RSprite, "mouse_inside?", RMF(sprite_is_mouse_inside), 0);
   rb_define_method(RSprite, "mouse_above?", RMF(sprite_is_mouse_inside), 0);
   rb_define_method(RSprite, "mouse_above_color?", RMF(sprite_is_mouse_above_color), 0);
   rb_define_method(RSprite, "click_area?", RMF(sprite_is_click_area), 1);
   rb_define_method(RSprite, "press_click_area?", RMF(sprite_is_press_click_area), 1);
+  rb_define_method(RSprite, "drag_margin_y", RMF(sprite_is_drag_margin_y), 0);
+  rb_define_method(RSprite, "drag_margin_y=", RMF(sprite_is_drag_margin_y_set), 1);
   rb_define_method(RSprite, "gray_out=", RMF(sprite_gray_out), 1);
   rb_define_method(RSprite, "turn_sepia=", RMF(sprite_turn_sepia), 1);
   rb_define_method(RSprite, "invert_colors=", RMF(sprite_invert_colors), 1);

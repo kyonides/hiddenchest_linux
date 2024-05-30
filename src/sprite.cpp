@@ -47,14 +47,15 @@ struct SpritePrivate
   Rect *srcRect;
   sigc::connection srcRectCon;
   bool mirrored;
-  bool mirroredY;
-  bool increaseWidth;
-  bool increaseHeight;
-  bool reduceWidth;
-  bool reduceHeight;
-  int reducedWidth;
-  int reducedHeight;
-  int reduceSpeed;
+  bool mirrored_y;
+  bool increase_width;
+  bool increase_height;
+  bool reduce_width;
+  bool reduce_height;
+  int reduced_width;
+  int reduced_height;
+  int reduce_speed;
+  int drag_margin_y;
   int bushDepth;
   float efBushDepth;
   NormValue bushOpacity;
@@ -84,19 +85,20 @@ struct SpritePrivate
   : bitmap(0),
     srcRect(&tmp.rect),
     mirrored(false),
-    mirroredY(false),
+    mirrored_y(false),
     bushDepth(0),
     efBushDepth(0),
     bushOpacity(128),
     opacity(255),
     blendType(BlendNormal),
-    increaseWidth(false),
-    increaseHeight(false),
-    reduceWidth(false),
-    reduceHeight(false),
-    reducedWidth(0),
-    reducedHeight(0),
-    reduceSpeed(ROWH),
+    increase_width(false),
+    increase_height(false),
+    reduce_width(false),
+    reduce_height(false),
+    reduced_width(0),
+    reduced_height(0),
+    reduce_speed(ROWH),
+    drag_margin_y(8),
     isVisible(false),
     color(&tmp.color),
     tone(&tmp.tone)
@@ -118,47 +120,48 @@ struct SpritePrivate
     prepareCon.disconnect();
   }
 
-  void updateReduceWidth()
+  void update_reduce_width()
   {
-    if (increaseWidth) {
+    if (increase_width) {
       int w = bitmap->width();
-      reducedWidth -= reduceSpeed;
-      reducedWidth = clamp<int>(reducedWidth, 0, w);
+      reduced_width -= reduce_speed;
+      reduced_width = clamp<int>(reduced_width, 0, w);
       onSrcRectChange();
-      increaseWidth = reducedWidth > 0;
+      increase_width = reduced_width > 0;
       return;
     }
-    if (reduceWidth) {
+    if (reduce_width) {
       int w = bitmap->width();
-      reducedWidth += reduceSpeed;
-      reducedWidth = clamp<int>(reducedWidth, 0, w);
+      reduced_width += reduce_speed;
+      reduced_width = clamp<int>(reduced_width, 0, w);
       onSrcRectChange();
-      reduceWidth = w > reducedWidth;
+      reduce_width = w > reduced_width;
     }
   }
 
-  void updateReduceHeight()
+  void update_reduce_height()
   {
-    if (increaseHeight) {
+    if (increase_height) {
       int h = bitmap->height();
-      reducedHeight -= reduceSpeed;
-      reducedHeight = clamp<int>(reducedHeight, 0, h);
+      reduced_height -= reduce_speed;
+      reduced_height = clamp<int>(reduced_height, 0, h);
       onSrcRectChange();
-      increaseHeight = reducedHeight > 0;
+      increase_height = reduced_height > 0;
       return;
     }
-    if (reduceHeight) {
+    if (reduce_height) {
       int h = bitmap->height();
-      reducedHeight += reduceSpeed;
-      reducedHeight = clamp<int>(reducedHeight, 0, h);
+      reduced_height += reduce_speed;
+      reduced_height = clamp<int>(reduced_height, 0, h);
       onSrcRectChange();
-      reduceHeight = h > reducedHeight;
+      reduce_height = h > reduced_height;
     }
   }
 
   void recomputeBushDepth()
   {
-    if (nullOrDisposed(bitmap)) return;
+    if (nullOrDisposed(bitmap))
+      return;
     // Calculate effective (normalized) bush depth
     float texBushDepth = (bushDepth / trans.getScale().y) -
                          (srcRect->y + srcRect->height) +
@@ -171,12 +174,12 @@ struct SpritePrivate
     FloatRect rect = srcRect->toFloatRect();
     Vec2i bmSize;
     if (!nullOrDisposed(bitmap))
-      bmSize = Vec2i(bitmap->width() - reducedWidth, bitmap->height() - reducedHeight);
+      bmSize = Vec2i(bitmap->width() - reduced_width, bitmap->height() - reduced_height);
     // Clamp the rectangle so it doesn't reach outside the bitmap bounds
     rect.w = clamp<int>(rect.w, 0, bmSize.x-rect.x);
     rect.h = clamp<int>(rect.h, 0, bmSize.y-rect.y);
     quad.setTexRect(mirrored ? rect.hFlipped() : rect);
-    quad.setTexRect(mirroredY ? rect.wFlipped() : rect);
+    quad.setTexRect(mirrored_y ? rect.wFlipped() : rect);
     quad.setPosRect(FloatRect(0, 0, rect.w, rect.h));
     recomputeBushDepth();
     wave.dirty = true;
@@ -192,8 +195,8 @@ struct SpritePrivate
   void updateVisibility()
   {
     isVisible = false;
-    if (nullOrDisposed(bitmap)) return;
-    if (!opacity) return;
+    if (nullOrDisposed(bitmap) || !opacity)
+      return;
     if (wave.active) {
       isVisible = true;
       return;// Don't do expensive wave bounding box calculations
@@ -236,7 +239,8 @@ struct SpritePrivate
 
   void updateWave()
   {
-    if (nullOrDisposed(bitmap)) return;
+    if (nullOrDisposed(bitmap))
+      return;
     if (wave.amp == 0) {
       wave.active = false;
       return;
@@ -376,9 +380,9 @@ bool Sprite::getMirror() const
   return p->mirrored;
 }
 
-bool Sprite::getMirrorY() const
+bool Sprite::mirror_y() const
 {
-  return p->mirroredY;
+  return p->mirrored_y;
 }
 
 int Sprite::getBlendType() const
@@ -591,12 +595,12 @@ void Sprite::setMirror(bool mirrored)
   p->onSrcRectChange();
 }
 
-void Sprite::setMirrorY(bool mirrored)
+void Sprite::set_mirror_y(bool mirrored)
 {
   guardDisposed();
-  if (p->mirroredY == mirrored)
+  if (p->mirrored_y == mirrored)
     return;
-  p->mirroredY = mirrored;
+  p->mirrored_y = mirrored;
   p->onSrcRectChange();
 }
 
@@ -626,86 +630,91 @@ void Sprite::setBlendType(int type)
   }
 }
 
-int Sprite::getReduceSpeed()
+void Sprite::set_drag_margin_y(int my)
 {
-  guardDisposed();
-  return p->reduceSpeed;
+  p->drag_margin_y = my;
 }
 
-void Sprite::setReduceSpeed(int speed)
+int Sprite::reduce_speed()
 {
   guardDisposed();
-  p->reduceSpeed = speed;
+  return p->reduce_speed;
 }
 
-void Sprite::increaseWidth()
+void Sprite::set_reduce_speed(int speed)
 {
   guardDisposed();
-  p->reducedWidth = p->bitmap->width();
-  p->increaseWidth = true;
-  p->updateReduceWidth();
+  p->reduce_speed = speed;
 }
 
-void Sprite::increaseHeight()
+void Sprite::increase_width()
 {
   guardDisposed();
-  p->reducedHeight = p->bitmap->height();
-  p->increaseHeight = true;
-  p->updateReduceHeight();
+  p->reduced_width = p->bitmap->width();
+  p->increase_width = true;
+  p->update_reduce_width();
 }
 
-void Sprite::increaseWidthHeight()
+void Sprite::increase_height()
 {
   guardDisposed();
-  p->reducedWidth = p->bitmap->width();
-  p->reducedHeight = p->bitmap->height();
-  p->increaseWidth = true;
-  p->increaseHeight = true;
-  p->updateReduceWidth();
-  p->updateReduceHeight();
+  p->reduced_height = p->bitmap->height();
+  p->increase_height = true;
+  p->update_reduce_height();
 }
 
-void Sprite::reduceWidth()
+void Sprite::increase_width_height()
 {
   guardDisposed();
-  p->reduceWidth = true;
+  p->reduced_width = p->bitmap->width();
+  p->reduced_height = p->bitmap->height();
+  p->increase_width = true;
+  p->increase_height = true;
+  p->update_reduce_width();
+  p->update_reduce_height();
 }
 
-void Sprite::reduceHeight()
+void Sprite::reduce_width()
 {
   guardDisposed();
-  p->reduceHeight = true;
+  p->reduce_width = true;
 }
 
-void Sprite::reduceWidthHeight()
+void Sprite::reduce_height()
 {
   guardDisposed();
-  p->reduceWidth = true;
-  p->reduceHeight = true;
+  p->reduce_height = true;
 }
 
-bool Sprite::isWidthIncreased()
+void Sprite::reduce_width_height()
 {
   guardDisposed();
-  return p->reducedWidth == 0;
+  p->reduce_width = true;
+  p->reduce_height = true;
 }
 
-bool Sprite::isHeightIncreased()
+bool Sprite::is_width_increased()
 {
   guardDisposed();
-  return p->reducedHeight == 0;
+  return p->reduced_width == 0;
 }
 
-bool Sprite::isWidthReduced()
+bool Sprite::is_height_increased()
 {
   guardDisposed();
-  return p->reducedWidth == p->bitmap->width();
+  return p->reduced_height == 0;
 }
 
-bool Sprite::isHeightReduced()
+bool Sprite::is_width_reduced()
 {
   guardDisposed();
-  return p->reducedHeight == p->bitmap->height();
+  return p->reduced_width == p->bitmap->width();
+}
+
+bool Sprite::is_height_reduced()
+{
+  guardDisposed();
+  return p->reduced_height == p->bitmap->height();
 }
 
 bool Sprite::mouse_is_inside()
@@ -733,7 +742,7 @@ bool Sprite::mouse_is_inside_area(Rect *rect, bool state)
   int sp = p->trans.getPosition().x;
   if (mp < sp + rect->x || mp > sp + rect->x + rect->width)
     return false;
-  int mpoy = state ? 8 : 0;
+  int mpoy = state ? p->drag_margin_y : 0;
   mp = shState->input().mouseY();
   sp = p->trans.getPosition().y - mpoy;
   if (mp < sp + rect->y)
@@ -790,17 +799,18 @@ void Sprite::update()
 {
   guardDisposed();
   Flashable::update();
-  p->updateReduceWidth();
-  p->updateReduceHeight();
-  if (!p->wave.active) return;
+  p->update_reduce_width();
+  p->update_reduce_height();
+  if (!p->wave.active)
+    return;
   p->wave.phase += p->wave.speed / 180;
   p->wave.dirty = true;
 }
 // SceneElement
 void Sprite::draw()
 {
-  if (!p->isVisible) return;
-  if (emptyFlashFlag) return;
+  if (!p->isVisible || emptyFlashFlag)
+    return;
   ShaderBase *base;
   bool renderEffect = p->color->hasEffect() ||
                       p->tone->hasEffect()  ||
