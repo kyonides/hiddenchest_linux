@@ -327,7 +327,7 @@ void graphicsBindingInit()
   module_func(graph, "save_screenshot", graphics_save_screenshot, 0);
   module_func(graph, "screenshot", graphics_save_screenshot, 0);
   module_func(graph, "resize_screen", graphics_resize_screen, 2);
-  rb_define_alias(graph, "resize", "resize_screen");
+  module_func(graph, "resize", graphics_resize_screen, 2);
   module_func(graph, "brightness", graphicsGetBrightness, 0);
   module_func(graph, "brightness=", graphicsSetBrightness, 1);
   module_func(graph, "play_movie", graphicsPlayMovie, 1);

@@ -34,8 +34,14 @@ class Game_Map
 end
 
 class Game_Player < Game_Character
-  def center_x() (Graphics.width / 2 - 16) * 4  end
-  def center_y() (Graphics.height / 2 - 16) * 4 end
+  def center_x
+    (Graphics.width / 2 - 16) * 4
+  end
+
+  def center_y
+    (Graphics.height / 2 - 16) * 4
+  end
+
   def center(x, y)
     max_x = ($game_map.width - Graphics.width / 32) * 128
     max_y = ($game_map.height - Graphics.height / 32) * 128

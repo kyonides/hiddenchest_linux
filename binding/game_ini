@@ -118,12 +118,12 @@ module Game
     projects = [".rhproj", ".rxproj", ".rvproj", ".rvproj2"]
     encrypt_ext = [".rhc", ".rgssad", ".rgss2a", ".rgss3a"]
     makers = ["HiddenChest", "XP", "VX", "VX Ace"]
-    debug = (DATA["Debug"][/true/i] != nil)
     n = process_exe_name(encrypt_ext)
-    if n == 0
+    encrypted = n > 0
+    unless encrypted
       n = process_exe_name(projects)
-      debug = false
     end
+    debug = (!encrypted && DATA["Debug"][/true/i] != nil)
     const_set("DEBUG", debug)
     const_set("ENCRYPTED_NAME", EXE_NAME + encrypt_ext[n])
     const_set("MAKER", makers[n])
