@@ -535,17 +535,13 @@ struct InputPrivate
     if (EventThread::mouseState.scrolled_x) {
       old_scroll_x = scroll_x;
       scroll_x -= EventThread::mouseState.scroll_x;
-      EventThread::mouseState.scroll_x = 0;
-    } else {
-      EventThread::mouseState.scroll_x = 0;
     }
     if (EventThread::mouseState.scrolled_y) {
       old_scroll_y = scroll_y;
       scroll_y -= EventThread::mouseState.scroll_y;
-      EventThread::mouseState.scroll_y = 0;
-    } else {
-      EventThread::mouseState.scroll_y = 0;
     }
+    EventThread::mouseState.scroll_x = 0;
+    EventThread::mouseState.scroll_y = 0;
     if (click_timer > 0) {
       click_timer--;
       return;
