@@ -88,6 +88,7 @@ public:
   void notifyFrame();
   /* Called on game screen (size / offset) changes */
   void notifyGameScreenChange(const SDL_Rect &screen);
+  void reset_scroll_xy();
 
 private:
   static int eventFilter(void *, SDL_Event*);

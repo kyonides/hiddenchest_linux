@@ -108,8 +108,7 @@ void EventThread::process(RGSSThreadData &rtData)
 #endif
   fullscreen = rtData.config.fullscreen;
   int toggleFSMod = rtData.config.anyAltToggleFS ? KMOD_ALT : KMOD_LALT;
-  mouseState.scroll_x = 0;
-  mouseState.scroll_y = 0;
+  reset_scroll_xy();
   mouseState.scrolled_x = false;
   mouseState.scrolled_y = false;
   fps.lastFrame = SDL_GetPerformanceCounter();
@@ -155,10 +154,7 @@ void EventThread::process(RGSSThreadData &rtData)
     }// Preselect and discard unwanted events here
     rtData.mouse_moved = false;
     rtData.any_char_found = false;
-    mouseState.scrolled_x = false;
-    mouseState.scrolled_y = false;
-    mouseState.scroll_x = 0;
-    mouseState.scroll_y = 0;
+    reset_scroll_xy();
     switch (event.type)
     {
     case SDL_MOUSEBUTTONDOWN :
@@ -302,18 +298,15 @@ void EventThread::process(RGSSThreadData &rtData)
       break;
     case SDL_MOUSEBUTTONDOWN :
       mouseState.buttons[event.button.button] = true;
-      mouseState.scroll_x = 0;
-      mouseState.scroll_y = 0;
+      reset_scroll_xy();
       break;
     case SDL_MOUSEBUTTONUP :
       mouseState.buttons[event.button.button] = false;
-      mouseState.scroll_x = 0;
-      mouseState.scroll_y = 0;
+      reset_scroll_xy();
       break;
     case SDL_MOUSEMOTION :
       rtData.mouse_moved = true;
-      mouseState.scroll_x = 0;
-      mouseState.scroll_y = 0;
+      reset_scroll_xy();
       mouseState.x = event.motion.x;
       mouseState.y = event.motion.y;
       updateCursorState(cursorInWindow, gameScreen);
@@ -323,7 +316,6 @@ void EventThread::process(RGSSThreadData &rtData)
       mouseState.scroll_y = event.wheel.y;
       mouseState.scrolled_x = mouseState.scroll_x != 0;
       mouseState.scrolled_y = mouseState.scroll_y != 0;
-      Debug() << "ET WY:" << event.wheel.y;
       break;
     case SDL_FINGERDOWN :
       i = event.tfinger.fingerId;
@@ -338,8 +330,6 @@ void EventThread::process(RGSSThreadData &rtData)
       memset(&touchState.fingers[i], 0, sizeof(touchState.fingers[0]));
       break;
     default :
-      mouseState.scroll_x = 0;
-      mouseState.scroll_y = 0;
       switch(event.type - usrIdStart)
       {
       case REQUEST_SETFULLSCREEN :
@@ -434,12 +424,21 @@ void EventThread::cleanup()
       free(event.user.data1);
 }
 
+void EventThread::reset_scroll_xy()
+{
+  mouseState.scrolled_x = false;
+  mouseState.scrolled_y = false;
+  mouseState.scroll_x = 0;
+  mouseState.scroll_y = 0;
+}
+
 void EventThread::resetInputStates()
 {
   memset(&keyStates, 0, sizeof(keyStates));
   memset(&joyState, 0, sizeof(joyState));
   memset(&mouseState.buttons, 0, sizeof(mouseState.buttons));
   memset(&touchState, 0, sizeof(touchState));
+  reset_scroll_xy();
 }
 
 void EventThread::setFullscreen(SDL_Window *win, bool mode)

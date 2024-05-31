@@ -356,6 +356,7 @@ struct InputPrivate
   int old_scroll_x;
   int old_scroll_y;
   int scroll_factor;
+  int scroll_remainder;
   bool same_mouse_pos;
   bool press_any = false;
   bool trigger_any = false;
@@ -533,11 +534,15 @@ struct InputPrivate
   void update_timers()
   {
     if (EventThread::mouseState.scrolled_x) {
-      old_scroll_x = scroll_x;
+      scroll_remainder = scroll_x - old_scroll_x;
+      if (scroll_remainder == scroll_factor || scroll_remainder == -scroll_factor)
+        old_scroll_x = scroll_x;
       scroll_x -= EventThread::mouseState.scroll_x;
     }
     if (EventThread::mouseState.scrolled_y) {
-      old_scroll_y = scroll_y;
+      scroll_remainder = scroll_y - old_scroll_y;
+      if (scroll_remainder == scroll_factor || scroll_remainder == -scroll_factor)
+        old_scroll_y = scroll_y;
       scroll_y -= EventThread::mouseState.scroll_y;
     }
     EventThread::mouseState.scroll_x = 0;
@@ -607,10 +612,8 @@ struct InputPrivate
 
   void clear_unused_clicks()
   {
-    click_timer = 0;
-    last_mx = 0;
-    last_my = 0;
-    clicks = 0;
+    click_timer = clicks = 0;
+    last_mx = last_my = 0;
     double_target = Input::None;
     same_mouse_pos = false;
   }
@@ -715,10 +718,7 @@ void Input::update()
   if (p->getState(p->repeating).pressed) {
     p->repeatCount++;
     bool repeated;
-    if (rgssVer >= 2)
-      repeated = p->repeatCount >= 23 && ((p->repeatCount+1) % 6) == 0;
-    else
-      repeated = p->repeatCount >= 15 && ((p->repeatCount+1) % 4) == 0;
+    repeated = p->repeatCount >= 23 && ((p->repeatCount+1) % 6) == 0;
     p->getState(p->repeating).repeated |= repeated;
     return;
   }
@@ -813,9 +813,9 @@ bool Input::is_mouse_scroll_x(bool go_up)
   else if (!EventThread::mouseState.scrolled_x)
     return false;
   else if (go_up)
-    return p->scroll_x - p->old_scroll_x < 0;
+    return p->scroll_x - p->old_scroll_x == -p->scroll_factor;
   else
-    return p->scroll_x - p->old_scroll_x > 0;
+    return p->scroll_x - p->old_scroll_x == p->scroll_factor;
 }
 
 bool Input::is_mouse_scroll_y(bool go_up)
@@ -825,9 +825,9 @@ bool Input::is_mouse_scroll_y(bool go_up)
   else if (!EventThread::mouseState.scrolled_y)
     return false;
   else if (go_up)
-    return p->scroll_y - p->old_scroll_y < 0;
+    return p->scroll_y - p->old_scroll_y == -p->scroll_factor;
   else
-    return p->scroll_y - p->old_scroll_y > 0;
+    return p->scroll_y - p->old_scroll_y == p->scroll_factor;
 }
 
 bool Input::isPressed(int button)
