@@ -52,8 +52,8 @@ public:
 
   struct MouseState
   {
-    int x, y;
-    bool inWindow;
+    int x, y, scroll_x, scroll_y;
+    bool inWindow, scrolled_x, scrolled_y;
     bool buttons[32];
   };
 

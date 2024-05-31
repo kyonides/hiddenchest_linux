@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Extended (C) 2018-2019 Kyonides-Arkanthes <kyonides@gmail.com>
+** Extended (C) 2018-2024 Kyonides-Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -176,7 +176,6 @@ struct MsBinding : public Binding
   {
     return EventThread::mouseState.buttons[index];
   }
-
   bool sourceRepeatable() const
   {
     return true;
@@ -352,6 +351,11 @@ struct InputPrivate
   int oy;
   int last_mx;
   int last_my;
+  int scroll_x;
+  int scroll_y;
+  int old_scroll_x;
+  int old_scroll_y;
+  int scroll_factor;
   bool same_mouse_pos;
   bool press_any = false;
   bool trigger_any = false;
@@ -377,6 +381,7 @@ struct InputPrivate
     checkBindingChange(rtData);
     states    = stateArray;
     statesOld = stateArray + 520; // + BUTTON_CODE_COUNT;
+    scroll_factor = SCROLL_FACTOR;
     // Clear buffers
     clearBuffer();
     swapBuffers();
@@ -398,13 +403,12 @@ struct InputPrivate
   inline ButtonState &getState(Input::ButtonCode code)
   {
     if (code < 0) return states[0];
-    return states[code]; // states[mapToIndex[code]];
+    return states[code];
   }
 
   inline ButtonState &getOldState(Input::ButtonCode code)
   {
-    if (code < 0) return states[0];
-    return statesOld[code]; // statesOld[mapToIndex[code]];
+    return (code < 0 ? states[0] : statesOld[code]);
   }
   
   void swapBuffers()
@@ -512,6 +516,7 @@ struct InputPrivate
     clicks = 0;
     last_mx = 0;
     last_my = 0;
+    reset_scroll_xy();
     msBindings.resize(3);
     size_t i = 0;
     msBindings[i++] = MsBinding(SDL_BUTTON_LEFT,   Input::MouseLeft);
@@ -519,8 +524,28 @@ struct InputPrivate
     msBindings[i++] = MsBinding(SDL_BUTTON_RIGHT,  Input::MouseRight);
   }
 
+  void reset_scroll_xy()
+  {
+    old_scroll_x = scroll_x = 0;
+    old_scroll_y = scroll_y = 0;
+  }
+
   void update_timers()
   {
+    if (EventThread::mouseState.scrolled_x) {
+      old_scroll_x = scroll_x;
+      scroll_x -= EventThread::mouseState.scroll_x;
+      EventThread::mouseState.scroll_x = 0;
+    } else {
+      EventThread::mouseState.scroll_x = 0;
+    }
+    if (EventThread::mouseState.scrolled_y) {
+      old_scroll_y = scroll_y;
+      scroll_y -= EventThread::mouseState.scroll_y;
+      EventThread::mouseState.scroll_y = 0;
+    } else {
+      EventThread::mouseState.scroll_y = 0;
+    }
     if (click_timer > 0) {
       click_timer--;
       return;
@@ -673,21 +698,6 @@ Input::Input(const RGSSThreadData &rtData)
   p = new InputPrivate(rtData, this);
 }
 
-int Input::click_timer() const
-{
-  return p->click_timer;
-}
-
-int Input::base_timer() const
-{
-  return p->base_timer;
-}
-
-void Input::set_base_timer(int timer)
-{
-  p->base_timer = timer;
-}
-
 void Input::update()
 {
   shState->checkShutdown();
@@ -719,8 +729,41 @@ void Input::update()
   p->repeating = None;
 }
 
+int Input::click_timer() const
+{
+  return p->click_timer;
+}
+
+int Input::base_timer() const
+{
+  return p->base_timer;
+}
+
+void Input::set_base_timer(int timer)
+{
+  p->base_timer = timer;
+}
+
+int Input::scroll_factor() const
+{
+  return p->scroll_factor;
+}
+
+void Input::set_scroll_factor(int value)
+{
+  p->scroll_factor = clamp(1, value, 20);
+}
+
+void Input::mouse_scroll_reset()
+{
+  EventThread::mouseState.scroll_x = 0;
+  EventThread::mouseState.scroll_y = 0;
+  p->reset_scroll_xy();
+}
+
 void Input::clear_clicks()
 {
+  mouse_scroll_reset();
   p->clear_unused_clicks();
 }
 
@@ -765,6 +808,30 @@ bool Input::is_double_click(int btn)
     return false;
   int clicks = (btn == MouseLeft || btn == MouseRight)? p->clicks : 9;
   return (clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
+}
+
+bool Input::is_mouse_scroll_x(bool go_up)
+{
+  if (shState->rtData().mouse_moved)
+    return false;
+  else if (!EventThread::mouseState.scrolled_x)
+    return false;
+  else if (go_up)
+    return p->scroll_x - p->old_scroll_x < 0;
+  else
+    return p->scroll_x - p->old_scroll_x > 0;
+}
+
+bool Input::is_mouse_scroll_y(bool go_up)
+{
+  if (shState->rtData().mouse_moved)
+    return false;
+  else if (!EventThread::mouseState.scrolled_y)
+    return false;
+  else if (go_up)
+    return p->scroll_y - p->old_scroll_y < 0;
+  else
+    return p->scroll_y - p->old_scroll_y > 0;
 }
 
 bool Input::isPressed(int button)
@@ -858,6 +925,16 @@ void Input::mouse_set_ox(int n)
 void Input::mouse_set_oy(int n)
 {
   p->oy = n;
+}
+
+int Input::mouse_scroll_x() const
+{
+  return p->scroll_x;
+}
+
+int Input::mouse_scroll_y() const
+{
+  return p->scroll_y;
 }
 
 bool Input::mouse_is_inside(int index, Rect *rect)

@@ -1,9 +1,10 @@
 /*
 ** eventthread.cpp
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
+** Extended (C) 2018-2024 Kyonides-Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -55,7 +56,8 @@ struct ALCFunctions
 static void
 initALCFunctions(ALCdevice *alcDev)
 {
-  if (!strstr(alcGetString(alcDev, ALC_EXTENSIONS), "ALC_SOFT_pause_device")) return;
+  if (!strstr(alcGetString(alcDev, ALC_EXTENSIONS), "ALC_SOFT_pause_device"))
+    return;
   Debug() << "ALC_SOFT_pause_device present";
 #define AL_FUN(name, type) alc. name = (type) alcGetProcAddress(alcDev, "alc" #name "SOFT");
   AL_DEVICE_PAUSE_FUN;
@@ -86,7 +88,8 @@ static uint32_t usrIdStart;
 bool EventThread::allocUserEvents()
 {
   usrIdStart = SDL_RegisterEvents(EVENT_COUNT);
-  if (usrIdStart == (uint32_t) -1) return false;
+  if (usrIdStart == (uint32_t) -1)
+    return false;
   return true;
 }
 
@@ -105,6 +108,10 @@ void EventThread::process(RGSSThreadData &rtData)
 #endif
   fullscreen = rtData.config.fullscreen;
   int toggleFSMod = rtData.config.anyAltToggleFS ? KMOD_ALT : KMOD_LALT;
+  mouseState.scroll_x = 0;
+  mouseState.scroll_y = 0;
+  mouseState.scrolled_x = false;
+  mouseState.scrolled_y = false;
   fps.lastFrame = SDL_GetPerformanceCounter();
   fps.displayCounter = 0;
   fps.acc = 0;
@@ -148,6 +155,10 @@ void EventThread::process(RGSSThreadData &rtData)
     }// Preselect and discard unwanted events here
     rtData.mouse_moved = false;
     rtData.any_char_found = false;
+    mouseState.scrolled_x = false;
+    mouseState.scrolled_y = false;
+    mouseState.scroll_x = 0;
+    mouseState.scroll_y = 0;
     switch (event.type)
     {
     case SDL_MOUSEBUTTONDOWN :
@@ -291,15 +302,28 @@ void EventThread::process(RGSSThreadData &rtData)
       break;
     case SDL_MOUSEBUTTONDOWN :
       mouseState.buttons[event.button.button] = true;
+      mouseState.scroll_x = 0;
+      mouseState.scroll_y = 0;
       break;
     case SDL_MOUSEBUTTONUP :
       mouseState.buttons[event.button.button] = false;
+      mouseState.scroll_x = 0;
+      mouseState.scroll_y = 0;
       break;
     case SDL_MOUSEMOTION :
       rtData.mouse_moved = true;
+      mouseState.scroll_x = 0;
+      mouseState.scroll_y = 0;
       mouseState.x = event.motion.x;
       mouseState.y = event.motion.y;
       updateCursorState(cursorInWindow, gameScreen);
+      break;
+    case SDL_MOUSEWHEEL :
+      mouseState.scroll_x = event.wheel.x;
+      mouseState.scroll_y = event.wheel.y;
+      mouseState.scrolled_x = mouseState.scroll_x != 0;
+      mouseState.scrolled_y = mouseState.scroll_y != 0;
+      Debug() << "ET WY:" << event.wheel.y;
       break;
     case SDL_FINGERDOWN :
       i = event.tfinger.fingerId;
@@ -314,6 +338,8 @@ void EventThread::process(RGSSThreadData &rtData)
       memset(&touchState.fingers[i], 0, sizeof(touchState.fingers[0]));
       break;
     default :
+      mouseState.scroll_x = 0;
+      mouseState.scroll_y = 0;
       switch(event.type - usrIdStart)
       {
       case REQUEST_SETFULLSCREEN :

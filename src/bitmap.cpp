@@ -354,6 +354,13 @@ IntRect Bitmap::rect() const
   return IntRect(0, 0, width(), height());
 }
 
+Rect* Bitmap::rect2() const
+{
+  guardDisposed();
+  Rect *r = new Rect(0, 0, width(), height());
+  return r;
+}
+
 void Bitmap::blt(int x, int y, const Bitmap &source, IntRect rect, int opacity)
 {
   if (source.isDisposed()) return;

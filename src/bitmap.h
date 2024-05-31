@@ -47,6 +47,7 @@ public:
   int width()  const;
   int height() const;
   IntRect rect() const;
+  Rect* rect2() const;
   void blt(int x, int y, const Bitmap &source, IntRect rect, int opacity = 255);
   void stretchBlt(const IntRect &destRect,
                   const Bitmap &source, const IntRect &sourceRect,

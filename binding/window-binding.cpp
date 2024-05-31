@@ -20,6 +20,7 @@
 ** along with HiddenChest. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "clicks.h"
 #include "hcextras.h"
 #include "window.h"
 #include "viewport.h"
@@ -93,7 +94,8 @@ static VALUE window_initialize(int argc, VALUE *v, VALUE self)
 static VALUE window_update(VALUE self)
 {
   Window *w = getPrivateData<Window>(self);
-  if (!!w) w->update();
+  if (!!w)
+    w->update();
   return Qnil;
 }
 
@@ -181,24 +183,28 @@ static VALUE window_is_closed(VALUE self)
 static VALUE window_set_xy(VALUE self, VALUE rx, VALUE ry)
 {
   Window *w = getPrivateData<Window>(self);
-  if (w == 0) return rb_ary_new3(2, RB_INT2FIX(0), RB_INT2FIX(0));
+  if (!w)
+    return rb_ary_new3(2, RB_INT2FIX(0), RB_INT2FIX(0));
   w->setXY(RB_FIX2INT(rx), RB_FIX2INT(ry));
   return rb_ary_new3(2, rx, ry);
 }
 
-static VALUE window_is_mouse_inside(VALUE self, VALUE pos)
+static VALUE window_is_mouse_inside(int argc, VALUE *v, VALUE self)
 {
-  Window *win = getPrivateData<Window>(self);
-  if (!win)
+  Window *w = getPrivateData<Window>(self);
+  if (!w)
     return Qnil;
-  int index = RB_FIX2INT(pos);
+  if (argc == 0) {
+    return w->is_mouse_inside() ? Qtrue : Qfalse;
+  }
+  int index = RB_FIX2INT(v[0]);
   VALUE area = rb_ary_entry(rb_iv_get(self, "@area"), index);
-  if (RB_NIL_P(area))
+  if (area == Qnil)
     return Qnil;
   else if (ARRAY_TYPE_P(area))
     area = rect_from_ary(area);
   Rect *r = static_cast<Rect*>(RTYPEDDATA_DATA(area));
-  return (win->is_mouse_inside(r->x, r->y, r->width, r->height) ? Qtrue : Qfalse);
+  return w->is_mouse_inside(r->x, r->y, r->width, r->height) ? Qtrue : Qfalse;
 }
 
 DEF_PROP_OBJ_REF(Window, Bitmap, Contents,   "contents")
@@ -220,6 +226,7 @@ void windowBindingInit()
 {
   VALUE klass = rb_define_class("Window", rb_cObject);
   rb_iv_set(klass, "@open_mode", hc_sym("center"));
+  rb_iv_set(klass, "@scroll_y", RB_INT2FIX(SCROLL_FACTOR));
   rb_define_alloc_func(klass, classAllocate<&WindowType>);
   disposableBindingInit     <Window>(klass);
   viewportElementBindingInit<Window>(klass);
@@ -234,9 +241,10 @@ void windowBindingInit()
   rb_define_method(klass, "open?", RMF(window_is_open), 0);
   rb_define_method(klass, "close?", RMF(window_is_closed), 0);
   rb_define_method(klass, "set_xy", RMF(window_set_xy), 2);
-  rb_define_method(klass, "mouse_inside?", RMF(window_is_mouse_inside), 1);
-  rb_define_method(klass, "mouse_above?", RMF(window_is_mouse_inside), 1);
+  rb_define_method(klass, "mouse_inside?", RMF(window_is_mouse_inside), -1);
+  rb_define_method(klass, "mouse_above?", RMF(window_is_mouse_inside), -1);
   rb_define_attr(klass, "area", 1, 0);
+  rb_define_attr(klass, "scroll_y", 1, 0);
   INIT_PROP_BIND( Window, Contents,        "contents"         );
   INIT_PROP_BIND( Window, Stretch,         "stretch"          );
   INIT_PROP_BIND( Window, CursorRect,      "cursor_rect"      );

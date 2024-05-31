@@ -1,1 +1,2 @@
 #define CLICK_TIMER 20
+#define SCROLL_FACTOR 4

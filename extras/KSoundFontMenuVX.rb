@@ -1,6 +1,6 @@
 # * KSoundFontMenu VX * # 
 #   Scripter : Kyonides Arkanthes
-#   2024-05-27
+#   2024-05-30
 
 # Note: It seems like the MIDI file should be playing BEFORE you proceed to call
 #       Game.choose_soundfont while loading a save game. Otherwise, the MIDI
@@ -12,6 +12,7 @@
 # $scene = KSoundFont::Menu.new
 
 module KSoundFont
+  START_SF = [0]
   TITLE = "Select a SoundFont"
   THIS_SOUNDFONT = "Current SoundFont"
   DELAY_MESSAGE = "Processing New SF..."
@@ -54,6 +55,15 @@ class Menu
     pos = $game_system.soundfont_index
     Game.choose_soundfont(pos)
     soundfonts = Game.soundfonts
+    gs_indexes = $game_system.soundfont_indexes
+    if gs_indexes.any?
+      @indexes = gs_indexes.sort
+      if @indexes.size < soundfonts
+        soundfonts = @indexes.map{|n| soundfonts[n] }
+      end
+    end
+    @total = soundfonts.size
+    @full_list = Game.soundfonts.size == @total
     soundfont = soundfonts[pos]
     if soundfont.empty?
       soundfont = "No SoundFont"
@@ -95,13 +105,16 @@ class Menu
       $scene = Scene_Map.new
       return
     elsif Input.trigger?(Input::C) or Input.double_left_click?
+      return Sound.play_buzzer if @total < 2
       Sound.play_decision
-      $game_system.soundfont_index = @command_window.index
+      n = @command_window.index
+      n = @indexes[n] unless @full_list
+      $game_system.soundfont_index = n
       @info_window.set_text(DELAY_MESSAGE)
       @timer = Graphics.frame_rate * 2
     elsif Input.trigger?(Input::SHIFT)
       Sound.play_cursor
-      Graphics.screenshot if Graphics.respond_to?(:screenshot)
+      Graphics.screenshot
     end
   end
 end
@@ -113,6 +126,7 @@ class Game_System
   def initialize
     kyon_soundfont_menu_gm_sys_init
     self.soundfont_index = find_soundfont_index
+    @soundfont_indexes = KSoundFont::START_SF.dup
   end
 
   def find_soundfont_index
@@ -126,6 +140,10 @@ class Game_System
   def soundfont_index=(n)
     Game.choose_soundfont(n)
     @soundfont_index = n
+  end
+
+  def soundfont_indexes
+    @soundfont_indexes ||= []
   end
 end
 

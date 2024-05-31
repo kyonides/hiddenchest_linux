@@ -1,6 +1,6 @@
 # * ClickableWindow XP * #
 #   Scripter : Kyonides Arkanthes
-#   2024-05-24
+#   2024-05-31
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.
@@ -20,14 +20,22 @@ class Window_Selectable
       # Check each area - a list of Rect's
       @area.size.times do |n|
         next unless mouse_inside?(n)
-        @index = n
-        update_help if @help_window 
-        update_cursor_rect
+        self.index = n
         break
       end
       return
     end
-    return if @index < 0
+    if mouse_inside?
+      if Input.mouse_scroll_y?(:UP)
+        $game_system.se_play($data_system.cursor_se)
+        self.index = (@index - @column_max) % @item_max
+        return
+      elsif Input.mouse_scroll_y?(:DOWN)
+        $game_system.se_play($data_system.cursor_se)
+        self.index = (@index + @column_max) % @item_max
+        return
+      end
+    end
     if Input.repeat?(Input::DOWN)
       if (@column_max == 1 and Input.trigger?(Input::DOWN)) or
          @index < @item_max - @column_max
@@ -69,7 +77,7 @@ class Window_Selectable
       end
     end
     if self.active and @help_window != nil
-      update_help
+      update_help if @index >= 0
     end
     update_cursor_rect
   end

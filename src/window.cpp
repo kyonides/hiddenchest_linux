@@ -821,6 +821,16 @@ bool Window::isClosed() const
   return (p->openMode > 0 && p->openness == 0);
 }
 
+bool Window::is_mouse_inside() const
+{
+  guardDisposed();
+  int mp = shState->input().mouseX() - p->position.x - p->padding / 2;
+  if (mp < 4 || mp > p->size.x - 4)
+    return false;
+  mp = shState->input().mouseY() - p->position.y - p->padding / 2;
+  return (mp >= 4 && mp <= p->size.y - 4);
+}
+
 bool Window::is_mouse_inside(int x, int y, int w, int h) const
 {
   guardDisposed();

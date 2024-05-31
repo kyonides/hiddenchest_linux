@@ -70,6 +70,11 @@ public:
   int click_timer() const;
   int base_timer() const;
   void set_base_timer(int timer);
+  int scroll_factor() const;
+  void set_scroll_factor(int value);
+  int mouse_scroll_x() const;
+  int mouse_scroll_y() const;
+  void mouse_scroll_reset();
   void clear_clicks();
   bool is_left_click();
   bool is_middle_click();
@@ -77,6 +82,8 @@ public:
   bool is_double_left_click();
   bool is_double_right_click();
   bool is_double_click(int btn);
+  bool is_mouse_scroll_x(bool go_up);
+  bool is_mouse_scroll_y(bool go_up);
   bool isPressed(int button);
   bool isTriggered(int button);
   bool isRepeated(int button);
