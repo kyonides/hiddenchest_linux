@@ -98,6 +98,7 @@ public:
   int mouseY();
   int mouse_ox() const;
   int mouse_oy() const;
+  void mouse_set_xy(int x, int y);
   void mouse_set_ox(int n);
   void mouse_set_oy(int n);
   bool mouse_is_inside(int index, Rect *rect);

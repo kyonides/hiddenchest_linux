@@ -121,8 +121,13 @@ struct SharedState
 										const char *scripts, std::vector<std::string> &rtps);
   
   const char* get_title();
+	int get_window_brightness();
   void set_title(const char *title);
 	void set_icon(const char *icon);
+	void set_window_resize(bool state);
+	void set_window_borders(bool state);
+	int set_window_brightness(int n);
+	void set_screensave_state(bool state);
 
 	static SharedState *instance;
 	static int rgssVersion;

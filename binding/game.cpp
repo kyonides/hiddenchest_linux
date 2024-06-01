@@ -131,9 +131,60 @@ static VALUE game_sound_font_by_pos(VALUE self, VALUE n)
   return game_sound_font_init(self, RB_FIX2INT(n));
 }
 
+static VALUE game_window_resizable(VALUE self)
+{
+  return rb_iv_get(self, "resizable");
+}
+
+static VALUE game_window_borders(VALUE self)
+{
+  return rb_iv_get(self, "borders");
+}
+
+static VALUE game_window_brightness(VALUE self)
+{
+  int b = shState->get_window_brightness();
+  return RB_INT2FIX(b);
+}
+
+static VALUE game_screensaver_enable(VALUE self)
+{
+  return rb_iv_get(self, "screensaver_enable");
+}
+
+static VALUE game_window_resizable_set(VALUE self, VALUE state)
+{
+  shState->set_window_resize(state == Qtrue);
+  return rb_iv_set(self, "resizable", state);
+}
+
+static VALUE game_window_borders_set(VALUE self, VALUE state)
+{
+  shState->set_window_borders(state == Qtrue);
+  return rb_iv_set(self, "borders", state);
+}
+
+static VALUE game_window_brightness_set(VALUE self, VALUE value)
+{
+  value = rb_funcall(value, rb_intern("to_i"), 0);
+  int n = RB_FIX2INT(value);
+  n = shState->set_window_brightness(n);
+  value = RB_INT2FIX(n);
+  return rb_iv_set(self, "brightness", value);
+}
+
+static VALUE game_screensaver_enable_set(VALUE self, VALUE state)
+{
+  shState->set_screensave_state(state == Qtrue);
+  return rb_iv_set(self, "screensaver_enable", state);
+}
+
 void init_game()
 {
   VALUE game = rb_define_module("Game");
+  rb_iv_set(game, "resizable", Qtrue);
+  rb_iv_set(game, "borders", Qtrue);
+  rb_iv_set(game, "screensaver_enable", Qfalse);
   rb_const_set(game, rb_intern("START_WIDTH"), RB_INT2FIX(START_WIDTH));
   rb_const_set(game, rb_intern("START_HEIGHT"), RB_INT2FIX(START_HEIGHT));
   module_func(game, "set_internal_values", game_set_internal_values, 0);
@@ -142,5 +193,13 @@ void init_game()
   module_func(game, "shot_filename=", game_shot_filename_set, 1);
   module_func(game, "soundfont=", game_sound_font_set, 1);
   module_func(game, "choose_soundfont", game_sound_font_by_pos, 1);
-  rb_define_alias(game, "change_soundfont", "choose_soundfont");
+  module_func(game, "change_soundfont", game_sound_font_by_pos, 1);
+  module_func(game, "window_resizable?", game_window_resizable, 0);
+  module_func(game, "window_show_borders?", game_window_borders, 0);
+  module_func(game, "window_brightness", game_window_brightness, 0);
+  module_func(game, "enable_screensaver?", game_screensaver_enable, 0);
+  module_func(game, "window_resizable=", game_window_resizable_set, 1);
+  module_func(game, "window_show_borders=", game_window_borders_set, 1);
+  module_func(game, "window_brightness=", game_window_brightness_set, 1);
+  module_func(game, "enable_screensaver=", game_screensaver_enable_set, 1);
 }

@@ -52,6 +52,13 @@ class Window_Command
   end
 end
 
+class Window_MenuCommand
+  def select_last
+    select_symbol(@@last_command_symbol)
+    Input.mouse_set_xy(80, 20 + @index * 24)
+  end
+end
+
 class Window_SaveFile
   alias :kyon_click_win_win_svfl_init :initialize
   def initialize(height, index)

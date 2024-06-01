@@ -289,6 +289,11 @@ class Scene_Map
 end
 
 class Scene_Menu
+  def initialize(menu_index = 0)
+    @menu_index = menu_index
+    Input.mouse_set_xy(80, 28 + @menu_index * 32)
+  end
+
   def update_command
     # Added Right Click Check
     if Input.trigger?(Input::B) or Input.double_right_click?

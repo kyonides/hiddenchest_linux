@@ -913,6 +913,13 @@ int Input::mouse_oy() const
   return p->oy;
 }
 
+void Input::mouse_set_xy(int x, int y)
+{
+  EventThread::mouseState.x = x;
+  EventThread::mouseState.y = y;
+  SDL_WarpMouseInWindow(shState->sdlWindow(), x, y);
+}
+
 void Input::mouse_set_ox(int n)
 {
   p->ox = n;

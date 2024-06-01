@@ -222,6 +222,14 @@ static VALUE input_mouse_oy(VALUE self)
   return rb_iv_get(self, "@mouse_oy");
 }
 
+static VALUE input_mouse_xy_set(VALUE self, VALUE mx, VALUE my)
+{
+  int x = RB_FIX2INT(mx);
+  int y = RB_FIX2INT(my);
+  shState->input().mouse_set_xy(x, y);
+  return rb_ary_new3(2, mx, my);
+}
+
 static VALUE input_mouse_ox_set(VALUE self, VALUE val)
 {
   val = rb_funcall(val, rb_intern("to_i"), 0);
@@ -513,6 +521,7 @@ void inputBindingInit()
   module_func(input, "mouse_y", inputMouseY, 0);
   module_func(input, "mouse_ox", input_mouse_ox, 0);
   module_func(input, "mouse_oy", input_mouse_oy, 0);
+  module_func(input, "mouse_set_xy", input_mouse_xy_set, 2);
   module_func(input, "mouse_ox=", input_mouse_ox_set, 1);
   module_func(input, "mouse_oy=", input_mouse_oy_set, 1);
   module_func(input, "mouse_scroll_x", input_mouse_scroll_x, 0);
