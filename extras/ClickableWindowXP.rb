@@ -1,6 +1,6 @@
 # * ClickableWindow XP * #
 #   Scripter : Kyonides Arkanthes
-#   2024-06-01
+#   2024-06-02
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.
@@ -224,7 +224,10 @@ class Scene_Title
       end
     # Added Left Click Check
     elsif Input.trigger?(Input::C) or Input.double_left_click?
-      case @command_window.index
+      if @command_window.index < 2
+        Graphics.center_window
+      end
+      case 
       when 0  # New game
         command_new_game
       when 1  # Continue

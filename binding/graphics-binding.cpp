@@ -280,21 +280,15 @@ static VALUE graphics_set_show_cursor(VALUE self, VALUE boolean)
   return boolean;
 }
 
+static VALUE graphics_center_window(VALUE self)
+{
+  shState->graphics().center_window();
+  return Qnil;
+}
+
 static VALUE graphics_get_delta(VALUE self)
 {
   return RB_INT2FIX(shState->graphics().getDelta());
-}
-
-static VALUE graphics_get_title(VALUE self)
-{
-  return rstr(shState->get_title());
-}
-
-static VALUE graphics_set_title(VALUE self, VALUE title)
-{
-  const char *new_title = RSTRING_PTR(title);
-  shState->set_title(new_title);
-  return title;
 }
 
 void graphicsBindingInit()
@@ -326,6 +320,7 @@ void graphicsBindingInit()
   module_func(graph, "snap_to_color_bitmap", graphics_snap2color_bitmap, 1);
   module_func(graph, "save_screenshot", graphics_save_screenshot, 0);
   module_func(graph, "screenshot", graphics_save_screenshot, 0);
+  module_func(graph, "snapshot", graphics_save_screenshot, 0);
   module_func(graph, "resize_screen", graphics_resize_screen, 2);
   module_func(graph, "resize", graphics_resize_screen, 2);
   module_func(graph, "brightness", graphicsGetBrightness, 0);
@@ -341,9 +336,8 @@ void graphicsBindingInit()
   module_func(graph, "fullscreen=", graphicsSetFullscreen, 1);
   module_func(graph, "show_cursor", graphics_get_show_cursor, 0);
   module_func(graph, "show_cursor=", graphics_set_show_cursor, 1);
+  module_func(graph, "center_window", graphics_center_window, 0);
   module_func(graph, "delta", graphics_get_delta, 0);
-  module_func(graph, "title", graphics_get_title, 0);
-  module_func(graph, "title=", graphics_set_title, 1);
   VALUE game = rb_define_module("Game");
   if (rb_iv_get(game, "@setup_screen") == Qtrue) {
     rb_iv_set(game, "@setup_screen", Qfalse);
@@ -354,7 +348,4 @@ void graphicsBindingInit()
   VALUE sys = rb_define_module("System");
   module_func(sys, "delta", graphics_get_delta, 0);
   module_func(sys, "uptime", graphics_get_delta, 0);
-  module_func(sys, "set_window_title", graphics_set_title, 1);
-  module_func(sys, "window_title=", graphics_set_title, 1);
-  module_func(sys, "window_title", graphics_get_title, 0);
 }

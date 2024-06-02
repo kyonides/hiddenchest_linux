@@ -1116,12 +1116,16 @@ void Graphics::playMovie(const char *filename)
   Debug() << "Graphics.playMovie(" << filename << ") not implemented";
 }
 
-DEF_ATTR_RD_SIMPLE(Graphics, Brightness, int, p->brightness)
+int Graphics::getBrightness() const
+{
+  return p->brightness;
+}
 
 void Graphics::setBrightness(int value)
 {
   value = clamp(value, 0, 255);
-  if (p->brightness == value) return;
+  if (p->brightness == value)
+    return;
   p->brightness = value;
   p->screen.setBrightness(value / 255.0);
 }

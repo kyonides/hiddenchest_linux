@@ -116,6 +116,7 @@ module Game
     end
     const_set("ICON", icon_name)
     self.icon = ICON
+    self.title = TITLE
     projects = [".rhproj", ".rxproj", ".rvproj", ".rvproj2"]
     encrypt_ext = [".rhc", ".rgssad", ".rgss2a", ".rgss3a"]
     makers = ["HiddenChest", "XP", "VX", "VX Ace"]

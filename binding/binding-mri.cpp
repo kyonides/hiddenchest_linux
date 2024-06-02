@@ -334,15 +334,18 @@ RB_METHOD(_kernelCaller)
 {
   RB_UNUSED_PARAM;
   VALUE trace = rb_funcall2(rb_mKernel, rb_intern("_HC_kernel_caller_alias"), 0, 0);
-  if (!RB_TYPE_P(trace, RUBY_T_ARRAY)) return trace;
+  if (!RB_TYPE_P(trace, RUBY_T_ARRAY))
+    return trace;
   long len = RARRAY_LEN(trace);
-  if (len < 2) return trace;
+  if (len < 2)
+    return trace;
   /* Remove useless "ruby:1:in 'eval'" */
   rb_ary_pop(trace);
   // Also remove trace of this helper function
   rb_ary_shift(trace);
   len -= 2;
-  if (len == 0) return trace;
+  if (len == 0)
+    return trace;
   // RMXP does this, not sure if specific or 1.8 related
   VALUE args[] = { rstr(":in `<main>'"), rstr("") };
   rb_funcall2(rb_ary_entry(trace, len-1), rb_intern("gsub!"), 2, args);

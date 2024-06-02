@@ -41,6 +41,18 @@ static VALUE hc_data_dir(VALUE self)
   return rstr(s);
 }
 
+static VALUE game_get_title(VALUE self)
+{
+  return rb_iv_get(self, "title");
+}
+
+static VALUE game_set_title(VALUE self, VALUE title)
+{
+  const char *new_title = RSTRING_PTR(title);
+  shState->set_title(new_title);
+  return rb_iv_set(self, "title", title);
+}
+
 static VALUE game_set_icon(VALUE self, VALUE icon_name)
 {
   icon_name = rb_funcall(icon_name, rb_intern("to_s"), 0);
@@ -61,7 +73,6 @@ static VALUE game_set_internal_values(VALUE self)
   rversion = rb_const_get(self, rb_intern("RGSS_VERSION"));
   width = rb_const_get(self, rb_intern("WIDTH"));
   height = rb_const_get(self, rb_intern("HEIGHT"));
-  ttl = rb_const_get(self, rb_intern("TITLE"));
   ver = rb_const_get(self, rb_intern("VERSION"));
   scr = rb_const_get(self, rb_intern("SCRIPTS"));
   enc = rb_const_get(self, rb_intern("ENCRYPTED_NAME"));
@@ -73,7 +84,6 @@ static VALUE game_set_internal_values(VALUE self)
   w = RB_FIX2INT(width);
   h = RB_FIX2INT(height);
   rtp_len = RARRAY_LEN(rtp_ary);
-  const char *title = RSTRING_PTR(ttl);
   const char *version = RSTRING_PTR(ver);
   const char *scripts = RSTRING_PTR(scr);
   const char *enc_name = RSTRING_PTR(enc);
@@ -89,7 +99,6 @@ static VALUE game_set_internal_values(VALUE self)
   }
   if (START_WIDTH != w || START_HEIGHT != h)
     shState->init_size(w, h);
-  shState->set_title(title);
   shState->reset_config(rgss, version, scripts, c_rtp);
   shState->check_encrypted_game_file(enc_name);
   shState->config().subImageFix = subimg == Qtrue;
@@ -209,6 +218,8 @@ void init_game()
   rb_const_set(game, rb_intern("START_WIDTH"), RB_INT2FIX(START_WIDTH));
   rb_const_set(game, rb_intern("START_HEIGHT"), RB_INT2FIX(START_HEIGHT));
   module_func(game, "icon=", game_set_icon, 1);
+  module_func(game, "title=", game_set_title, 1);
+  module_func(game, "title", game_get_title, 0);
   module_func(game, "set_internal_values", game_set_internal_values, 0);
   module_func(game, "shot_format=", game_shot_fmt_set, 1);
   module_func(game, "shot_dir=", game_shot_dir_set, 1);
