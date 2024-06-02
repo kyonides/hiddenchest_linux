@@ -122,9 +122,6 @@ struct SharedState
   
   const char* get_title();
   void set_title(const char *title);
-	void set_window_resize(bool state);
-	void set_window_borders(bool state);
-	void set_screensave_state(bool state);
 
 	static SharedState *instance;
 	static int rgssVersion;

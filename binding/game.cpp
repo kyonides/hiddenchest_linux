@@ -165,35 +165,17 @@ static VALUE game_screensaver_enable(VALUE self)
   return rb_iv_get(self, "screensaver_enable");
 }
 
-void SharedState::set_window_resize(bool state)
-{
-  SDL_SetWindowResizable(p->sdlWindow, (SDL_bool) state);
-}
-
-void SharedState::set_window_borders(bool state)
-{
-  SDL_SetWindowBordered(p->sdlWindow, (SDL_bool) state);
-}
-
-void SharedState::set_screensave_state(bool state)
-{
-  if (state)
-    SDL_EnableScreenSaver();
-  else
-    SDL_DisableScreenSaver();
-}
-
 static VALUE game_window_resizable_set(VALUE self, VALUE state)
 {
-  state = state == Qtrue;
-  shState->set_window_resize(state == Qtrue);
-  SDL_SetWindowResizable(shState->sdlWindow(), (SDL_bool) state);
+  SDL_bool result = state == Qtrue;
+  SDL_SetWindowResizable(shState->sdlWindow(), result);
   return rb_iv_set(self, "resizable", state);
 }
 
 static VALUE game_window_borders_set(VALUE self, VALUE state)
 {
-  shState->set_window_borders(state == Qtrue);
+  SDL_bool result = state == Qtrue;
+  SDL_SetWindowBordered(shState->sdlWindow(), result);
   return rb_iv_set(self, "borders", state);
 }
 
@@ -208,8 +190,11 @@ static VALUE game_display_brightness_set(VALUE self, VALUE value)
 
 static VALUE game_screensaver_enable_set(VALUE self, VALUE state)
 {
-  shState->set_screensave_state(state == Qtrue);
-  return rb_iv_set(self, "screensaver_enable", state);
+  if (state == Qtrue)
+    SDL_EnableScreenSaver();
+  else
+    SDL_DisableScreenSaver();
+  return rb_iv_set(self, "screensaver_enable", state == Qtrue ? Qtrue : Qfalse);
 }
 
 void init_game()
