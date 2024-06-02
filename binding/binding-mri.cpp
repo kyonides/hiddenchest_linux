@@ -80,6 +80,7 @@ void etcBindingInit();
 void init_font_binding();
 void bitmapBindingInit();
 void SpriteBindingInit();
+void sprite_setup_bush_opacity();
 void MsgBoxSpriteBindingInit();
 void viewportBindingInit();
 void planeBindingInit();
@@ -601,6 +602,7 @@ static void mriBindingExecute()
     shState->rtData().rqTermAck.set();
     return;
   }
+  sprite_setup_bush_opacity();
   BacktraceData btData;
   mriBindingInit();
   std::string &customScript = conf.customScript;

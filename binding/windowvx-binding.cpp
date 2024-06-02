@@ -25,6 +25,7 @@
 #include "binding-util.h"
 #include "bitmap.h"
 #include "hcextras.h"
+#include "debugwriter.h"
 
 DECL_TYPE(Rect);
 extern VALUE rect_from_ary(VALUE ary);
@@ -35,17 +36,16 @@ void bitmapInitProps(Bitmap *b, VALUE self);
 
 extern VALUE zero;
 
-RB_METHOD(windowVXInitialize)
+static VALUE windowVXInitialize(int argc, VALUE *argv, VALUE self)
 {
   WindowVX *w;
   if (rgssVer == 3) {
-    int x, y, width, height;
-    x = y = width = height = 0;
+    int x = 0, y = 0, width = 0, height = 0;
     if (argc == 4)
       rb_get_args(argc, argv, "iiii", &x, &y, &width, &height RB_ARG_END);
     w = new WindowVX(x, y, width, height);
   } else {
-	w = viewportElementInitialize<WindowVX>(argc, argv, self);
+	  w = viewportElementInitialize<WindowVX>(argc, argv, self);
   }
   setPrivateData(self, w);
   w->initDynAttribs();
@@ -57,10 +57,6 @@ RB_METHOD(windowVXInitialize)
   VALUE contentsObj = wrapObject(contents, BitmapType);
   bitmapInitProps(contents, contentsObj);
   rb_iv_set(self, "contents", contentsObj);
-  rb_iv_set(self, "x", zero);
-  rb_iv_set(self, "y", zero);
-  rb_iv_set(self, "width", RB_INT2FIX(1));
-  rb_iv_set(self, "height", RB_INT2FIX(1));
   rb_iv_set(self, "pause_x", zero);
   rb_iv_set(self, "pause_y", zero);
   return self;
@@ -101,25 +97,33 @@ static VALUE windowVXIsClosed(VALUE self)
 static VALUE window_x(VALUE self)
 {
   WindowVX *w = getPrivateData<WindowVX>(self);
-  return !w ? zero : rb_iv_get(self, "x");
+  if (!w)
+    return zero;
+  return RB_INT2FIX(w->get_x());
 }
 
 static VALUE window_y(VALUE self)
 {
   WindowVX *w = getPrivateData<WindowVX>(self);
-  return !w ? zero : rb_iv_get(self, "y");
+  if (!w)
+    return zero;
+  return RB_INT2FIX(w->get_y());
 }
 
 static VALUE window_width(VALUE self)
 {
   WindowVX *w = getPrivateData<WindowVX>(self);
-  return !w ? zero : rb_iv_get(self, "width");
+  if (!w)
+    return zero;
+  return RB_INT2FIX(w->get_width());
 }
 
 static VALUE window_height(VALUE self)
 {
   WindowVX *w = getPrivateData<WindowVX>(self);
-  return !w ? zero : rb_iv_get(self, "height");
+  if (!w)
+    return zero;
+  return RB_INT2FIX(w->get_height());
 }
 
 static VALUE window_pause_x(VALUE self)
@@ -257,7 +261,7 @@ void windowVXBindingInit()
   disposableBindingInit<WindowVX>(klass);
   viewportElementBindingInit<WindowVX>(klass);
   rb_define_attr(klass, "area", 1, 0);
-  _rb_define_method(klass, "initialize", windowVXInitialize);
+  rb_define_method(klass, "initialize", RMF(windowVXInitialize), -1);
   rb_define_method(klass, "update", RMF(windowVXUpdate), 0);
   INIT_PROP_BIND(WindowVX, Windowskin,      "windowskin"      );
   INIT_PROP_BIND(WindowVX, Contents,        "contents"        );

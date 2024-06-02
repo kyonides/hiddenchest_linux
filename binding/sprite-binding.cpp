@@ -712,6 +712,15 @@ static VALUE sprite_is_drag_margin_y_set(VALUE self, VALUE my)
   return rb_iv_set(self, "drag_margin_y", my);
 }
 
+void sprite_setup_bush_opacity()
+{
+  if (rgssVer >= 2) {
+    VALUE sprite = rb_define_class("Sprite", rb_cObject);
+    rb_define_method(sprite, "bush_opacity", RMF(SpriteGetBushOpacity), 0);
+    rb_define_method(sprite, "bush_opacity=", RMF(SpriteSetBushOpacity), 1);
+  }
+}
+
 template<rb_data_type_t *SpriteType>
 static VALUE SpriteAllocate(VALUE klass)
 {
@@ -720,92 +729,88 @@ static VALUE SpriteAllocate(VALUE klass)
 
 void SpriteBindingInit()
 {
-  VALUE RSprite = rb_define_class("Sprite", rb_cObject);
-  rb_define_alloc_func(RSprite, SpriteAllocate<&SpriteType>);
-  disposableBindingInit<Sprite>(RSprite);
-  flashableBindingInit<Sprite>(RSprite);
-  viewportElementBindingInit<Sprite>(RSprite);
-  rb_define_method(RSprite, "initialize", RMF(spriteInitialize), -1);
-  rb_define_method(RSprite, "bitmap", RMF(SpriteGetBitmap), 0);
-  rb_define_method(RSprite, "bitmap=", RMF(SpriteSetBitmap), 1);
-  rb_define_method(RSprite, "src_rect", RMF(SpriteGetSrcRect), 0);
-  rb_define_method(RSprite, "src_rect=", RMF(SpriteSetSrcRect), 1);
-  rb_define_method(RSprite, "color", RMF(SpriteGetColor), 0);
-  rb_define_method(RSprite, "color=", RMF(SpriteSetColor), 1);
-  rb_define_method(RSprite, "tone", RMF(SpriteGetTone), 0);
-  rb_define_method(RSprite, "tone=", RMF(SpriteSetTone), 1);
-  rb_define_method(RSprite, "area", RMF(sprite_area), 0);
-  rb_define_method(RSprite, "x", RMF(SpriteGetX), 0);
-  rb_define_method(RSprite, "x=", RMF(SpriteSetX), 1);
-  rb_define_method(RSprite, "y", RMF(SpriteGetY), 0);
-  rb_define_method(RSprite, "y=", RMF(SpriteSetY), 1);
-  rb_define_method(RSprite, "z", RMF(SpriteGetZ), 0);
-  rb_define_method(RSprite, "z=", RMF(SpriteSetZ), 1);
-  rb_define_method(RSprite, "set_xy", RMF(sprite_set_xy), 2);
-  rb_define_method(RSprite, "set_xyz", RMF(sprite_set_xyz), 3);
-  rb_define_method(RSprite, "ox", RMF(SpriteGetOX), 0);
-  rb_define_method(RSprite, "ox=", RMF(SpriteSetOX), 1);
-  rb_define_method(RSprite, "oy", RMF(SpriteGetOY), 0);
-  rb_define_method(RSprite, "oy=", RMF(SpriteSetOY), 1);
-  rb_define_method(RSprite, "zoom_x", RMF(SpriteGetZoomX), 0);
-  rb_define_method(RSprite, "zoom_x=", RMF(SpriteSetZoomX), 1);
-  rb_define_method(RSprite, "zoom_y", RMF(SpriteGetZoomY), 0);
-  rb_define_method(RSprite, "zoom_y=", RMF(SpriteSetZoomY), 1);
-  rb_define_method(RSprite, "angle", RMF(SpriteGetAngle), 0);
-  rb_define_method(RSprite, "angle=", RMF(SpriteSetAngle), 1);
-  rb_define_method(RSprite, "mirror", RMF(SpriteGetMirror), 0);
-  rb_define_method(RSprite, "mirror=", RMF(SpriteSetMirror), 1);
-  rb_define_method(RSprite, "mirror_y", RMF(sprite_mirror_y), 0);
-  rb_define_method(RSprite, "mirror_y=", RMF(sprite_mirror_y_set), 1);
-  rb_define_method(RSprite, "flip", RMF(SpriteGetMirror), 0);
-  rb_define_method(RSprite, "flip=", RMF(SpriteSetMirror), 1);
-  rb_define_method(RSprite, "flip_y", RMF(sprite_mirror_y), 0);
-  rb_define_method(RSprite, "flip_y=", RMF(sprite_mirror_y_set), 1);
-  rb_define_method(RSprite, "bush_depth", RMF(SpriteGetBushDepth), 0);
-  rb_define_method(RSprite, "bush_depth=", RMF(SpriteSetBushDepth), 1);
-  rb_define_method(RSprite, "opacity", RMF(SpriteGetOpacity), 0);
-  rb_define_method(RSprite, "opacity=", RMF(SpriteSetOpacity), 1);
-  rb_define_method(RSprite, "blend_type", RMF(SpriteGetBlendType), 0);
-  rb_define_method(RSprite, "blend_type=", RMF(SpriteSetBlendType), 1);
-  rb_define_method(RSprite, "width", RMF(SpriteWidth), 0);
-  rb_define_method(RSprite, "height", RMF(SpriteHeight), 0);
-  rb_define_method(RSprite, "reduce_speed", RMF(sprite_reduce_speed), 0);
-  rb_define_method(RSprite, "reduce_speed=", RMF(sprite_reduce_speed_set), 1);
-  rb_define_method(RSprite, "increase_width!", RMF(sprite_increase_width), 0);
-  rb_define_method(RSprite, "increase_height!", RMF(sprite_increase_height), 0);
-  rb_define_method(RSprite, "increase_width_height!", RMF(sprite_increase_width_height), 0);
-  rb_define_method(RSprite, "increased_width?", RMF(sprite_is_width_increased), 0);
-  rb_define_method(RSprite, "increased_height?", RMF(sprite_is_height_increased), 0);
-  rb_define_method(RSprite, "reduce_width!", RMF(sprite_reduce_width), 0);
-  rb_define_method(RSprite, "reduce_height!", RMF(sprite_reduce_height), 0);
-  rb_define_method(RSprite, "reduce_width_height!", RMF(sprite_reduce_width_height), 0);
-  rb_define_method(RSprite, "reduced_width?", RMF(sprite_is_width_reduced), 0);
-  rb_define_method(RSprite, "reduced_height?", RMF(sprite_is_height_reduced), 0);
-  rb_define_method(RSprite, "mouse_inside?", RMF(sprite_is_mouse_inside), 0);
-  rb_define_method(RSprite, "mouse_above?", RMF(sprite_is_mouse_inside), 0);
-  rb_define_method(RSprite, "mouse_above_color?", RMF(sprite_is_mouse_above_color), 0);
-  rb_define_method(RSprite, "click_area?", RMF(sprite_is_click_area), 1);
-  rb_define_method(RSprite, "press_click_area?", RMF(sprite_is_press_click_area), 1);
-  rb_define_method(RSprite, "drag_margin_y", RMF(sprite_is_drag_margin_y), 0);
-  rb_define_method(RSprite, "drag_margin_y=", RMF(sprite_is_drag_margin_y_set), 1);
-  rb_define_method(RSprite, "gray_out=", RMF(sprite_gray_out), 1);
-  rb_define_method(RSprite, "turn_sepia=", RMF(sprite_turn_sepia), 1);
-  rb_define_method(RSprite, "invert_colors=", RMF(sprite_invert_colors), 1);
-  rb_define_method(RSprite, "grayed_out?", RMF(sprite_is_grayed_out), 0);
-  rb_define_method(RSprite, "sepia?", RMF(sprite_is_sepia), 0);
-  rb_define_method(RSprite, "colors_inverted?", RMF(sprite_are_colors_inverted), 0);
-  if (rgssVer >= 2) {
-    rb_define_method(RSprite, "bush_opacity", RMF(SpriteGetBushOpacity), 0);
-    rb_define_method(RSprite, "bush_opacity=", RMF(SpriteSetBushOpacity), 1);
-  }
-  rb_define_method(RSprite, "wave_rotate", RMF(SpriteGetWaveRotate), 0);
-  rb_define_method(RSprite, "wave_rotate=", RMF(SpriteSetWaveRotate), 1);
-  rb_define_method(RSprite, "wave_amp", RMF(SpriteGetWaveAmp), 0);
-  rb_define_method(RSprite, "wave_amp=", RMF(SpriteSetWaveAmp), 1);
-  rb_define_method(RSprite, "wave_length", RMF(SpriteGetWaveLength), 0);
-  rb_define_method(RSprite, "wave_length=", RMF(SpriteSetWaveLength), 1);
-  rb_define_method(RSprite, "wave_speed", RMF(SpriteGetWaveSpeed), 0);
-  rb_define_method(RSprite, "wave_speed=", RMF(SpriteSetWaveSpeed), 1);
-  rb_define_method(RSprite, "wave_phase", RMF(SpriteGetWavePhase), 0);
-  rb_define_method(RSprite, "wave_phase=", RMF(SpriteSetWavePhase), 1);
+  VALUE sprite = rb_define_class("Sprite", rb_cObject);
+  rb_define_alloc_func(sprite, SpriteAllocate<&SpriteType>);
+  disposableBindingInit<Sprite>(sprite);
+  flashableBindingInit<Sprite>(sprite);
+  viewportElementBindingInit<Sprite>(sprite);
+  rb_define_method(sprite, "initialize", RMF(spriteInitialize), -1);
+  rb_define_method(sprite, "bitmap", RMF(SpriteGetBitmap), 0);
+  rb_define_method(sprite, "bitmap=", RMF(SpriteSetBitmap), 1);
+  rb_define_method(sprite, "src_rect", RMF(SpriteGetSrcRect), 0);
+  rb_define_method(sprite, "src_rect=", RMF(SpriteSetSrcRect), 1);
+  rb_define_method(sprite, "color", RMF(SpriteGetColor), 0);
+  rb_define_method(sprite, "color=", RMF(SpriteSetColor), 1);
+  rb_define_method(sprite, "tone", RMF(SpriteGetTone), 0);
+  rb_define_method(sprite, "tone=", RMF(SpriteSetTone), 1);
+  rb_define_method(sprite, "area", RMF(sprite_area), 0);
+  rb_define_method(sprite, "x", RMF(SpriteGetX), 0);
+  rb_define_method(sprite, "x=", RMF(SpriteSetX), 1);
+  rb_define_method(sprite, "y", RMF(SpriteGetY), 0);
+  rb_define_method(sprite, "y=", RMF(SpriteSetY), 1);
+  rb_define_method(sprite, "z", RMF(SpriteGetZ), 0);
+  rb_define_method(sprite, "z=", RMF(SpriteSetZ), 1);
+  rb_define_method(sprite, "set_xy", RMF(sprite_set_xy), 2);
+  rb_define_method(sprite, "set_xyz", RMF(sprite_set_xyz), 3);
+  rb_define_method(sprite, "ox", RMF(SpriteGetOX), 0);
+  rb_define_method(sprite, "ox=", RMF(SpriteSetOX), 1);
+  rb_define_method(sprite, "oy", RMF(SpriteGetOY), 0);
+  rb_define_method(sprite, "oy=", RMF(SpriteSetOY), 1);
+  rb_define_method(sprite, "zoom_x", RMF(SpriteGetZoomX), 0);
+  rb_define_method(sprite, "zoom_x=", RMF(SpriteSetZoomX), 1);
+  rb_define_method(sprite, "zoom_y", RMF(SpriteGetZoomY), 0);
+  rb_define_method(sprite, "zoom_y=", RMF(SpriteSetZoomY), 1);
+  rb_define_method(sprite, "angle", RMF(SpriteGetAngle), 0);
+  rb_define_method(sprite, "angle=", RMF(SpriteSetAngle), 1);
+  rb_define_method(sprite, "mirror", RMF(SpriteGetMirror), 0);
+  rb_define_method(sprite, "mirror=", RMF(SpriteSetMirror), 1);
+  rb_define_method(sprite, "mirror_y", RMF(sprite_mirror_y), 0);
+  rb_define_method(sprite, "mirror_y=", RMF(sprite_mirror_y_set), 1);
+  rb_define_method(sprite, "flip", RMF(SpriteGetMirror), 0);
+  rb_define_method(sprite, "flip=", RMF(SpriteSetMirror), 1);
+  rb_define_method(sprite, "flip_y", RMF(sprite_mirror_y), 0);
+  rb_define_method(sprite, "flip_y=", RMF(sprite_mirror_y_set), 1);
+  rb_define_method(sprite, "bush_depth", RMF(SpriteGetBushDepth), 0);
+  rb_define_method(sprite, "bush_depth=", RMF(SpriteSetBushDepth), 1);
+  rb_define_method(sprite, "opacity", RMF(SpriteGetOpacity), 0);
+  rb_define_method(sprite, "opacity=", RMF(SpriteSetOpacity), 1);
+  rb_define_method(sprite, "blend_type", RMF(SpriteGetBlendType), 0);
+  rb_define_method(sprite, "blend_type=", RMF(SpriteSetBlendType), 1);
+  rb_define_method(sprite, "width", RMF(SpriteWidth), 0);
+  rb_define_method(sprite, "height", RMF(SpriteHeight), 0);
+  rb_define_method(sprite, "reduce_speed", RMF(sprite_reduce_speed), 0);
+  rb_define_method(sprite, "reduce_speed=", RMF(sprite_reduce_speed_set), 1);
+  rb_define_method(sprite, "increase_width!", RMF(sprite_increase_width), 0);
+  rb_define_method(sprite, "increase_height!", RMF(sprite_increase_height), 0);
+  rb_define_method(sprite, "increase_width_height!", RMF(sprite_increase_width_height), 0);
+  rb_define_method(sprite, "increased_width?", RMF(sprite_is_width_increased), 0);
+  rb_define_method(sprite, "increased_height?", RMF(sprite_is_height_increased), 0);
+  rb_define_method(sprite, "reduce_width!", RMF(sprite_reduce_width), 0);
+  rb_define_method(sprite, "reduce_height!", RMF(sprite_reduce_height), 0);
+  rb_define_method(sprite, "reduce_width_height!", RMF(sprite_reduce_width_height), 0);
+  rb_define_method(sprite, "reduced_width?", RMF(sprite_is_width_reduced), 0);
+  rb_define_method(sprite, "reduced_height?", RMF(sprite_is_height_reduced), 0);
+  rb_define_method(sprite, "mouse_inside?", RMF(sprite_is_mouse_inside), 0);
+  rb_define_method(sprite, "mouse_above?", RMF(sprite_is_mouse_inside), 0);
+  rb_define_method(sprite, "mouse_above_color?", RMF(sprite_is_mouse_above_color), 0);
+  rb_define_method(sprite, "click_area?", RMF(sprite_is_click_area), 1);
+  rb_define_method(sprite, "press_click_area?", RMF(sprite_is_press_click_area), 1);
+  rb_define_method(sprite, "drag_margin_y", RMF(sprite_is_drag_margin_y), 0);
+  rb_define_method(sprite, "drag_margin_y=", RMF(sprite_is_drag_margin_y_set), 1);
+  rb_define_method(sprite, "gray_out=", RMF(sprite_gray_out), 1);
+  rb_define_method(sprite, "turn_sepia=", RMF(sprite_turn_sepia), 1);
+  rb_define_method(sprite, "invert_colors=", RMF(sprite_invert_colors), 1);
+  rb_define_method(sprite, "grayed_out?", RMF(sprite_is_grayed_out), 0);
+  rb_define_method(sprite, "sepia?", RMF(sprite_is_sepia), 0);
+  rb_define_method(sprite, "colors_inverted?", RMF(sprite_are_colors_inverted), 0);
+  rb_define_method(sprite, "wave_rotate", RMF(SpriteGetWaveRotate), 0);
+  rb_define_method(sprite, "wave_rotate=", RMF(SpriteSetWaveRotate), 1);
+  rb_define_method(sprite, "wave_amp", RMF(SpriteGetWaveAmp), 0);
+  rb_define_method(sprite, "wave_amp=", RMF(SpriteSetWaveAmp), 1);
+  rb_define_method(sprite, "wave_length", RMF(SpriteGetWaveLength), 0);
+  rb_define_method(sprite, "wave_length=", RMF(SpriteSetWaveLength), 1);
+  rb_define_method(sprite, "wave_speed", RMF(SpriteGetWaveSpeed), 0);
+  rb_define_method(sprite, "wave_speed=", RMF(SpriteSetWaveSpeed), 1);
+  rb_define_method(sprite, "wave_phase", RMF(SpriteGetWavePhase), 0);
+  rb_define_method(sprite, "wave_phase=", RMF(SpriteSetWavePhase), 1);
 }

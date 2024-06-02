@@ -89,8 +89,6 @@ static VALUE window_initialize(int argc, VALUE *v, VALUE self)
   setPrivateData(self, w);
   w->initDynAttribs();
   rb_iv_set(self, "@area", rb_ary_new());
-  rb_iv_set(self, "x", zero);
-  rb_iv_set(self, "y", zero);
   rb_iv_set(self, "pause", Qfalse);
   rb_iv_set(self, "pause_x", zero);
   rb_iv_set(self, "pause_y", zero);
@@ -197,14 +195,18 @@ static VALUE window_is_closed(VALUE self)
 
 static VALUE window_x(VALUE self)
 {
-  WindowVX *w = getPrivateData<WindowVX>(self);
-  return !w ? zero : rb_iv_get(self, "x");
+  Window *w = getPrivateData<Window>(self);
+  if (!w)
+    return zero;
+  return RB_INT2FIX(w->get_x());
 }
 
 static VALUE window_y(VALUE self)
 {
-  WindowVX *w = getPrivateData<WindowVX>(self);
-  return !w ? zero : rb_iv_get(self, "y");
+  Window *w = getPrivateData<Window>(self);
+  if (!w)
+    return zero;
+  return RB_INT2FIX(w->get_y());
 }
 
 static VALUE window_pause(VALUE self)
