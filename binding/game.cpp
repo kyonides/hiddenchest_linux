@@ -167,14 +167,14 @@ static VALUE game_screensaver_enable(VALUE self)
 
 static VALUE game_window_resizable_set(VALUE self, VALUE state)
 {
-  SDL_bool result = state == Qtrue;
+  SDL_bool result = (SDL_bool)(state == Qtrue);
   SDL_SetWindowResizable(shState->sdlWindow(), result);
   return rb_iv_set(self, "resizable", state);
 }
 
 static VALUE game_window_borders_set(VALUE self, VALUE state)
 {
-  SDL_bool result = state == Qtrue;
+  SDL_bool result = (SDL_bool)(state == Qtrue);
   SDL_SetWindowBordered(shState->sdlWindow(), result);
   return rb_iv_set(self, "borders", state);
 }
