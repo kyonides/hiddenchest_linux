@@ -143,6 +143,7 @@ module Game
     puts "Game Screen Size:   #{WIDTH}x#{HEIGHT}"
     puts "Enable Debug:       #{DEBUG}"
     puts "Trigger Fullscreen: #{FULLSCREEN}"
+    Font.solid_fonts = DATA.delete("SolidFonts").to_s[/true/i] != nil
     @soundfont = System::SOUNDFONT.to_s
     @soundfonts = []
     add_soundfonts(System::SOUNDFONT_DIR)
