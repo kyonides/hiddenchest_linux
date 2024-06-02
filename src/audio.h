@@ -44,29 +44,26 @@ public:
 	             float pos = 0);
 	void bgmStop();
 	void bgmFade(int time);
-
 	void bgsPlay(const char *filename,
 	             int volume = 100,
 	             int pitch = 100,
 	             float pos = 0);
 	void bgsStop();
+  void bgm_pause();
+  void bgm_resume();
 	void bgsFade(int time);
-
 	void mePlay(const char *filename,
 	            int volume = 100,
 	            int pitch = 100);
 	void meStop();
 	void meFade(int time);
-
 	void sePlay(const char *filename,
 	            int volume = 100,
 	            int pitch = 100);
 	void seStop();
-
 	void setupMidi();
 	float bgmPos();
 	float bgsPos();
-
 	void reset();
 
 private:

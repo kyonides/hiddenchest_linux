@@ -70,9 +70,9 @@ void AudioStream::play(const std::string &filename,
   /* If all parameters match the current ones and we're
    * still playing, there's nothing to do */
   if (filename == current.filename
-  && _volume  == current.volume
-  && _pitch   == current.pitch
-  && (sState == ALStream::Playing || sState == ALStream::Paused))
+    && _volume  == current.volume
+    && _pitch   == current.pitch
+    && (sState == ALStream::Playing || sState == ALStream::Paused))
   {
     unlockStream();
     return;
@@ -80,8 +80,8 @@ void AudioStream::play(const std::string &filename,
   /* If all parameters except volume match the current ones,
    * we update the volume and continue streaming */
   if (filename == current.filename
-  && _pitch   == current.pitch
-  && (sState == ALStream::Playing || sState == ALStream::Paused))
+    && _pitch   == current.pitch
+    && (sState == ALStream::Playing || sState == ALStream::Paused))
   {
     setVolume(Base, _volume);
     current.volume = _volume;
@@ -93,11 +93,13 @@ void AudioStream::play(const std::string &filename,
   switch (sState)
   {
   case ALStream::Paused :
+    stream.pause();
+    break;
   case ALStream::Playing :
-      stream.stop();
+    stream.stop();
   case ALStream::Stopped :
-      if (diffFile)
-          stream.close();
+    if (diffFile)
+      stream.close();
   case ALStream::Closed :
     if (diffFile) {
       try {
@@ -132,6 +134,25 @@ void AudioStream::stop()
   lockStream();
   noResumeStop = true;
   stream.stop();
+  unlockStream();
+}
+
+void AudioStream::pause()
+{
+  finiFadeOutInt();
+  lockStream();
+  noResumeStop = true;
+  stream.pause();
+  unlockStream();
+}
+
+void AudioStream::resume()
+{
+  float offset = stream.queryOffset();
+  finiFadeOutInt();
+  lockStream();
+  noResumeStop = false;
+  stream.play(offset);
   unlockStream();
 }
 
@@ -233,13 +254,15 @@ void AudioStream::startFadeIn()
 void AudioStream::fadeOutThread()
 {
   while (true) {// Just immediately terminate on request
-  if (fade.reqTerm) break;
-  lockStream();
-  uint32_t curDur = SDL_GetTicks() - fade.startTicks;
-  float resVol = 1.0f - (curDur*fade.msStep);
+    if (fade.reqTerm)
+      break;
+    lockStream();
+    uint32_t curDur = SDL_GetTicks() - fade.startTicks;
+    float resVol = 1.0f - (curDur*fade.msStep);
     ALStream::State state = stream.queryState();
     if (state != ALStream::Playing || resVol < 0 || fade.reqFini) {
-      if (state != ALStream::Paused) stream.stop();
+      if (state != ALStream::Paused)
+        stream.stop();
       setVolume(FadeOut, 1.0f);
       unlockStream();
       break;
@@ -254,7 +277,8 @@ void AudioStream::fadeOutThread()
 void AudioStream::fadeInThread()
 {
   while (true) {
-    if (fadeIn.rqTerm) break;
+    if (fadeIn.rqTerm)
+      break;
     lockStream();
     /* Fade in duration is always 1 second */
     uint32_t cur = SDL_GetTicks() - fadeIn.startTicks;

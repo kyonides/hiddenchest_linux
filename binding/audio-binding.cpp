@@ -25,6 +25,8 @@
 #include "exception.h"
 #include "binding-util.h"
 #include "filesystem.h"
+#include "hcextras.h"
+
 static VALUE audio_bgmPlay(int argc, VALUE* argv, VALUE self)
 {
   const char *filename;
@@ -40,6 +42,18 @@ static VALUE audio_bgmPlay(int argc, VALUE* argv, VALUE self)
 static VALUE audio_bgmStop(VALUE self)
 {
   shState->audio().bgmStop();
+  return Qnil;
+}
+
+static VALUE audio_bgm_pause(VALUE self)
+{
+  shState->audio().bgm_pause();
+  return Qnil;
+}
+
+static VALUE audio_bgm_resume(VALUE self)
+{
+  shState->audio().bgm_resume();
   return Qnil;
 }
 
@@ -232,138 +246,6 @@ static VALUE audioReset(VALUE self)
   return Qnil;
 }
 
-static VALUE audio_play_buzzer(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@buzzer");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
-static VALUE audio_play_cancel(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@cancel");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
-static VALUE audio_play_ok(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@ok");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
-static VALUE audio_play_cursor(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@cursor");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
-static VALUE audio_play_shop(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@shop");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
-static VALUE audio_play_equip(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@equip");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
-static VALUE audio_play_save(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@save");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
-static VALUE audio_play_load(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@load");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
-static VALUE audio_play_escape(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@escape");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
-static VALUE audio_play_actor_ko(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@actor_ko");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
-static VALUE audio_play_enemy_ko(VALUE self)
-{
-  VALUE ose = rb_iv_get(self, "@se");
-  VALUE se = rb_iv_get(self, "@enemy_ko");
-  VALUE se_name = rb_str_plus(ose, rb_iv_get(se, "@name"));
-  const char *filename = StringValueCStr(se_name);
-  int volume = RB_FIX2INT(rb_iv_get(se, "@volume"));
-  int pitch = RB_FIX2INT(rb_iv_get(se, "@pitch"));
-  GUARD_EXC( shState->audio().sePlay(filename, volume, pitch); )
-  return Qnil;
-}
-
 static VALUE rpg_audio_file_initialize(int argc, VALUE* argv, VALUE self)
 {
   VALUE name, volume, pitch, pos;
@@ -395,56 +277,36 @@ void audioBindingInit()
   rb_iv_set(md, "@bgs_volume", RB_INT2FIX(80));
   rb_iv_set(md, "@se_volume", RB_INT2FIX(80));
   rb_iv_set(md, "@me_volume", RB_INT2FIX(80));
-  rb_define_module_function(md, "bgm_play", RMF(audio_bgmPlay), -1);
-  rb_define_module_function(md, "bgm_stop", RMF(audio_bgmStop), 0);
-  rb_define_module_function(md, "bgm_fade", RMF(audio_bgmFade), -1);
-  rb_define_module_function(md, "bgs_play", RMF(audio_bgsPlay), -1);
-  rb_define_module_function(md, "bgs_stop", RMF(audio_bgsStop), 0);
-  rb_define_module_function(md, "bgs_fade", RMF(audio_bgsFade), -1);
-  rb_define_module_function(md, "me_play", RMF(audio_mePlay), -1);
-  rb_define_module_function(md, "me_stop", RMF(audio_meStop), 0);
-  rb_define_module_function(md, "me_fade", RMF(audio_meFade), -1);
-  if (rgssVer == 1) {
-    rb_define_module_function(md, "play_buzzer", RMF(audio_play_buzzer), 0);
-    rb_define_module_function(md, "play_cancel", RMF(audio_play_cancel), 0);
-    rb_define_module_function(md, "play_cursor", RMF(audio_play_cursor), 0);
-    rb_define_module_function(md, "play_decision", RMF(audio_play_ok), 0);
-    rb_define_module_function(md, "play_ok", RMF(audio_play_ok), 0);
-    rb_define_module_function(md, "play_shop", RMF(audio_play_shop), 0);
-    rb_define_module_function(md, "play_equip", RMF(audio_play_equip), 0);
-    rb_define_module_function(md, "play_save", RMF(audio_play_save), 0);
-    rb_define_module_function(md, "play_load", RMF(audio_play_load), 0);
-    rb_define_module_function(md, "play_escape", RMF(audio_play_escape), 0);
-    rb_define_module_function(md, "play_actor_ko", RMF(audio_play_actor_ko), 0);
-    rb_define_module_function(md, "play_enemy_ko", RMF(audio_play_enemy_ko), 0);
-    rb_define_module_function(md, "play_se", RMF(audio_play_se), -1);
-    VALUE rpg = rb_define_module("RPG");
-    VALUE file = rb_define_class_under(rpg, "AudioFile", rb_cObject);
-    rb_define_method(file, "initialize", RMF(rpg_audio_file_initialize), -1);
-    rb_define_attr(file, "name", 1, 1);
-    rb_define_attr(file, "volume", 1, 1);
-    rb_define_attr(file, "pitch", 1, 1);
-    rb_define_attr(file, "pos", 1, 1);
-  }
-  rb_define_module_function(md, "bgm_volume", RMF(audio_bgm_volume_get), 0);
-  rb_define_module_function(md, "bgs_volume", RMF(audio_bgs_volume_get), 0);
-  rb_define_module_function(md, "se_volume", RMF(audio_se_volume_get), 0);
-  rb_define_module_function(md, "me_volume", RMF(audio_me_volume_get), 0);
-  rb_define_module_function(md, "bgm_volume=", RMF(audio_bgm_volume_set), 1);
-  rb_define_module_function(md, "bgs_volume=", RMF(audio_bgs_volume_set), 1);
-  rb_define_module_function(md, "se_volume=", RMF(audio_se_volume_set), 1);
-  rb_define_module_function(md, "me_volume=", RMF(audio_me_volume_set), 1);
-  rb_define_module_function(md, "bgm_pos", RMF(audio_bgmPos), 0);
-  rb_define_module_function(md, "bgs_pos", RMF(audio_bgsPos), 0);
-  rb_define_module_function(md, "old_bgm_pos", RMF(audio_old_bgm_pos_get), 0);
-  rb_define_module_function(md, "old_bgs_pos", RMF(audio_old_bgs_pos_get), 0);
-  rb_define_module_function(md, "old_bgm_name", RMF(audio_old_bgm_name), 0);
-  rb_define_module_function(md, "old_bgs_name", RMF(audio_old_bgs_name), 0);
-  rb_define_module_function(md, "save_bgm_data", RMF(audio_save_bgm_data), 0);
-  rb_define_module_function(md, "save_bgs_data", RMF(audio_save_bgs_data), 0);
+  module_func(md, "bgm_play", audio_bgmPlay, -1);
+  module_func(md, "bgm_stop", audio_bgmStop, 0);
+  module_func(md, "bgm_pause", audio_bgm_pause, 0);
+  module_func(md, "bgm_resume", audio_bgm_resume, 0);
+  module_func(md, "bgm_fade", audio_bgmFade, -1);
+  module_func(md, "bgs_play", audio_bgsPlay, -1);
+  module_func(md, "bgs_stop", audio_bgsStop, 0);
+  module_func(md, "bgs_fade", audio_bgsFade, -1);
+  module_func(md, "me_play", audio_mePlay, -1);
+  module_func(md, "me_stop", audio_meStop, 0);
+  module_func(md, "me_fade", audio_meFade, -1);
+  module_func(md, "bgm_volume", audio_bgm_volume_get, 0);
+  module_func(md, "bgs_volume", audio_bgs_volume_get, 0);
+  module_func(md, "se_volume", audio_se_volume_get, 0);
+  module_func(md, "me_volume", audio_me_volume_get, 0);
+  module_func(md, "bgm_volume=", audio_bgm_volume_set, 1);
+  module_func(md, "bgs_volume=", audio_bgs_volume_set, 1);
+  module_func(md, "se_volume=", audio_se_volume_set, 1);
+  module_func(md, "me_volume=", audio_me_volume_set, 1);
+  module_func(md, "bgm_pos", audio_bgmPos, 0);
+  module_func(md, "bgs_pos", audio_bgsPos, 0);
+  module_func(md, "old_bgm_pos", audio_old_bgm_pos_get, 0);
+  module_func(md, "old_bgs_pos", audio_old_bgs_pos_get, 0);
+  module_func(md, "old_bgm_name", audio_old_bgm_name, 0);
+  module_func(md, "old_bgs_name", audio_old_bgs_name, 0);
+  module_func(md, "save_bgm_data", audio_save_bgm_data, 0);
+  module_func(md, "save_bgs_data", audio_save_bgs_data, 0);
   if (rgssVer >= 3)
-    rb_define_module_function(md, "setup_midi", RMF(audioSetupMidi), 0);
-  rb_define_module_function(md, "se_play", RMF(audio_sePlay), -1);
-  rb_define_module_function(md, "se_stop", RMF(audio_seStop), 0);
-  rb_define_module_function(md, "__reset__", RMF(audioReset), 0);
+    module_func(md, "setup_midi", audioSetupMidi, 0);
+  module_func(md, "se_play", audio_sePlay, -1);
+  module_func(md, "se_stop", audio_seStop, 0);
+  module_func(md, "__reset__", audioReset, 0);
 }

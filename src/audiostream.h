@@ -99,6 +99,8 @@ struct AudioStream
   ~AudioStream();
   void play(const std::string &filename, int volume, int pitch, float offset=0);
   void stop();
+  void pause();
+  void resume();
   void fadeOut(int duration);
   /* Any access to this classes 'stream' member,
    * whether state query or modification, must be

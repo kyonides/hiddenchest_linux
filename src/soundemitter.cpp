@@ -20,14 +20,12 @@
 */
 
 #include "soundemitter.h"
-
 #include "sharedstate.h"
 #include "filesystem.h"
 #include "exception.h"
 #include "config.h"
 #include "util.h"
 #include "debugwriter.h"
-
 #include <SDL_sound.h>
 
 #define SE_CACHE_MEM (10*1024*1024) // 10 MB
@@ -36,22 +34,17 @@ struct SoundBuffer
 {
 	/* Uniquely identifies this or equal buffer */
 	std::string key;
-
 	AL::Buffer::ID alBuffer;
-
 	/* Link into the buffer cache priority list */
 	IntruListLink<SoundBuffer> link;
-
 	/* Buffer byte count */
 	uint32_t bytes;
-
 	/* Reference count */
 	uint8_t refCount;
 
 	SoundBuffer()
 	    : link(this),
 	      refCount(1)
-
 	{
 		alBuffer = AL::Buffer::gen();
 	}
@@ -59,7 +52,6 @@ struct SoundBuffer
 	static SoundBuffer *ref(SoundBuffer *buffer)
 	{
 		++buffer->refCount;
-
 		return buffer;
 	}
 
@@ -81,10 +73,8 @@ static void
 arrayPushBack(std::vector<size_t> &array, size_t size, size_t index)
 {
 	size_t v = array[index];
-
 	for (size_t t = index; t < size-1; ++t)
 		array[t] = array[t+1];
-
 	array[size-1] = v;
 }
 
@@ -95,8 +85,7 @@ SoundEmitter::SoundEmitter(const Config &conf)
       atchBufs(srcCount),
       srcPrio(srcCount)
 {
-	for (size_t i = 0; i < srcCount; ++i)
-	{
+	for (size_t i = 0; i < srcCount; ++i) {
 		alSrcs[i] = AL::Source::gen();
 		atchBufs[i] = 0;
 		srcPrio[i] = i;
@@ -105,15 +94,12 @@ SoundEmitter::SoundEmitter(const Config &conf)
 
 SoundEmitter::~SoundEmitter()
 {
-	for (size_t i = 0; i < srcCount; ++i)
-	{
+	for (size_t i = 0; i < srcCount; ++i) {
 		AL::Source::stop(alSrcs[i]);
 		AL::Source::del(alSrcs[i]);
-
 		if (atchBufs[i])
 			SoundBuffer::deref(atchBufs[i]);
 	}
-
 	BufferHash::const_iterator iter;
 	for (iter = bufferHash.cbegin(); iter != bufferHash.cend(); ++iter)
 		SoundBuffer::deref(iter->second);
@@ -125,56 +111,40 @@ void SoundEmitter::play(const std::string &filename,
 {
 	float _volume = clamp<int>(volume, 0, 100) / 100.0f;
 	float _pitch  = clamp<int>(pitch, 50, 150) / 100.0f;
-
 	SoundBuffer *buffer = allocateBuffer(filename);
-
 	if (!buffer)
 		return;
-
 	/* Try to find first free source */
 	size_t i;
 	for (i = 0; i < srcCount; ++i)
 		if (AL::Source::getState(alSrcs[srcPrio[i]]) != AL_PLAYING)
 			break;
-
 	/* If we didn't find any, try to find the lowest priority source
 	 * with the same buffer to overtake */
 	if (i == srcCount)
 		for (size_t j = 0; j < srcCount; ++j)
 			if (atchBufs[srcPrio[j]] == buffer)
 				i = j;
-
 	/* If we didn't find any, overtake the one with lowest priority */
 	if (i == srcCount)
 		i = 0;
-
 	size_t srcIndex = srcPrio[i];
-
 	/* Only detach/reattach if it's actually a different buffer */
 	bool switchBuffer = (atchBufs[srcIndex] != buffer);
-
 	/* Push the used source to the back of the priority list */
 	arrayPushBack(srcPrio, srcCount, i);
-
 	AL::Source::ID src = alSrcs[srcIndex];
 	AL::Source::stop(src);
-
 	if (switchBuffer)
 		AL::Source::detachBuffer(src);
-
 	SoundBuffer *old = atchBufs[srcIndex];
-
 	if (old)
 		SoundBuffer::deref(old);
-
 	atchBufs[srcIndex] = SoundBuffer::ref(buffer);
-
 	if (switchBuffer)
 		AL::Source::attachBuffer(src, buffer->alBuffer);
-
 	AL::Source::setVolume(src, _volume * GLOBAL_VOLUME);
 	AL::Source::setPitch(src, _pitch);
-
 	AL::Source::play(src);
 }
 

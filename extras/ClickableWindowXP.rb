@@ -221,16 +221,19 @@ class Scene_Title
       $game_system.se_play($data_system.cursor_se)
       if @command_window.index < 2
         @command_window.index = 2
+        Audio.bgm_pause
+      else
+        @command_window.index = -1
+        Audio.bgm_resume
       end
     # Added Left Click Check
     elsif Input.trigger?(Input::C) or Input.double_left_click?
-      if @command_window.index < 2
-        Graphics.center_window
-      end
-      case 
+      case @command_window.index
       when 0  # New game
+        Graphics.center_window
         command_new_game
       when 1  # Continue
+        Graphics.center_window
         command_continue
       when 2  # Shutdown
         command_shutdown

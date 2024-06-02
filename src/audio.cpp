@@ -193,6 +193,16 @@ void Audio::bgmStop()
   p->bgm.stop();
 }
 
+void Audio::bgm_pause()
+{
+  p->bgm.pause();
+}
+
+void Audio::bgm_resume()
+{
+  p->bgm.resume();
+}
+
 void Audio::bgmFade(int time)
 {
   p->bgm.fadeOut(time);
