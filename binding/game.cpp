@@ -41,19 +41,23 @@ static VALUE hc_data_dir(VALUE self)
   return rstr(s);
 }
 
-void set_icon(const char *icon)
+static VALUE game_set_icon(VALUE self, VALUE icon_name)
 {
+  icon_name = rb_funcall(icon_name, rb_intern("to_s"), 0);
+  const char *icon = RSTRING_PTR(icon_name);
   SDL_RWops *icon_src = SDL_RWFromFile(icon, "rb");
   SDL_Surface *icon_img = IMG_Load_RW(icon_src, SDL_TRUE);
   if (!icon_img)
-    return;
+    return Qnil;
   SDL_SetWindowIcon(shState->sdlWindow(), icon_img);
   SDL_FreeSurface(icon_img);
+  return Qtrue;
 }
 
 static VALUE game_set_internal_values(VALUE self)
 {
-  VALUE rversion, width, height, ttl, ver, scr, enc, path, rtp_ary, icon, sfont;
+  VALUE rversion, width, height, ttl, ver, scr;
+  VALUE enc, path, rtp_ary, icon, sfont, subimg;
   rversion = rb_const_get(self, rb_intern("RGSS_VERSION"));
   width = rb_const_get(self, rb_intern("WIDTH"));
   height = rb_const_get(self, rb_intern("HEIGHT"));
@@ -62,7 +66,7 @@ static VALUE game_set_internal_values(VALUE self)
   scr = rb_const_get(self, rb_intern("SCRIPTS"));
   enc = rb_const_get(self, rb_intern("ENCRYPTED_NAME"));
   rtp_ary = rb_const_get(self, rb_intern("RTP"));
-  icon = rb_const_get(self, rb_intern("ICON"));
+  subimg = rb_const_get(self, rb_intern("SUB_IMAGE_FIX"));
   sfont = rb_iv_get(self, "@soundfont");
   int rgss, w, h, rtp_len;
   rgss = RB_FIX2INT(rversion);
@@ -88,8 +92,7 @@ static VALUE game_set_internal_values(VALUE self)
   shState->set_title(title);
   shState->reset_config(rgss, version, scripts, c_rtp);
   shState->check_encrypted_game_file(enc_name);
-  if (RSTRING_LEN(icon) > 4)
-    set_icon(RSTRING_PTR(icon));
+  shState->config().subImageFix = subimg == Qtrue;
   if (RSTRING_LEN(sfont) > 4)
     shState->midiState().set_default_soundfont(sf);
   return Qnil;
@@ -205,6 +208,7 @@ void init_game()
   rb_iv_set(game, "screensaver_enable", Qfalse);
   rb_const_set(game, rb_intern("START_WIDTH"), RB_INT2FIX(START_WIDTH));
   rb_const_set(game, rb_intern("START_HEIGHT"), RB_INT2FIX(START_HEIGHT));
+  module_func(game, "icon=", game_set_icon, 1);
   module_func(game, "set_internal_values", game_set_internal_values, 0);
   module_func(game, "shot_format=", game_shot_fmt_set, 1);
   module_func(game, "shot_dir=", game_shot_dir_set, 1);

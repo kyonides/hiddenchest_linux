@@ -115,6 +115,7 @@ module Game
       icon_name = ""
     end
     const_set("ICON", icon_name)
+    self.icon = ICON
     projects = [".rhproj", ".rxproj", ".rvproj", ".rvproj2"]
     encrypt_ext = [".rhc", ".rgssad", ".rgss2a", ".rgss3a"]
     makers = ["HiddenChest", "XP", "VX", "VX Ace"]
@@ -137,12 +138,15 @@ module Game
     if normal_size?
       @setup_screen = change_size?
     end
-    full = (DATA["Fullscreen"][/true/i] != nil)
-    const_set("FULLSCREEN", full)
+    state = DATA["Fullscreen"][/true/i] != nil
+    const_set("FULLSCREEN", state)
+    state = DATA["SubImageFix"][/true/i] != nil
+    const_set("SUB_IMAGE_FIX", state)
     puts "RGSS Version:       #{n} (#{MAKER})"
     puts "Game Screen Size:   #{WIDTH}x#{HEIGHT}"
     puts "Enable Debug:       #{DEBUG}"
     puts "Trigger Fullscreen: #{FULLSCREEN}"
+    puts "SubImage Fix:       #{SUB_IMAGE_FIX}"
     Font.solid_fonts = DATA.delete("SolidFonts").to_s[/true/i] != nil
     @soundfont = System::SOUNDFONT.to_s
     @soundfonts = []
