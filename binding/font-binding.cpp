@@ -27,6 +27,7 @@
 #include "binding-types.h"
 #include "exception.h"
 #include "sharedstate.h"
+#include "eventthread.h"
 #include <string.h>
 
 extern const char *sys_kind;
@@ -493,6 +494,19 @@ static VALUE font_set_default_name(VALUE self, VALUE defname)
   return defname;
 }
 
+static VALUE font_solid_fonts(VALUE self)
+{
+  return rb_cvar_get(self, rb_intern("solid_fonts"));
+}
+
+static VALUE font_solid_fonts_set(VALUE self, VALUE state)
+{
+  shState->rtData().config.solidFonts = state == Qtrue;
+  state = state == Qtrue ? Qtrue : Qfalse;
+  rb_cvar_set(self, rb_intern("solid_fonts"), state);
+  return state;
+}
+
 VALUE linux_system_fonts_search()
 {
   ID glob = rb_intern("glob");
@@ -545,6 +559,7 @@ void init_font_binding()
   wrapProperty(klass, &Font::get_default_color(), "default_color", ColorType);
   wrapProperty(klass, &Font::get_default_out_color(), "default_out_color", ColorType);
   wrapProperty(klass, &Font::get_default_shadow_color(), "default_shadow_color", ColorType);
+  rb_cvar_set(klass, rb_intern("solid_fonts"), Qfalse);
   rb_define_singleton_method(klass, "reduce_size", RMF(font_reduce_size), 0);
   rb_define_singleton_method(klass, "default_name", RMF(font_default_name), 0);
   rb_define_singleton_method(klass, "default_name=", RMF(font_set_default_name), 1);
@@ -572,6 +587,8 @@ void init_font_binding()
   rb_define_singleton_method(klass, "default_strikethrough=", RMF(font_set_default_strikethrough), 1);
   rb_define_singleton_method(klass, "default_strikethru", RMF(font_default_strikethrough), 0);
   rb_define_singleton_method(klass, "default_strikethru=", RMF(font_set_default_strikethrough), 1);
+  rb_define_singleton_method(klass, "solid_fonts", RMF(font_solid_fonts), 0);
+  rb_define_singleton_method(klass, "solid_fonts=", RMF(font_solid_fonts_set), 1);
   rb_define_singleton_method(klass, "exist?", RMF(font_does_exist), 1);
   rb_define_method(klass, "initialize",      RMF(font_initialize), -1);
   rb_define_method(klass, "initialize_copy", RMF(font_initialize_copy), -1);

@@ -451,7 +451,8 @@ static VALUE bitmapSnowFillRect(VALUE self)
 static VALUE bitmap_write(int argc, VALUE* argv, VALUE self)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
-  if (!b || argc == 0) return Qfalse;
+  if (!b || argc == 0)
+    return Qfalse;
   const char *ext;
   const char *str = objAsStringPtr(argv[0]);
   if (argc == 1) {
