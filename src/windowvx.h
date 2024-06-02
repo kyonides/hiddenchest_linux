@@ -41,11 +41,23 @@ public:
   ~WindowVX();
 
   void update();
-
   void move(int x, int y, int width, int height);
   bool isOpen() const;
   bool isClosed() const;
+  bool is_mouse_inside() const;
   bool is_mouse_inside(int, int, int, int) const;
+  int get_x();
+  int get_y();
+  int get_width();
+  int get_height();
+  void set_x(int);
+  void set_y(int);
+  void set_xy(int, int);
+  void set_width(int);
+  void set_height(int);
+  void set_pause_x(int);
+  void set_pause_y(int);
+  void set_pause_xy(int, int);
 
   DECL_ATTR( Windowskin,      Bitmap* )
   DECL_ATTR( Contents,        Bitmap* )
@@ -53,10 +65,6 @@ public:
   DECL_ATTR( Active,          bool    )
   DECL_ATTR( ArrowsVisible,   bool    )
   DECL_ATTR( Pause,           bool    )
-  DECL_ATTR( X,               int     )
-  DECL_ATTR( Y,               int     )
-  DECL_ATTR( Width,           int     )
-  DECL_ATTR( Height,          int     )
   DECL_ATTR( OX,              int     )
   DECL_ATTR( OY,              int     )
   DECL_ATTR( Padding,         int     )

@@ -551,8 +551,7 @@ struct InputPrivate
       click_timer--;
       return;
     }
-    clicks = 0;
-    double_target = Input::None;
+    double_target = clicks = 0;
   }
 
   void pollBindings(Input::ButtonCode &repeatCand)
@@ -580,7 +579,7 @@ struct InputPrivate
       trigger_any = true;
       // Double Click Check
       if (b.target == Input::MouseLeft || b.target == Input::MouseRight) {
-        clicks = b.target == double_target ? 2 : 1;
+        clicks = (b.target == double_target)? 2 : 1;
         if (clicks == 1) {
           set_click(b.target);
         } else if (clicks == 2) {
@@ -602,7 +601,7 @@ struct InputPrivate
     }
   }
 
-  void set_click(int button)
+  void set_click(Input::ButtonCode button)
   {
     click_timer = base_timer;
     double_target = button;
@@ -614,7 +613,7 @@ struct InputPrivate
   {
     click_timer = clicks = 0;
     last_mx = last_my = 0;
-    double_target = Input::None;
+    double_target = 0;
     same_mouse_pos = false;
   }
 
@@ -767,21 +766,21 @@ bool Input::is_left_click()
 {
   if (!p->getStateCheck(MouseLeft).triggered)
     return false;
-  return !shState->rtData().mouse_moved;
+  return p->clicks == 1 && !shState->rtData().mouse_moved;
 }
 
 bool Input::is_middle_click()
 {
   if (!p->getStateCheck(MouseMiddle).triggered)
     return false;
-  return !shState->rtData().mouse_moved;
+  return p->clicks == 1 && !shState->rtData().mouse_moved;
 }
 
 bool Input::is_right_click()
 {
   if (!p->getStateCheck(MouseRight).triggered)
     return false;
-  return !shState->rtData().mouse_moved;
+  return p->clicks == 1 && !shState->rtData().mouse_moved;
 }
 
 bool Input::is_double_left_click()

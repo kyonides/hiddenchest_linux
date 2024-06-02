@@ -34,6 +34,8 @@
 DEF_TYPE(Window);
 DECL_TYPE(Rect);
 
+extern VALUE zero;
+
 extern VALUE rect_from_ary(VALUE ary);
 
 template<class C>
@@ -87,6 +89,11 @@ static VALUE window_initialize(int argc, VALUE *v, VALUE self)
   setPrivateData(self, w);
   w->initDynAttribs();
   rb_iv_set(self, "@area", rb_ary_new());
+  rb_iv_set(self, "x", zero);
+  rb_iv_set(self, "y", zero);
+  rb_iv_set(self, "pause", Qfalse);
+  rb_iv_set(self, "pause_x", zero);
+  rb_iv_set(self, "pause_y", zero);
   wrapProperty(self, &w->getCursorRect(), "cursor_rect", RectType);
   return self;
 }
@@ -107,6 +114,8 @@ static VALUE window_get_windowskin(VALUE self)
 static VALUE window_set_windowskin(VALUE self, VALUE bmap)
 {
   Window *w = getPrivateData<Window>(self);
+  if (!w)
+    return Qnil;
   VALUE propObj = rb_obj_dup(bmap);
   Bitmap *prop;
   if (RB_NIL_P(propObj))
@@ -121,14 +130,16 @@ static VALUE window_set_windowskin(VALUE self, VALUE bmap)
 static VALUE window_get_open_mode(VALUE self)
 {
   Window *w = getPrivateData<Window>(self);
-  if (w == 0) return rb_iv_get(self, "@open_mode");
+  if (!w)
+    return rb_iv_get(self, "@open_mode");
   return rb_iv_get(self, "@open_mode");
 }
 
 static VALUE window_set_open_mode(VALUE self, VALUE mode)
 {
   Window *w = getPrivateData<Window>(self);
-  if (w == 0) return rb_iv_set(self, "@open_mode", mode);
+  if (!w)
+    return rb_iv_set(self, "@open_mode", mode);
   int result = 0;
   VALUE top = hc_sym("top"), center = hc_sym("center");
   VALUE bottom = hc_sym("bottom");
@@ -153,7 +164,8 @@ static VALUE window_set_open_mode(VALUE self, VALUE mode)
 static VALUE window_get_openness(VALUE self)
 {
   Window *w = getPrivateData<Window>(self);
-  if (w == 0) return RB_INT2FIX(100);
+  if (!w)
+    return RB_INT2FIX(100);
   int result = w->getOpenness();
   return RB_INT2FIX(result);
 }
@@ -161,7 +173,8 @@ static VALUE window_get_openness(VALUE self)
 static VALUE window_set_openness(VALUE self, VALUE open)
 {
   Window *w = getPrivateData<Window>(self);
-  if (w == 0) return RB_INT2FIX(100);
+  if (!w)
+    return RB_INT2FIX(100);
   w->setOpenness(RB_FIX2INT(open));
   return RB_INT2FIX( w->getOpenness() );
 }
@@ -169,23 +182,119 @@ static VALUE window_set_openness(VALUE self, VALUE open)
 static VALUE window_is_open(VALUE self)
 {
   Window *w = getPrivateData<Window>(self);
-  if (w == 0) return Qfalse;
+  if (!w)
+    return Qfalse;
   return w->isOpen() ? Qtrue : Qfalse;
 }
 
 static VALUE window_is_closed(VALUE self)
 {
   Window *w = getPrivateData<Window>(self);
-  if (w == 0) return Qtrue;
+  if (!w)
+    return Qtrue;
   return w->isClosed() ? Qtrue : Qfalse;
+}
+
+static VALUE window_x(VALUE self)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  return !w ? zero : rb_iv_get(self, "x");
+}
+
+static VALUE window_y(VALUE self)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  return !w ? zero : rb_iv_get(self, "y");
+}
+
+static VALUE window_pause(VALUE self)
+{
+  Window *w = getPrivateData<Window>(self);
+  return !w ? zero : rb_iv_get(self, "pause");
+}
+
+static VALUE window_pause_x(VALUE self)
+{
+  Window *w = getPrivateData<Window>(self);
+  return !w ? zero : rb_iv_get(self, "pause_x");
+}
+
+static VALUE window_pause_y(VALUE self)
+{
+  Window *w = getPrivateData<Window>(self);
+  return !w ? zero : rb_iv_get(self, "pause_y");
+}
+
+static VALUE window_x_set(VALUE self, VALUE rx)
+{
+  Window *w = getPrivateData<Window>(self);
+  if (!w)
+    return zero;
+  w->set_x(RB_FIX2INT(rx));
+  return rx;
+}
+
+static VALUE window_y_set(VALUE self, VALUE ry)
+{
+  Window *w = getPrivateData<Window>(self);
+  if (!w)
+    return zero;
+  w->set_y(RB_FIX2INT(ry));
+  return ry;
 }
 
 static VALUE window_set_xy(VALUE self, VALUE rx, VALUE ry)
 {
   Window *w = getPrivateData<Window>(self);
   if (!w)
-    return rb_ary_new3(2, RB_INT2FIX(0), RB_INT2FIX(0));
-  w->setXY(RB_FIX2INT(rx), RB_FIX2INT(ry));
+    return rb_ary_new3(2, zero, zero);
+  w->set_xy(RB_FIX2INT(rx), RB_FIX2INT(ry));
+  return rb_ary_new3(2, rx, ry);
+}
+
+static VALUE window_set_xyz(VALUE self, VALUE rx, VALUE ry, VALUE rz)
+{
+  Window *w = getPrivateData<Window>(self);
+  if (!w)
+    return rb_ary_new3(3, zero, zero, zero);
+  w->set_xy(RB_FIX2INT(rx), RB_FIX2INT(ry));
+  w->setZ(RB_FIX2INT(rz));
+  return rb_ary_new3(3, rx, ry, rz);
+}
+
+static VALUE window_pause_set(VALUE self, VALUE state)
+{
+  Window *w = getPrivateData<Window>(self);
+  if (!w)
+    return zero;
+  w->set_pause(state == Qtrue);
+  return rb_iv_set(self, "pause", state == Qtrue ? Qtrue : Qfalse);
+}
+
+static VALUE window_pause_x_set(VALUE self, VALUE rx)
+{
+  Window *w = getPrivateData<Window>(self);
+  if (!w)
+    return zero;
+  w->set_pause_x(RB_FIX2INT(rx));
+  return rx;
+}
+
+static VALUE window_pause_y_set(VALUE self, VALUE ry)
+{
+  Window *w = getPrivateData<Window>(self);
+  if (!w)
+    return zero;
+  w->set_pause_y(RB_FIX2INT(ry));
+  return ry;
+}
+
+static VALUE window_pause_set_xy(VALUE self, VALUE rx, VALUE ry)
+{
+  Window *w = getPrivateData<Window>(self);
+  if (!w)
+    return rb_ary_new3(2, zero, zero);
+  w->set_pause_xy(RB_FIX2INT(rx), RB_FIX2INT(ry));
   return rb_ary_new3(2, rx, ry);
 }
 
@@ -211,9 +320,6 @@ DEF_PROP_OBJ_REF(Window, Bitmap, Contents,   "contents")
 DEF_PROP_OBJ_VAL(Window, Rect,   CursorRect, "cursor_rect")
 DEF_PROP_B(Window, Stretch)
 DEF_PROP_B(Window, Active)
-DEF_PROP_B(Window, Pause)
-DEF_PROP_I(Window, X)
-DEF_PROP_I(Window, Y)
 DEF_PROP_I(Window, Width)
 DEF_PROP_I(Window, Height)
 DEF_PROP_I(Window, OX)
@@ -240,7 +346,19 @@ void windowBindingInit()
   rb_define_method(klass, "openness=", RMF(window_set_openness), 1);
   rb_define_method(klass, "open?", RMF(window_is_open), 0);
   rb_define_method(klass, "close?", RMF(window_is_closed), 0);
+  rb_define_method(klass, "x", RMF(window_x), 0);
+  rb_define_method(klass, "y", RMF(window_y), 0);
+  rb_define_method(klass, "x=", RMF(window_x_set), 1);
+  rb_define_method(klass, "y=", RMF(window_y_set), 1);
   rb_define_method(klass, "set_xy", RMF(window_set_xy), 2);
+  rb_define_method(klass, "set_xyz", RMF(window_set_xyz), 3);
+  rb_define_method(klass, "pause", RMF(window_pause), 0);
+  rb_define_method(klass, "pause_x", RMF(window_pause_x), 0);
+  rb_define_method(klass, "pause_y", RMF(window_pause_y), 0);
+  rb_define_method(klass, "pause=", RMF(window_pause_set), 1);
+  rb_define_method(klass, "pause_x=", RMF(window_pause_x_set), 1);
+  rb_define_method(klass, "pause_y=", RMF(window_pause_y_set), 1);
+  rb_define_method(klass, "pause_xy", RMF(window_pause_set_xy), 2);
   rb_define_method(klass, "mouse_inside?", RMF(window_is_mouse_inside), -1);
   rb_define_method(klass, "mouse_above?", RMF(window_is_mouse_inside), -1);
   rb_define_attr(klass, "area", 1, 0);
@@ -249,9 +367,6 @@ void windowBindingInit()
   INIT_PROP_BIND( Window, Stretch,         "stretch"          );
   INIT_PROP_BIND( Window, CursorRect,      "cursor_rect"      );
   INIT_PROP_BIND( Window, Active,          "active"           );
-  INIT_PROP_BIND( Window, Pause,           "pause"            );
-  INIT_PROP_BIND( Window, X,               "x"                );
-  INIT_PROP_BIND( Window, Y,               "y"                );
   INIT_PROP_BIND( Window, Width,           "width"            );
   INIT_PROP_BIND( Window, Height,          "height"           );
   INIT_PROP_BIND( Window, OX,              "ox"               );

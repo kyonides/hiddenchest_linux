@@ -204,53 +204,11 @@ const char* SharedState::get_title()
   return SDL_GetWindowTitle(p->sdlWindow);
 }
 
-int SharedState::get_window_brightness()
-{
-  double n = SDL_GetWindowBrightness(p->sdlWindow);
-  return static_cast<int>(n * 100);
-}
-
 void SharedState::set_title(const char *title)
 {
   p->config.game.title = title;
   p->config.windowTitle = title;
   SDL_SetWindowTitle(p->sdlWindow, title);
-}
-
-void SharedState::set_icon(const char *icon)
-{
-  SDL_RWops *icon_src = SDL_RWFromFile(icon, "rb");
-  SDL_Surface *icon_img = IMG_Load_RW(icon_src, SDL_TRUE);
-  if (!icon_img)
-    return;
-  SDL_SetWindowIcon(p->sdlWindow, icon_img);
-  SDL_FreeSurface(icon_img);
-}
-
-void SharedState::set_window_resize(bool state)
-{
-  SDL_SetWindowResizable(p->sdlWindow, (SDL_bool) state);
-}
-
-void SharedState::set_window_borders(bool state)
-{
-  SDL_SetWindowBordered(p->sdlWindow, (SDL_bool) state);
-}
-
-int SharedState::set_window_brightness(int n)
-{
-  n = clamp(10, n, 100);
-  double dbl = n / 100.0;
-  SDL_SetWindowBrightness(p->sdlWindow, dbl);
-  return n;
-}
-
-void SharedState::set_screensave_state(bool state)
-{
-  if (state)
-    SDL_EnableScreenSaver();
-  else
-    SDL_DisableScreenSaver();
 }
 
 Scene* SharedState::screen() const

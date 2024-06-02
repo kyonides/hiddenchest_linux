@@ -12,12 +12,16 @@
 #include "graphics.h"
 #include "binding.h"
 #include "binding-util.h"
-#include "sharedmidistate.h"
+#include <SDL_image.h>
 #include "sharedstate.h"
+#include "sharedmidistate.h"
 #include <string>
 #include "exception.h"
 #include "debugwriter.h"
 #include <zlib.h>
+
+struct SDL_Window;
+VALUE zero = RB_INT2FIX(0);
 
 extern const char module_rpg1[];
 extern const char module_rpg2[];
@@ -35,6 +39,16 @@ static VALUE hc_data_dir(VALUE self)
   const std::string &path = shState->config().customDataPath;
   const char *s = path.empty() ? "." : path.c_str();
   return rstr(s);
+}
+
+void set_icon(const char *icon)
+{
+  SDL_RWops *icon_src = SDL_RWFromFile(icon, "rb");
+  SDL_Surface *icon_img = IMG_Load_RW(icon_src, SDL_TRUE);
+  if (!icon_img)
+    return;
+  SDL_SetWindowIcon(shState->sdlWindow(), icon_img);
+  SDL_FreeSurface(icon_img);
 }
 
 static VALUE game_set_internal_values(VALUE self)
@@ -74,10 +88,8 @@ static VALUE game_set_internal_values(VALUE self)
   shState->set_title(title);
   shState->reset_config(rgss, version, scripts, c_rtp);
   shState->check_encrypted_game_file(enc_name);
-  if (RSTRING_LEN(icon) > 4) {
-    const char *icon_path = RSTRING_PTR(icon);
-    shState->set_icon(icon_path);
-  }
+  if (RSTRING_LEN(icon) > 4)
+    set_icon(RSTRING_PTR(icon));
   if (RSTRING_LEN(sfont) > 4)
     shState->midiState().set_default_soundfont(sf);
   return Qnil;
@@ -141,9 +153,10 @@ static VALUE game_window_borders(VALUE self)
   return rb_iv_get(self, "borders");
 }
 
-static VALUE game_window_brightness(VALUE self)
+static VALUE game_display_brightness(VALUE self)
 {
-  int b = shState->get_window_brightness();
+  double n = SDL_GetWindowBrightness(shState->sdlWindow());
+  int b = static_cast<int>(n * 100);
   return RB_INT2FIX(b);
 }
 
@@ -152,9 +165,29 @@ static VALUE game_screensaver_enable(VALUE self)
   return rb_iv_get(self, "screensaver_enable");
 }
 
+void SharedState::set_window_resize(bool state)
+{
+  SDL_SetWindowResizable(p->sdlWindow, (SDL_bool) state);
+}
+
+void SharedState::set_window_borders(bool state)
+{
+  SDL_SetWindowBordered(p->sdlWindow, (SDL_bool) state);
+}
+
+void SharedState::set_screensave_state(bool state)
+{
+  if (state)
+    SDL_EnableScreenSaver();
+  else
+    SDL_DisableScreenSaver();
+}
+
 static VALUE game_window_resizable_set(VALUE self, VALUE state)
 {
+  state = state == Qtrue;
   shState->set_window_resize(state == Qtrue);
+  SDL_SetWindowResizable(shState->sdlWindow(), (SDL_bool) state);
   return rb_iv_set(self, "resizable", state);
 }
 
@@ -164,13 +197,13 @@ static VALUE game_window_borders_set(VALUE self, VALUE state)
   return rb_iv_set(self, "borders", state);
 }
 
-static VALUE game_window_brightness_set(VALUE self, VALUE value)
+static VALUE game_display_brightness_set(VALUE self, VALUE value)
 {
   value = rb_funcall(value, rb_intern("to_i"), 0);
-  int n = RB_FIX2INT(value);
-  n = shState->set_window_brightness(n);
-  value = RB_INT2FIX(n);
-  return rb_iv_set(self, "brightness", value);
+  int n = clamp(10, RB_FIX2INT(value), 100);
+  double dbl = n / 100.0;
+  SDL_SetWindowBrightness(shState->sdlWindow(), dbl);
+  return RB_INT2FIX(n);
 }
 
 static VALUE game_screensaver_enable_set(VALUE self, VALUE state)
@@ -196,10 +229,10 @@ void init_game()
   module_func(game, "change_soundfont", game_sound_font_by_pos, 1);
   module_func(game, "window_resizable?", game_window_resizable, 0);
   module_func(game, "window_show_borders?", game_window_borders, 0);
-  module_func(game, "window_brightness", game_window_brightness, 0);
+  module_func(game, "brightness", game_display_brightness, 0);
   module_func(game, "enable_screensaver?", game_screensaver_enable, 0);
   module_func(game, "window_resizable=", game_window_resizable_set, 1);
   module_func(game, "window_show_borders=", game_window_borders_set, 1);
-  module_func(game, "window_brightness=", game_window_brightness_set, 1);
+  module_func(game, "brightness=", game_display_brightness_set, 1);
   module_func(game, "enable_screensaver=", game_screensaver_enable_set, 1);
 }

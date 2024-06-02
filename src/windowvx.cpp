@@ -160,6 +160,8 @@ struct WindowVXPrivate
   Vec2i contentsOff;/* ox / oy */
   int padding;
   int paddingBottom;
+  int pause_x;
+  int pause_y;
   NormValue opacity;
   NormValue backOpacity;
   NormValue contentsOpacity;
@@ -209,6 +211,8 @@ struct WindowVXPrivate
     width(w),
     height(h),
     geo(x, y, w, h),
+    pause_x(0),
+    pause_y(0),
     padding(DEF_PADDING),
     paddingBottom(padding),
     opacity(255),
@@ -444,7 +448,11 @@ struct WindowVXPrivate
     }
     pauseVert = 0;
     if (pause) {
-      const FloatRect pausePos(arrow.x, geo.h - 16, 16, 16);
+      FloatRect pausePos = FloatRect(arrow.x, geo.h - 16, 16, 16);
+      if (pause_x != 0)
+        pausePos.x = pause_x;
+      if (pause_y != 0)
+        pausePos.y = pause_y;
       pauseVert = &vert[i*4];
       i += Quad::setTexPosRect(&vert[i*4], pauseSrc[0], pausePos);
     }
@@ -483,9 +491,12 @@ struct WindowVXPrivate
     bool drawBg = drawSidesLR && drawSidesTB;
     size_t quads = 0;
     quads += 4; /* 4 corners */
-    if (drawSidesLR) quads += 2;
-    if (drawSidesTB) quads += 2;
-    if (drawBg) quads += 1;
+    if (drawSidesLR)
+      quads += 2;
+    if (drawSidesTB)
+      quads += 2;
+    if (drawBg)
+      quads += 1;
     cursorVert.resize(quads);
     Vertex *vert = dataPtr(cursorVert.vertices);
     size_t i = 0;
@@ -506,7 +517,8 @@ struct WindowVXPrivate
 
   void updatePauseQuad()
   {
-    if (!pauseVert) return;
+    if (!pauseVert)
+      return;
     Quad::setTexRect(pauseVert, pauseSrc[pauseQuad[pauseQuadIdx]]);
     /* Set opacity */
     Quad::setColor(pauseVert, Vec4(1, 1, 1, pauseAlpha[pauseAlphaIdx] / 255.0f));
@@ -515,7 +527,8 @@ struct WindowVXPrivate
 
   void updateCursorAlpha()
   {
-    if (cursorVert.count() == 0) return;
+    if (!cursorVert.count())
+      return;
     Vec4 color(1, 1, 1, cursorAlpha[cursorAlphaIdx] / 255.0f);
     for (size_t i = 0; i < cursorVert.count(); ++i)
       Quad::setColor(&cursorVert.vertices[i*4], color);
@@ -526,7 +539,8 @@ struct WindowVXPrivate
   {
     if (active)
       if (++cursorAlphaIdx == cursorAlphaN) cursorAlphaIdx = 0;
-    if (!pause) return;
+    if (!pause)
+      return;
     if (pauseAlphaIdx < pauseAlphaN-1) ++pauseAlphaIdx;
     if (++pauseQuadIdx == pauseQuadN) pauseQuadIdx = 0;
   }
@@ -573,7 +587,8 @@ struct WindowVXPrivate
 
   void draw()
   {
-    if (base.tex.tex == TEX::ID(0)) return;
+    if (base.tex.tex == TEX::ID(0))
+      return;
     bool windowskinValid = !nullOrDisposed(windowskin);
     bool contentsValid = !nullOrDisposed(contents);
     Vec2i trans = geo.pos() + sceneOffset;
@@ -585,13 +600,15 @@ struct WindowVXPrivate
       shader.setTexSize(Vec2i(base.tex.width, base.tex.height));
       TEX::bind(base.tex.tex);
       base.quad.draw();
-      if (openness < 255) return;
+      if (openness < 255)
+        return;
       windowskin->bindTex(shader);
       TEX::setSmooth(true);
       ctrlVert.draw(0, ctrlQuads);
       TEX::setSmooth(false);
     }
-    if (openness < 255) return;
+    if (openness < 255)
+      return;
     bool drawCursor = cursorVert.count() > 0 && windowskinValid;
     if (drawCursor || contentsValid) {
       /* Translate cliprect from local into screen space */
@@ -650,13 +667,23 @@ WindowVX::~WindowVX()
   dispose();
 }
 
+bool WindowVX::is_mouse_inside() const
+{
+  guardDisposed();
+  int mp = shState->input().mouseX() - p->geo.x - p->padding / 2;
+  if (mp < 4 || mp > p->geo.w - 4)
+    return false;
+  mp = shState->input().mouseY() - p->geo.y - p->padding / 2;
+  return (mp >= 4 && mp <= p->geo.h - 4);
+}
+
 bool WindowVX::is_mouse_inside(int x, int y, int w, int h) const
 {
   guardDisposed();
-  int mp = shState->input().mouseX() - p->geo.x;
+  int mp = shState->input().mouseX() - p->geo.x - p->padding;
   if (mp < x || mp > x + w)
     return false;
-  mp = shState->input().mouseY() - p->geo.y;
+  mp = shState->input().mouseY() - p->geo.y - p->padding;
   return (mp >= y && mp <= y + h);
 }
 
@@ -696,8 +723,6 @@ bool WindowVX::isClosed() const
   return p->openness == 0;
 }
 
-DEF_ATTR_SIMPLE(WindowVX, X,          int,     p->geo.x)
-DEF_ATTR_SIMPLE(WindowVX, Y,          int,     p->geo.y)
 DEF_ATTR_SIMPLE(WindowVX, CursorRect, Rect&,  *p->cursorRect)
 DEF_ATTR_SIMPLE(WindowVX, Tone,       Tone&,  *p->tone)
 DEF_ATTR_RD_SIMPLE(WindowVX, Windowskin,      Bitmap*, p->windowskin)
@@ -705,8 +730,6 @@ DEF_ATTR_RD_SIMPLE(WindowVX, Contents,        Bitmap*, p->contents)
 DEF_ATTR_RD_SIMPLE(WindowVX, Active,          bool,    p->active)
 DEF_ATTR_RD_SIMPLE(WindowVX, ArrowsVisible,   bool,    p->arrowsVisible)
 DEF_ATTR_RD_SIMPLE(WindowVX, Pause,           bool,    p->pause)
-DEF_ATTR_RD_SIMPLE(WindowVX, Width,           int,     p->width)
-DEF_ATTR_RD_SIMPLE(WindowVX, Height,          int,     p->height)
 DEF_ATTR_RD_SIMPLE(WindowVX, OX,              int,     p->contentsOff.x)
 DEF_ATTR_RD_SIMPLE(WindowVX, OY,              int,     p->contentsOff.y)
 DEF_ATTR_RD_SIMPLE(WindowVX, Padding,         int,     p->padding)
@@ -716,10 +739,35 @@ DEF_ATTR_RD_SIMPLE(WindowVX, BackOpacity,     int,     p->backOpacity)
 DEF_ATTR_RD_SIMPLE(WindowVX, ContentsOpacity, int,     p->contentsOpacity)
 DEF_ATTR_RD_SIMPLE(WindowVX, Openness,        int,     p->openness)
 
+int WindowVX::get_x()
+{
+  guardDisposed();
+  return p->geo.x;
+}
+
+int WindowVX::get_y()
+{
+  guardDisposed();
+  return p->geo.y;
+}
+
+int WindowVX::get_width()
+{
+  guardDisposed();
+  return p->width;
+}
+
+int WindowVX::get_height()
+{
+  guardDisposed();
+  return p->height;
+}
+
 void WindowVX::setWindowskin(Bitmap *value)
 {
   guardDisposed();
-  if (p->windowskin == value) return;
+  if (p->windowskin == value)
+    return;
   p->windowskin = value;
   p->base.texDirty = true;
 }
@@ -727,9 +775,11 @@ void WindowVX::setWindowskin(Bitmap *value)
 void WindowVX::setContents(Bitmap *value)
 {
   guardDisposed();
-  if (p->contents == value) return;
+  if (p->contents == value)
+    return;
   p->contents = value;
-  if (nullOrDisposed(value)) return;
+  if (nullOrDisposed(value))
+    return;
   FloatRect rect = p->contents->rect();
   p->contentsQuad.setTexPosRect(rect, rect);
   p->ctrlVertDirty = true;
@@ -738,7 +788,8 @@ void WindowVX::setContents(Bitmap *value)
 void WindowVX::setActive(bool value)
 {
   guardDisposed();
-  if (p->active == value) return;
+  if (p->active == value)
+    return;
   p->active = value;
   p->cursorAlphaIdx = cursorAlphaResetIdx;
   p->updateCursorAlpha();
@@ -747,7 +798,8 @@ void WindowVX::setActive(bool value)
 void WindowVX::setArrowsVisible(bool value)
 {
   guardDisposed();
-  if (p->arrowsVisible == value) return;
+  if (p->arrowsVisible == value)
+    return;
   p->arrowsVisible = value;
   p->ctrlVertDirty = true;
 }
@@ -755,17 +807,19 @@ void WindowVX::setArrowsVisible(bool value)
 void WindowVX::setPause(bool value)
 {
   guardDisposed();
-  if (p->pause == value) return;
+  if (p->pause == value)
+    return;
   p->pause = value;
   p->pauseAlphaIdx = 0;
   p->pauseQuadIdx = 0;
   p->ctrlVertDirty = true;
 }
 
-void WindowVX::setWidth(int value)
+void WindowVX::set_width(int value)
 {
   guardDisposed();
-  if (p->width == value) return;
+  if (p->width == value)
+    return;
   p->width = value;
   p->geo.w = std::max(0, value);
   p->base.vertDirty = true;
@@ -775,10 +829,11 @@ void WindowVX::setWidth(int value)
   p->updateBaseQuad();
 }
 
-void WindowVX::setHeight(int value)
+void WindowVX::set_height(int value)
 {
   guardDisposed();
-  if (p->height == value) return;
+  if (p->height == value)
+    return;
   p->height = value;
   p->geo.h = std::max(0, value);
   p->base.vertDirty = true;
@@ -788,10 +843,49 @@ void WindowVX::setHeight(int value)
   p->updateBaseQuad();
 }
 
+void WindowVX::set_x(int x)
+{
+  guardDisposed();
+  p->geo.x = x;
+}
+
+void WindowVX::set_y(int y)
+{
+  guardDisposed();
+  p->geo.y = y;
+}
+
+void WindowVX::set_xy(int x, int y)
+{
+  guardDisposed();
+  p->geo.x = x;
+  p->geo.y = y;
+}
+
+void WindowVX::set_pause_x(int x)
+{
+  guardDisposed();
+  p->pause_x = x;
+}
+
+void WindowVX::set_pause_y(int y)
+{
+  guardDisposed();
+  p->pause_y = y;
+}
+
+void WindowVX::set_pause_xy(int x, int y)
+{
+  guardDisposed();
+  p->pause_x = x;
+  p->pause_y = y;
+}
+
 void WindowVX::setOX(int value)
 {
   guardDisposed();
-  if (p->contentsOff.x == value) return;
+  if (p->contentsOff.x == value)
+    return;
   p->contentsOff.x = value;
   p->ctrlVertDirty = true;
 }
@@ -799,7 +893,8 @@ void WindowVX::setOX(int value)
 void WindowVX::setOY(int value)
 {
   guardDisposed();
-  if (p->contentsOff.y == value) return;
+  if (p->contentsOff.y == value)
+    return;
   p->contentsOff.y = value;
   p->ctrlVertDirty = true;
 }
@@ -807,7 +902,8 @@ void WindowVX::setOY(int value)
 void WindowVX::setPadding(int value)
 {
   guardDisposed();
-  if (p->padding == value) return;
+  if (p->padding == value)
+    return;
   p->padding = value;
   p->paddingBottom = value;
   p->clipRectDirty = true;
@@ -816,7 +912,8 @@ void WindowVX::setPadding(int value)
 void WindowVX::setPaddingBottom(int value)
 {
   guardDisposed();
-  if (p->paddingBottom == value) return;
+  if (p->paddingBottom == value)
+    return;
   p->paddingBottom = value;
   p->clipRectDirty = true;
 }
@@ -824,7 +921,8 @@ void WindowVX::setPaddingBottom(int value)
 void WindowVX::setOpacity(int value)
 {
   guardDisposed();
-  if (p->opacity == value) return;
+  if (p->opacity == value)
+    return;
   p->opacity = value;
   p->base.quad.setColor(Vec4(1, 1, 1, p->opacity.norm));
 }
@@ -832,7 +930,8 @@ void WindowVX::setOpacity(int value)
 void WindowVX::setBackOpacity(int value)
 {
   guardDisposed();
-  if (p->backOpacity == value) return;
+  if (p->backOpacity == value)
+    return;
   p->backOpacity = value;
   p->base.texDirty = true;
 }
@@ -840,7 +939,8 @@ void WindowVX::setBackOpacity(int value)
 void WindowVX::setContentsOpacity(int value)
 {
   guardDisposed();
-  if (p->contentsOpacity == value) return;
+  if (p->contentsOpacity == value)
+    return;
   p->contentsOpacity = value;
   p->contentsQuad.setColor(Vec4(1, 1, 1, p->contentsOpacity.norm));
 }
@@ -848,7 +948,8 @@ void WindowVX::setContentsOpacity(int value)
 void WindowVX::setOpenness(int value)
 {
   guardDisposed();
-  if (p->openness == value) return;
+  if (p->openness == value)
+    return;
   p->openness = value;
   p->updateBaseQuad();
 }
@@ -857,7 +958,8 @@ void WindowVX::initDynAttribs()
 {
   p->cursorRect = new Rect;
   p->refreshCursorRectCon();
-  if (rgssVer < 3) return;
+  if (rgssVer < 3)
+    return;
   p->tone = new Tone;
   p->refreshToneCon();
 }

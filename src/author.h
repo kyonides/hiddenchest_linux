@@ -1,5 +1,5 @@
 #define HIDDENAUTHOR "Kyonides Arkanthes"
-#define HIDDENVERSION "1.1.74"
+#define HIDDENVERSION "1.1.75"
 #define HIDDENDATE "2024-06-01"
 #define CODENAME "SplashScreen"
 #define SYSTEM_STRING "linux"

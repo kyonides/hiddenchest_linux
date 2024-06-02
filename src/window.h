@@ -43,9 +43,6 @@ public:
     DECL_ATTR( Stretch,         bool    )
     DECL_ATTR( CursorRect,      Rect&   )
     DECL_ATTR( Active,          bool    )
-    DECL_ATTR( Pause,           bool    )
-    DECL_ATTR( X,               int     )
-    DECL_ATTR( Y,               int     )
     DECL_ATTR( Width,           int     )
     DECL_ATTR( Height,          int     )
     DECL_ATTR( OX,              int     )
@@ -53,7 +50,17 @@ public:
     DECL_ATTR( Opacity,         int     )
     DECL_ATTR( BackOpacity,     int     )
     DECL_ATTR( ContentsOpacity, int     )
-    void setXY(int, int);
+    int get_x() const;
+    int get_y() const;
+    bool get_pause() const;
+    void set_x(int);
+    void set_y(int);
+    void setZ(int);
+    void set_xy(int, int);
+    void set_pause(bool);
+    void set_pause_x(int);
+    void set_pause_y(int);
+    void set_pause_xy(int, int);
     int  getOpenness() const;
     void setOpenness(int);
     bool isOpen() const;
@@ -70,7 +77,6 @@ private:
   WindowPrivate *p;
   void draw();
   void onGeometryChange(const Scene::Geometry &);
-  void setZ(int value);
   void setVisible(bool value);
   void onViewportChange();
   void releaseResources();

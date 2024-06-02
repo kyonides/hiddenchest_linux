@@ -33,6 +33,8 @@ DEF_TYPE_CUSTOMNAME(WindowVX, "Window");
 
 void bitmapInitProps(Bitmap *b, VALUE self);
 
+extern VALUE zero;
+
 RB_METHOD(windowVXInitialize)
 {
   WindowVX *w;
@@ -55,6 +57,12 @@ RB_METHOD(windowVXInitialize)
   VALUE contentsObj = wrapObject(contents, BitmapType);
   bitmapInitProps(contents, contentsObj);
   rb_iv_set(self, "contents", contentsObj);
+  rb_iv_set(self, "x", zero);
+  rb_iv_set(self, "y", zero);
+  rb_iv_set(self, "width", RB_INT2FIX(1));
+  rb_iv_set(self, "height", RB_INT2FIX(1));
+  rb_iv_set(self, "pause_x", zero);
+  rb_iv_set(self, "pause_y", zero);
   return self;
 }
 
@@ -77,42 +85,161 @@ RB_METHOD(windowVXMove)
 static VALUE windowVXIsOpen(VALUE self)
 {
   WindowVX *w = getPrivateData<WindowVX>(self);
-  if (w == 0) return Qnil;
+  if (!w)
+    return Qnil;
   return w->isOpen() ? Qtrue : Qfalse;
 }
 
 static VALUE windowVXIsClosed(VALUE self)
 {
   WindowVX *w = getPrivateData<WindowVX>(self);
-  if (w == 0) return Qnil;
+  if (!w)
+    return Qnil;
   return w->isClosed() ? Qtrue : Qfalse;
 }
 
-static VALUE window_is_mouse_inside(VALUE self, VALUE pos)
+static VALUE window_x(VALUE self)
 {
-  WindowVX *win = getPrivateData<WindowVX>(self);
-  if (!win)
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  return !w ? zero : rb_iv_get(self, "x");
+}
+
+static VALUE window_y(VALUE self)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  return !w ? zero : rb_iv_get(self, "y");
+}
+
+static VALUE window_width(VALUE self)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  return !w ? zero : rb_iv_get(self, "width");
+}
+
+static VALUE window_height(VALUE self)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  return !w ? zero : rb_iv_get(self, "height");
+}
+
+static VALUE window_pause_x(VALUE self)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  return !w ? zero : rb_iv_get(self, "pause_x");
+}
+
+static VALUE window_pause_y(VALUE self)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  return !w ? zero : rb_iv_get(self, "pause_y");
+}
+
+static VALUE window_x_set(VALUE self, VALUE rx)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  if (!w)
+    return zero;
+  w->set_x(RB_FIX2INT(rx));
+  return rx;
+}
+
+static VALUE window_y_set(VALUE self, VALUE ry)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  if (!w)
+    return zero;
+  w->set_y(RB_FIX2INT(ry));
+  return ry;
+}
+
+static VALUE window_set_xy(VALUE self, VALUE rx, VALUE ry)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  if (!w)
+    return rb_ary_new3(2, zero, zero);
+  w->set_xy(RB_FIX2INT(rx), RB_FIX2INT(ry));
+  return rb_ary_new3(2, rx, ry);
+}
+
+static VALUE window_set_xyz(VALUE self, VALUE rx, VALUE ry, VALUE rz)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  if (!w)
+    return rb_ary_new3(3, zero, zero, zero);
+  w->set_xy(RB_FIX2INT(rx), RB_FIX2INT(ry));
+  w->setZ(RB_FIX2INT(rz));
+  return rb_ary_new3(3, rx, ry, rz);
+}
+
+static VALUE window_width_set(VALUE self, VALUE rw)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  if (!w)
+    return zero;
+  w->set_width(RB_FIX2INT(rw));
+  return rw;
+}
+
+static VALUE window_height_set(VALUE self, VALUE rh)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  if (!w)
+    return zero;
+  w->set_height(RB_FIX2INT(rh));
+  return rh;
+}
+
+static VALUE window_pause_x_set(VALUE self, VALUE rx)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  if (!w)
+    return zero;
+  w->set_pause_x(RB_FIX2INT(rx));
+  return rx;
+}
+
+static VALUE window_pause_y_set(VALUE self, VALUE ry)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  if (!w)
+    return zero;
+  w->set_pause_y(RB_FIX2INT(ry));
+  return ry;
+}
+
+static VALUE window_pause_set_xy(VALUE self, VALUE rx, VALUE ry)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  if (!w)
+    return rb_ary_new3(2, zero, zero);
+  w->set_pause_xy(RB_FIX2INT(rx), RB_FIX2INT(ry));
+  return rb_ary_new3(2, rx, ry);
+}
+
+static VALUE window_is_mouse_inside(int argc, VALUE *v, VALUE self)
+{
+  WindowVX *w = getPrivateData<WindowVX>(self);
+  if (!w)
     return Qnil;
-  int index = RB_FIX2INT(pos);
+  if (argc == 0) {
+    return w->is_mouse_inside() ? Qtrue : Qfalse;
+  }
+  int index = RB_FIX2INT(v[0]);
   VALUE area = rb_ary_entry(rb_iv_get(self, "@area"), index);
-  if (RB_NIL_P(area))
+  if (area == Qnil)
     return Qnil;
   else if (ARRAY_TYPE_P(area))
     area = rect_from_ary(area);
   Rect *r = static_cast<Rect*>(RTYPEDDATA_DATA(area));
-  return (win->is_mouse_inside(r->x, r->y, r->width, r->height) ? Qtrue : Qfalse);
+  return w->is_mouse_inside(r->x, r->y, r->width, r->height) ? Qtrue : Qfalse;
 }
 
 DEF_PROP_OBJ_REF(WindowVX, Bitmap, Windowskin, "windowskin")
 DEF_PROP_OBJ_REF(WindowVX, Bitmap, Contents, "contents")
 DEF_PROP_OBJ_VAL(WindowVX, Rect, CursorRect, "cursor_rect")
 DEF_PROP_OBJ_VAL(WindowVX, Tone, Tone,       "tone")
-DEF_PROP_I(WindowVX, X)
-DEF_PROP_I(WindowVX, Y)
 DEF_PROP_I(WindowVX, OX)
 DEF_PROP_I(WindowVX, OY)
-DEF_PROP_I(WindowVX, Width)
-DEF_PROP_I(WindowVX, Height)
 DEF_PROP_I(WindowVX, Padding)
 DEF_PROP_I(WindowVX, PaddingBottom)
 DEF_PROP_I(WindowVX, Opacity)
@@ -137,18 +264,29 @@ void windowVXBindingInit()
   INIT_PROP_BIND(WindowVX, CursorRect,      "cursor_rect"     );
   INIT_PROP_BIND(WindowVX, Active,          "active"          );
   INIT_PROP_BIND(WindowVX, Pause,           "pause"           );
-  INIT_PROP_BIND(WindowVX, X,               "x"               );
-  INIT_PROP_BIND(WindowVX, Y,               "y"               );
-  INIT_PROP_BIND(WindowVX, Width,           "width"           );
-  INIT_PROP_BIND(WindowVX, Height,          "height"          );
   INIT_PROP_BIND(WindowVX, OX,              "ox"              );
   INIT_PROP_BIND(WindowVX, OY,              "oy"              );
   INIT_PROP_BIND(WindowVX, Opacity,         "opacity"         );
   INIT_PROP_BIND(WindowVX, BackOpacity,     "back_opacity"    );
   INIT_PROP_BIND(WindowVX, ContentsOpacity, "contents_opacity");
   INIT_PROP_BIND(WindowVX, Openness,        "openness"        );
-  rb_define_method(klass, "mouse_inside?", RMF(window_is_mouse_inside), 1);
-  rb_define_method(klass, "mouse_above?", RMF(window_is_mouse_inside), 1);
+  rb_define_method(klass, "x", RMF(window_x), 0);
+  rb_define_method(klass, "y", RMF(window_y), 0);
+  rb_define_method(klass, "x=", RMF(window_x_set), 1);
+  rb_define_method(klass, "y=", RMF(window_y_set), 1);
+  rb_define_method(klass, "set_xy", RMF(window_set_xy), 2);
+  rb_define_method(klass, "set_xyz", RMF(window_set_xyz), 3);
+  rb_define_method(klass, "width", RMF(window_width), 0);
+  rb_define_method(klass, "height", RMF(window_height), 0);
+  rb_define_method(klass, "width=", RMF(window_width_set), 1);
+  rb_define_method(klass, "height=", RMF(window_height_set), 1);
+  rb_define_method(klass, "pause_x", RMF(window_pause_x), 0);
+  rb_define_method(klass, "pause_y", RMF(window_pause_y), 0);
+  rb_define_method(klass, "pause_x=", RMF(window_pause_x_set), 1);
+  rb_define_method(klass, "pause_y=", RMF(window_pause_y_set), 1);
+  rb_define_method(klass, "pause_xy", RMF(window_pause_set_xy), 2);
+  rb_define_method(klass, "mouse_inside?", RMF(window_is_mouse_inside), -1);
+  rb_define_method(klass, "mouse_above?", RMF(window_is_mouse_inside), -1);
   _rb_define_method(klass, "move", windowVXMove);
   rb_define_method(klass, "open?", RMF(windowVXIsOpen), 0);
   rb_define_method(klass, "close?", RMF(windowVXIsClosed), 0);

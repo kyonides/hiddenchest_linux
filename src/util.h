@@ -29,7 +29,8 @@
 
 static inline int wrapRange(int value, int min, int max)
 {
-    if (value >= min && value <= max) return value;
+    if (value >= min && value <= max)
+      return value;
     while (value < min)
       value += (max - min);
     return value % (max - min);
@@ -38,8 +39,10 @@ static inline int wrapRange(int value, int min, int max)
 template<typename T>
 static inline T clamp(T value, T min, T max)
 {
-  if (value < min) return min;
-  if (value > max) return max;
+  if (value < min)
+    return min;
+  if (value > max)
+    return max;
   return value;
 }
 

@@ -497,9 +497,9 @@ void inputBindingInit()
   module_func(input, "left_click?", input_left_click, 0);
   module_func(input, "middle_click?", input_middle_click, 0);
   module_func(input, "right_click?", input_right_click, 0);
+  module_func(input, "double_click?", input_double_click, 1);
   module_func(input, "double_left_click?", input_double_left_click, 0);
   module_func(input, "double_right_click?", input_double_right_click, 0);
-  module_func(input, "double_click?", input_double_click, 1);
   module_func(input, "mouse_scroll_x?", input_is_mouse_scroll_x, 1);
   module_func(input, "mouse_scroll_y?", input_is_mouse_scroll_y, 1);
   module_func(input, "press?", inputPress, 1);

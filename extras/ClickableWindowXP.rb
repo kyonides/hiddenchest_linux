@@ -1,6 +1,6 @@
 # * ClickableWindow XP * #
 #   Scripter : Kyonides Arkanthes
-#   2024-05-31
+#   2024-06-01
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.
@@ -9,20 +9,24 @@
 # this work.
 
 class Window_Selectable
+  def one_click_selection
+  # Set Index to invisible if clicked outside this window
+    self.index = -1
+    # Check each area - a list of Rect's
+    @area.size.times do |n|
+      next unless mouse_inside?(n)
+      self.index = n
+      break
+    end
+  end
+
   def update
     super
     return unless self.active
     return if @item == 0
     # Added Left Click Check
     if Input.left_click?
-      # Set Index to invisible if clicked outside this window
-      self.index = -1
-      # Check each area - a list of Rect's
-      @area.size.times do |n|
-        next unless mouse_inside?(n)
-        self.index = n
-        break
-      end
+      one_click_selection
       return
     end
     if mouse_inside?
@@ -140,11 +144,35 @@ class Window_Target
   end
 end
 
+class Window_EquipRight
+  def initialize(actor)
+    super(272, 64, 368, 192)
+    @click_width = width - 32
+    self.contents = Bitmap.new(@click_width, height - 32)
+    @actor = actor
+    create_areas
+    refresh
+    self.index = 0
+  end
+
+  def create_areas
+    5.times {|n| @area << Rect.new(4, 32 * n, @click_width, 32) }
+  end
+end
+
 class Window_SaveFile
   alias :kyon_click_win_win_svfl_init :initialize
   def initialize(file_index, filename)
     kyon_click_win_win_svfl_init(file_index, filename)
     @area << self.contents.rect
+  end
+end
+
+class Window_Message
+  alias :kyon_click_win_win_mess_init :initialize
+  def initialize
+    kyon_click_win_win_mess_init
+    self.pause_x = self.width - 80
   end
 end
 
@@ -244,6 +272,11 @@ class Scene_Map
           $game_temp.transition_name)
       end
     end
+    if Input.trigger?(Input::KeyP)
+      $game_system.se_play($data_system.shop_se)
+      Graphics.screenshot
+      return
+    end
     return if $game_temp.message_window_showing
     if $game_player.encounter_count == 0 and $game_map.encounter_list != []
       unless $game_system.map_interpreter.running? or
@@ -289,9 +322,68 @@ class Scene_Map
 end
 
 class Scene_Menu
-  def initialize(menu_index = 0)
-    @menu_index = menu_index
+  def main
+    start
+    Graphics.transition
+    loop do
+      Graphics.update
+      Input.update
+      update
+      if $scene != self
+        break
+      end
+    end
+    Graphics.freeze
+    terminate
+  end
+
+  def start
+    create_command_window
+    create_windows
     Input.mouse_set_xy(80, 28 + @menu_index * 32)
+  end
+
+  def create_command_window
+    s1 = $data_system.words.item
+    s2 = $data_system.words.skill
+    s3 = $data_system.words.equip
+    s4 = "Status"
+    s5 = "Save"
+    s6 = "End Game"
+    @command_window = Window_Command.new(160, [s1, s2, s3, s4, s5, s6])
+    @command_window.index = @menu_index
+    if $game_party.actors.size == 0
+      @command_window.disable_item(0)
+      @command_window.disable_item(1)
+      @command_window.disable_item(2)
+      @command_window.disable_item(3)
+    end
+    if $game_system.save_disabled
+      @command_window.disable_item(4)
+    end
+  end
+
+  def create_windows
+    @playtime_window = Window_PlayTime.new
+    @playtime_window.x = 0
+    @playtime_window.y = 224
+    @steps_window = Window_Steps.new
+    @steps_window.x = 0
+    @steps_window.y = 320
+    @gold_window = Window_Gold.new
+    @gold_window.x = 0
+    @gold_window.y = 416
+    @status_window = Window_MenuStatus.new
+    @status_window.x = 160
+    @status_window.y = 0
+  end
+
+  def terminate
+    @command_window.dispose
+    @playtime_window.dispose
+    @steps_window.dispose
+    @gold_window.dispose
+    @status_window.dispose
   end
 
   def update_command
@@ -316,16 +408,19 @@ class Scene_Menu
         @command_window.active = false
         @status_window.active = true
         @status_window.index = 0
+        Input.mouse_set_xy(@command_window.width + 120, 28)
       when 2  # equipment
         $game_system.se_play($data_system.decision_se)
         @command_window.active = false
         @status_window.active = true
         @status_window.index = 0
+        Input.mouse_set_xy(@command_window.width + 120, 28)
       when 3  # status
         $game_system.se_play($data_system.decision_se)
         @command_window.active = false
         @status_window.active = true
         @status_window.index = 0
+        Input.mouse_set_xy(@command_window.width + 120, 28)
       when 4  # save
         if $game_system.save_disabled
           $game_system.se_play($data_system.buzzer_se)
@@ -342,31 +437,76 @@ class Scene_Menu
   end
 
   def update_status
-    # Added Right Click Check
+    # Added Double Right Click Check
     if Input.trigger?(Input::B) or Input.double_right_click?
       $game_system.se_play($data_system.cancel_se)
       @command_window.active = true
       @status_window.active = false
       @status_window.index = -1
+      Input.mouse_set_xy(80, 28 + @command_window.index * 32)
       return
     end
-    # Added Left Click Check
-    if Input.trigger?(Input::C) or Input.double_left_click?
-      case @command_window.index
-      when 1  # skill
-        if $game_party.actors[@status_window.index].restriction >= 2
-          $game_system.se_play($data_system.buzzer_se)
-          return
-        end
-        $game_system.se_play($data_system.decision_se)
-        $scene = Scene_Skill.new(@status_window.index)
-      when 2  # equipment
-        $game_system.se_play($data_system.decision_se)
-        $scene = Scene_Equip.new(@status_window.index)
-      when 3  # status
-        $game_system.se_play($data_system.decision_se)
-        $scene = Scene_Status.new(@status_window.index)
+    # Modified OK Button Functionality
+    if Input.trigger?(Input::C)
+      process_status
+      return
+    # Added Double Left Click Check
+    elsif Input.double_left_click?
+      return unless @status_window.mouse_inside?(@status_window.index)
+      process_status
+    end
+  end
+
+  def process_status
+    case @command_window.index
+    when 1  # skill
+      if $game_party.actors[@status_window.index].restriction >= 2
+        $game_system.se_play($data_system.buzzer_se)
+        return
       end
+      $game_system.se_play($data_system.decision_se)
+      $scene = Scene_Skill.new(@status_window.index)
+    when 2  # equipment
+      $game_system.se_play($data_system.decision_se)
+      $scene = Scene_Equip.new(@status_window.index)
+    when 3  # status
+      $game_system.se_play($data_system.decision_se)
+      $scene = Scene_Status.new(@status_window.index)
+    end
+  end
+end
+
+class Scene_Item
+  alias :kyon_click_win_scn_item_up_item :update_item
+  def update_item
+    kyon_click_win_scn_item_up_item
+    # Added Double Right Click Check
+    if Input.double_right_click?
+      $game_system.se_play($data_system.cancel_se)
+      $scene = Scene_Menu.new(0)
+      return
+    end
+  end
+end
+
+class Scene_Equip
+  alias :kyon_click_win_scn_equip_up_right :update_right
+  def update_right
+    kyon_click_win_scn_equip_up_right
+    if Input.double_right_click?
+      $game_system.se_play($data_system.cancel_se)
+      $scene = Scene_Menu.new(2)
+      return
+    elsif Input.double_left_click?
+      n = @right_window.index
+      if !@right_window.mouse_inside?(n) or @actor.equip_fix?(n)
+        $game_system.se_play($data_system.buzzer_se)
+        return
+      end
+      $game_system.se_play($data_system.decision_se)
+      @right_window.active = false
+      @item_window.active = true
+      @item_window.index = 0
       return
     end
   end
@@ -376,7 +516,10 @@ class Scene_File
   alias :kyon_click_win_scn_fl_up :update
   def update
     kyon_click_win_scn_fl_up
-    if Input.double_left_click?
+    if Input.double_right_click?
+      on_cancel
+      return
+    elsif Input.double_left_click?
       @savefile_windows.each_with_index do |win, n|
         next unless win.mouse_inside?(0)
         choose_file(n)
@@ -391,9 +534,6 @@ class Scene_File
         choose_file(n)
         break
       end
-      return
-    elsif Input.double_right_click?
-      on_cancel
       return
     end
   end

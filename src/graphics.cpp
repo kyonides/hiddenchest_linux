@@ -832,6 +832,7 @@ void Graphics::transition(int duration, const char *filename, int vague)
   p->checkSyncLock();
   if (!p->frozen)
     return;
+  shState->input().clear_clicks();
   vague = clamp(vague, 1, 256);
   Bitmap *transMap = *filename ? new Bitmap(filename) : 0;
   setBrightness(255);

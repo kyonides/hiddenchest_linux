@@ -1,4 +1,4 @@
-#define SET_RES_OPTION 7
+#define SET_RES_OPTION 2
 #define TILE_WIDTH_MAX 61
 #define TILE_HEIGHT_MAX 34
 #define WIDTH_MAX 1920

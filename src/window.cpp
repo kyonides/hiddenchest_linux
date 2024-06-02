@@ -190,7 +190,7 @@ struct WindowPrivate
   int openMode;
   int padding;
   ColorQuadArray baseQuadArray;
-  /* Used when opacity < 255 */
+  // Used when opacity < 255
   TEXFBO baseTex;
   bool useBaseTex;
   QuadChunk backgroundVert;
@@ -220,7 +220,7 @@ struct WindowPrivate
 
   WindowControls controlsElement;
   ColorQuadArray controlsQuadArray;
-  int controlsQuadCount;
+  int controlsQuadCount, pause_x, pause_y;
   Quad contentsQuad;
   QuadChunk pauseAniVert;
   QuadChunk cursorVert;
@@ -245,6 +245,8 @@ struct WindowPrivate
     openMode(mode),
     tempHeight(0),
     padding(16),
+    pause_x(0),
+    pause_y(0),
     baseVertDirty(true),
     opacityDirty(true),
     baseTexDirty(true),
@@ -461,8 +463,12 @@ struct WindowPrivate
     } // Pause animation
     if (pause) {
       pauseAniVert.vert = &vert[i*4];
-      i += Quad::setTexPosRect(&vert[i*4], pauseAniSrc[pauseAniQuad[pauseAniQuadIdx]],
-                               FloatRect((size.x - 16) / 2, size.y - 16, 16, 16));
+      FloatRect rect = FloatRect((size.x - 16) / 2, size.y - 16, 16, 16);
+      if (pause_x != 0)
+        rect.x = pause_x;
+      if (pause_y != 0)
+        rect.y = pause_y;
+      i += Quad::setTexPosRect(&vert[i*4], pauseAniSrc[pauseAniQuad[pauseAniQuadIdx]], rect);
     }
     controlsQuadArray.commit();
     controlsQuadCount = i;
@@ -499,8 +505,10 @@ struct WindowPrivate
 
   void drawBase()
   {
-    if (nullOrDisposed(windowskin)) return;
-    if (size == Vec2i(0, 0)) return;
+    if (nullOrDisposed(windowskin))
+      return;
+    if (size == Vec2i(0, 0))
+      return;
     SimpleAlphaShader &shader = shState->shaders().simpleAlpha;
     shader.bind();
     shader.applyViewportProj();
@@ -632,7 +640,6 @@ DEF_ATTR_RD_SIMPLE(Window, Windowskin,      Bitmap*, p->windowskin)
 DEF_ATTR_RD_SIMPLE(Window, Contents,        Bitmap*, p->contents)
 DEF_ATTR_RD_SIMPLE(Window, Stretch,         bool,    p->bgStretch)
 DEF_ATTR_RD_SIMPLE(Window, Active,          bool,    p->active)
-DEF_ATTR_RD_SIMPLE(Window, Pause,           bool,    p->pause)
 DEF_ATTR_RD_SIMPLE(Window, Width,           int,     p->size.x)
 DEF_ATTR_RD_SIMPLE(Window, Height,          int,     p->size.y)
 DEF_ATTR_RD_SIMPLE(Window, OX,              int,     p->contentsOffset.x)
@@ -641,25 +648,31 @@ DEF_ATTR_RD_SIMPLE(Window, Opacity,         int,     p->opacity)
 DEF_ATTR_RD_SIMPLE(Window, BackOpacity,     int,     p->backOpacity)
 DEF_ATTR_RD_SIMPLE(Window, ContentsOpacity, int,     p->contentsOpacity)
 
-int Window::getX() const
+int Window::get_x() const
 {
   guardDisposed();
   return p->position.x;
 }
 
-void Window::setX(int value)
-{
-  guardDisposed();
-  p->position.x = value;
-}
-
-int Window::getY() const
+int Window::get_y() const
 {
   guardDisposed();
   return p->position.y;
 }
 
-void Window::setY(int value)
+bool Window::get_pause() const
+{
+  guardDisposed();
+  return p->pause;
+}
+
+void Window::set_x(int value)
+{
+  guardDisposed();
+  p->position.x = value;
+}
+
+void Window::set_y(int value)
 {
   guardDisposed();
   p->position.y = value;
@@ -667,13 +680,32 @@ void Window::setY(int value)
   p->processOpenMode();
 }
 
-void Window::setXY(int val, int num)
+void Window::set_xy(int val, int num)
 {
   guardDisposed();
   p->position.x = val;
   p->position.y = num;
   p->needOpenness = p->openMode > 0;
   p->processOpenMode();
+}
+
+void Window::set_pause_x(int x)
+{
+  guardDisposed();
+  p->pause_x = x;
+}
+
+void Window::set_pause_y(int y)
+{
+  guardDisposed();
+  p->pause_y = y;
+}
+
+void Window::set_pause_xy(int x, int y)
+{
+  guardDisposed();
+  p->pause_x = x;
+  p->pause_y = y;
 }
 
 void Window::setWidth(int value)
@@ -764,7 +796,7 @@ void Window::setActive(bool value)
   p->cursorAniAlphaIdx = 0;
 }
 
-void Window::setPause(bool value)
+void Window::set_pause(bool value)
 {
   guardDisposed();
   if (p->pause == value)
@@ -844,7 +876,8 @@ bool Window::is_mouse_inside(int x, int y, int w, int h) const
 void Window::setOpacity(int value)
 {
   guardDisposed();
-  if (p->opacity == value) return;
+  if (p->opacity == value)
+    return;
   p->opacity = value;
   p->opacityDirty = true;
 }
@@ -852,7 +885,8 @@ void Window::setOpacity(int value)
 void Window::setBackOpacity(int value)
 {
   guardDisposed();
-  if (p->backOpacity == value) return;
+  if (p->backOpacity == value)
+    return;
   p->backOpacity = value;
   p->opacityDirty = true;
 }
@@ -860,7 +894,8 @@ void Window::setBackOpacity(int value)
 void Window::setContentsOpacity(int value)
 {
   guardDisposed();
-  if (p->contentsOpacity == value) return;
+  if (p->contentsOpacity == value)
+    return;
   p->contentsOpacity = value;
   p->contentsQuad.setColor(Vec4(1, 1, 1, p->contentsOpacity.norm));
 }
