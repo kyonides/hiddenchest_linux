@@ -203,6 +203,16 @@ void Audio::bgm_resume()
   p->bgm.resume();
 }
 
+void Audio::bgm_loop()
+{
+  p->bgm.loop();
+}
+
+void Audio::bgm_no_loop()
+{
+  p->bgm.no_loop();
+}
+
 void Audio::bgmFade(int time)
 {
   p->bgm.fadeOut(time);

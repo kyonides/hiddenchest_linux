@@ -156,6 +156,20 @@ void AudioStream::resume()
   unlockStream();
 }
 
+void AudioStream::loop()
+{
+  lockStream();
+  stream.looped = ALStream::Looped;
+  unlockStream();
+}
+
+void AudioStream::no_loop()
+{
+  lockStream();
+  stream.looped = ALStream::NotLooped;
+  unlockStream();
+}
+
 void AudioStream::fadeOut(int duration)
 {
   lockStream();

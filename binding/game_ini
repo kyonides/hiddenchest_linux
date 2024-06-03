@@ -125,6 +125,8 @@ module Game
     unless encrypted
       n = process_exe_name(projects)
     end
+    Font.default_shadow = n == 2
+    Font.default_outline = n == 3
     debug = (!encrypted && DATA["Debug"][/true/i] != nil)
     const_set("DEBUG", debug)
     const_set("ENCRYPTED_NAME", EXE_NAME + encrypt_ext[n])

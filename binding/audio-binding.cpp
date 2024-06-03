@@ -57,6 +57,18 @@ static VALUE audio_bgm_resume(VALUE self)
   return Qnil;
 }
 
+static VALUE audio_bgm_loop(VALUE self)
+{
+  shState->audio().bgm_resume();
+  return Qtrue;
+}
+
+static VALUE audio_bgm_no_loop(VALUE self)
+{
+  shState->audio().bgm_resume();
+  return Qfalse;
+}
+
 static VALUE audio_bgmPos(VALUE self)
 {
   VALUE pos = rb_float_new(shState->audio().bgmPos());
@@ -281,6 +293,8 @@ void audioBindingInit()
   module_func(md, "bgm_stop", audio_bgmStop, 0);
   module_func(md, "bgm_pause", audio_bgm_pause, 0);
   module_func(md, "bgm_resume", audio_bgm_resume, 0);
+  module_func(md, "bgm_loop", audio_bgm_loop, 0);
+  module_func(md, "bgm_no_loop", audio_bgm_no_loop, 0);
   module_func(md, "bgm_fade", audio_bgmFade, -1);
   module_func(md, "bgs_play", audio_bgsPlay, -1);
   module_func(md, "bgs_stop", audio_bgsStop, 0);

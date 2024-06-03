@@ -1,6 +1,6 @@
 # * ClickableWindow ACE * #
 #   Scripter : Kyonides Arkanthes
-#   2024-05-23
+#   2024-06-02
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.
@@ -71,7 +71,7 @@ class Scene_File
   def update_savefile_selection
     if Input.double_left_click?
       @savefile_windows.each_with_index do |win, n|
-        next unless win.mouse_inside?(0)
+        next unless win.mouse_inside?
         choose_file(n)
         on_savefile_ok
         break
@@ -79,7 +79,7 @@ class Scene_File
       return
     elsif Input.left_click?
       @savefile_windows.each_with_index do |win, n|
-        next unless win.mouse_inside?(0)
+        next unless win.mouse_inside?
         choose_file(n)
         break
       end

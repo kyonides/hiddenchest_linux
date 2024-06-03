@@ -1,6 +1,6 @@
 # * KSoundFontMenu VX * # 
 #   Scripter : Kyonides Arkanthes
-#   2024-05-30
+#   2024-06-02
 
 # Note: It seems like the MIDI file should be playing BEFORE you proceed to call
 #       Game.choose_soundfont while loading a save game. Otherwise, the MIDI
@@ -58,7 +58,7 @@ class Menu
     gs_indexes = $game_system.soundfont_indexes
     if gs_indexes.any?
       @indexes = gs_indexes.sort
-      if @indexes.size < soundfonts
+      if @indexes.size < soundfonts.size
         soundfonts = @indexes.map{|n| soundfonts[n] }
       end
     end

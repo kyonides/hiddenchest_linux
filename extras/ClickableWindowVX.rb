@@ -110,6 +110,17 @@ class Scene_Title
   end
 end
 
+class Scene_Map
+  def update_call_menu
+    if Input.trigger?(Input::B) or Input.double_right_click?
+      return if $game_map.interpreter.running?
+      return if $game_system.menu_disabled
+      $game_temp.menu_beep = true
+      $game_temp.next_scene = "menu"
+    end
+  end
+end
+
 class Scene_Menu
   def update_command_selection
     if Input.trigger?(Input::B) or Input.double_right_click?

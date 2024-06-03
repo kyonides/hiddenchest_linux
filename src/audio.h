@@ -51,6 +51,8 @@ public:
 	void bgsStop();
   void bgm_pause();
   void bgm_resume();
+	void bgm_loop();
+	void bgm_no_loop();
 	void bgsFade(int time);
 	void mePlay(const char *filename,
 	            int volume = 100,
