@@ -67,7 +67,7 @@ class Menu
     @full_list = Game.soundfonts.size == @total
     soundfont = soundfonts[pos]
     if soundfonts.any?
-      soundfont = soundfont.split("/")[-1].sub(".sf2", "")
+      soundfont = soundfont.split(/[\/|\\]/)[-1].sub(".sf2", "")
     else
       soundfont = NO_SOUNDFONT
     end

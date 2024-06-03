@@ -68,7 +68,7 @@ class Menu
     soundfont = soundfonts[pos]
     dialog_box soundfont
     if soundfonts.any?
-      soundfont = soundfont.split("/")[-1].sub(".sf2", "")
+      soundfont = soundfont.split(/[\/|\\]/)[-1].sub(".sf2", "")
     else
       soundfont = NO_SOUNDFONT
     end
