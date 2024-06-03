@@ -531,7 +531,7 @@ struct GraphicsPrivate
   GraphicsPrivate(RGSSThreadData *rtData)
   : scRes(START_WIDTH, START_HEIGHT),// scRes(WIDTH_MAX, HEIGHT_MAX),
     scSize(scRes),
-    winSize(rtData->config.defScreenW, rtData->config.defScreenH),
+    winSize(START_WIDTH, START_HEIGHT),
     screen(scRes.x, scRes.y),
     threadData(rtData),
     glCtx(SDL_GL_GetCurrentContext()),
@@ -546,8 +546,6 @@ struct GraphicsPrivate
     block_ftwelve(false),
     block_fone(false)
   {
-    winSize.x = START_WIDTH;
-    winSize.y = START_HEIGHT;
     recalculateScreenSize(rtData);
     updateScreenResoRatio(rtData);
     TEXFBO::init(frozenScene);
@@ -1084,11 +1082,9 @@ int Graphics::height() const
 
 void Graphics::resizeScreen(int width, int height)
 {
-  width = clamp(width, 1, WIDTH_MAX);
-  height = clamp(height, 1, HEIGHT_MAX);
+  width = clamp(width, 320, WIDTH_MAX);
+  height = clamp(height, 240, HEIGHT_MAX);
   Vec2i size(width, height);
-  if (p->scRes == size)
-    return;
   p->scRes = size;
   p->screen.setResolution(width, height);
   TEXFBO::allocEmpty(p->frozenScene, width, height);

@@ -10,11 +10,11 @@ module System
   end
 
   def self.linux?
-    FAMILY_NAME == "linux"
+    FAMILY_NAME[/linux/i] != nil
   end
 
   def self.windows?
-    FAMILY_NAME == "windows"
+    FAMILY_NAME[/windows/i] != nil
   end
 end
 
@@ -89,20 +89,32 @@ module Game
   end
 
   def self.add_soundfonts(dir)
-    names = Dir[dir + SOUNDFONT_REGEX].sort
-    names.size.times {|n| @soundfonts << names[n] }
+    @soundfonts += Dir[dir + SOUNDFONT_REGEX].sort
   end
 
   def self.set_basic_values
     if System.windows?
-      dir = DATA.delete("SoundFontPathWin").to_s
       default = DATA.delete("SoundFontWin").to_s
+      sf_dir = DATA.delete("SoundFontPathWin").to_s
+      sf_dir.gsub!(/[\\]/, "/")
     elsif System.linux?
-      dir = DATA.delete("SoundFontPathLnx").to_s
       default = DATA.delete("SoundFontLnx").to_s
+      sf_dir = DATA.delete("SoundFontPathLnx").to_s
     end
-    System.const_set("SOUNDFONT_DIR", dir)
+    System.const_set("SOUNDFONT_DIR", sf_dir)
     System.const_set("SOUNDFONT", default)
+    @soundfonts = []
+    @soundfont = default
+    add_soundfonts(sf_dir)
+    add_soundfonts(Dir.pwd + "/Audio/SF2")
+    if @soundfont.empty?
+      if @soundfonts.size > 0
+        @soundfont = @soundfonts[0]
+      end
+    else
+      @soundfonts.delete(@soundfont)
+      @soundfonts.unshift(@soundfont)
+    end
     DATA["Scripts"].sub!("\\", "/")
     const_set("SCRIPTS", DATA.delete("Scripts").to_s)
     const_set("TITLE", DATA.delete("Title").to_s)
@@ -143,6 +155,10 @@ module Game
     end
     state = DATA["Fullscreen"][/true/i] != nil
     const_set("FULLSCREEN", state)
+    unless state
+      Graphics.resize(w, h)
+      Graphics.center_window
+    end
     state = DATA["SubImageFix"][/true/i] != nil
     const_set("SUB_IMAGE_FIX", state)
     puts "RGSS Version:       #{n} (#{MAKER})"
@@ -151,18 +167,6 @@ module Game
     puts "Trigger Fullscreen: #{FULLSCREEN}"
     puts "SubImage Fix:       #{SUB_IMAGE_FIX}"
     Font.solid_fonts = DATA.delete("SolidFonts").to_s[/true/i] != nil
-    @soundfont = System::SOUNDFONT.to_s
-    @soundfonts = []
-    add_soundfonts(System::SOUNDFONT_DIR)
-    add_soundfonts(Dir.pwd + "/Audio/SF2")
-    if @soundfont.empty?
-      if @soundfonts.size > 0
-        @soundfont = @soundfonts[0]
-      end
-    else
-      @soundfonts.delete(@soundfont)
-      @soundfonts.unshift(@soundfont)
-    end
   end
 
   def self.soundfont_index
@@ -246,6 +250,7 @@ begin
   while $scene
     $scene.main
   end
+  Graphics.center_window unless Graphics.fullscreen
 rescue => e
   puts e.class, e.message, e.backtrace
   Game.setup

@@ -1,9 +1,10 @@
 /*
 ** audio.h
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
+** Modified  (C) 2018-2024 Kyonides <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -51,6 +52,8 @@ public:
 	void bgsStop();
   void bgm_pause();
   void bgm_resume();
+  bool bgm_playing();
+  bool bgm_stopped();
 	void bgm_loop();
 	void bgm_no_loop();
 	void bgsFade(int time);

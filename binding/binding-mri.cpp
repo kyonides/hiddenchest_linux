@@ -361,7 +361,6 @@ static bool file_exist(VALUE name, const char* ext)
 
 static int rb_check_rgss_version()
 {
-  init_game();
   int state;
   rb_eval_string_protect(game_ini, &state);
   return state;
@@ -598,6 +597,7 @@ static void mriBindingExecute()
   init_backdrop();
   init_scripts();
   init_system();
+  init_game();
   int state = rb_check_rgss_version();
   if (state) {
     rb_p(rb_errinfo());

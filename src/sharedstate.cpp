@@ -4,6 +4,7 @@
 ** This file is part of mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
+** Extended (C) 2018-2024 Kyonides-Arkanthes
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -135,7 +136,7 @@ struct SharedStatePrivate
   }
 };
 
-void SharedState::check_encrypted_game_file(const char* game_fn)
+void SharedState::check_encrypted_game_file(const char *game_fn)
 {
   std::string archPath = game_fn;
   Debug() << "Searching for encrypted game file...";
@@ -152,6 +153,11 @@ void SharedState::check_encrypted_game_file(const char* game_fn)
     p->fileSystem.addPath(p->config.rtps[i].c_str());
   if (p->config.pathCache)
     p->fileSystem.createPathCache();
+}
+
+void SharedState::check_soundfont_dir(const char *sf_dir)
+{
+  p->fileSystem.addPath(sf_dir);
 }
 
 void SharedState::initInstance(RGSSThreadData *threadData)
@@ -352,14 +358,16 @@ void SharedState::requestAtlasTex(int w, int h, TEXFBO &out)
 
 void SharedState::releaseAtlasTex(TEXFBO &tex)
 { // No point in caching an invalid object
-  if (tex.tex == TEX::ID(0)) return;
+  if (tex.tex == TEX::ID(0))
+    return;
   TEXFBO::fini(p->atlasTex);
   p->atlasTex = tex;
 }
 
 void SharedState::checkShutdown()
 {
-  if (!p->rtData.rqTerm) return;
+  if (!p->rtData.rqTerm)
+    return;
   p->rtData.rqTermAck.set();
   p->texPool.disable();
   scriptBinding->terminate();
@@ -367,7 +375,8 @@ void SharedState::checkShutdown()
 
 void SharedState::checkReset()
 {
-  if (!p->rtData.rqReset) return;
+  if (!p->rtData.rqReset)
+    return;
   p->rtData.rqReset.clear();
   scriptBinding->reset();
 }
@@ -376,6 +385,8 @@ void SharedState::init_size(int w, int h)
 {
   p->config.defScreenW = w;
   p->config.defScreenH = h;
+  if (!p->graphics.get_fullscreen())
+    p->graphics.resizeScreen(w, h);
 }
 
 void SharedState::reset_config(int rgss, const char *version,

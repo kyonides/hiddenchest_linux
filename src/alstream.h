@@ -1,9 +1,10 @@
 /*
 ** alstream.h
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2014 Jonas Kulla <Nyocurio@gmail.com>
+** Modified  (C) 2018-2024 Kyonides <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -89,6 +90,8 @@ struct ALStream
   State queryState();
   float queryOffset();
   bool queryNativePitch();
+  bool is_playing();
+  bool has_stopped();
 
 private:
   void closeSource();

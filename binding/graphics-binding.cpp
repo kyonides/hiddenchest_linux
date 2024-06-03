@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** 2018 Modified by Kyonides-Arkanthes
+** Modified  (C) 2018-2024 Kyonides <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -338,13 +338,6 @@ void graphicsBindingInit()
   module_func(graph, "show_cursor=", graphics_set_show_cursor, 1);
   module_func(graph, "center_window", graphics_center_window, 0);
   module_func(graph, "delta", graphics_get_delta, 0);
-  VALUE game = rb_define_module("Game");
-  if (rb_iv_get(game, "@setup_screen") == Qtrue) {
-    rb_iv_set(game, "@setup_screen", Qfalse);
-    VALUE w = rb_const_get(game, rb_intern("WIDTH"));
-    VALUE h = rb_const_get(game, rb_intern("HEIGHT"));
-    graphics_resize_screen(graph, w, h);
-  }
   VALUE sys = rb_define_module("System");
   module_func(sys, "delta", graphics_get_delta, 0);
   module_func(sys, "uptime", graphics_get_delta, 0);

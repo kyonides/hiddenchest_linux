@@ -1,9 +1,10 @@
 /*
 ** audio.cpp
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
+** Modified  (C) 2018-2024 Kyonides <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -201,6 +202,16 @@ void Audio::bgm_pause()
 void Audio::bgm_resume()
 {
   p->bgm.resume();
+}
+
+bool Audio::bgm_playing()
+{
+  return p->bgm.playing();
+}
+
+bool Audio::bgm_stopped()
+{
+  return p->bgm.stopped();
 }
 
 void Audio::bgm_loop()

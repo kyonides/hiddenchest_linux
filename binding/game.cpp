@@ -68,8 +68,10 @@ static VALUE game_set_icon(VALUE self, VALUE icon_name)
 
 static VALUE game_set_internal_values(VALUE self)
 {
-  VALUE rversion, width, height, ttl, ver, scr;
-  VALUE enc, path, rtp_ary, icon, sfont, subimg;
+  VALUE sys, sfonts, rversion, width, height, ttl, ver;
+  VALUE scr, enc, path, rtp_ary, icon, sfont, subimg;
+  sys = rb_define_module("System");
+  sfonts = rb_const_get(sys, rb_intern("SOUNDFONT_DIR"));
   rversion = rb_const_get(self, rb_intern("RGSS_VERSION"));
   width = rb_const_get(self, rb_intern("WIDTH"));
   height = rb_const_get(self, rb_intern("HEIGHT"));
@@ -84,6 +86,7 @@ static VALUE game_set_internal_values(VALUE self)
   w = RB_FIX2INT(width);
   h = RB_FIX2INT(height);
   rtp_len = RARRAY_LEN(rtp_ary);
+  const char *sf_dir = RSTRING_PTR(sfonts);
   const char *version = RSTRING_PTR(ver);
   const char *scripts = RSTRING_PTR(scr);
   const char *enc_name = RSTRING_PTR(enc);
@@ -97,10 +100,10 @@ static VALUE game_set_internal_values(VALUE self)
     str = RSTRING_PTR(path);
     c_rtp.push_back(str);
   }
-  if (START_WIDTH != w || START_HEIGHT != h)
-    shState->init_size(w, h);
+  shState->init_size(w, h);
   shState->reset_config(rgss, version, scripts, c_rtp);
   shState->check_encrypted_game_file(enc_name);
+  shState->check_soundfont_dir(sf_dir);
   shState->config().subImageFix = subimg == Qtrue;
   if (RSTRING_LEN(sfont) > 4)
     shState->midiState().set_default_soundfont(sf);

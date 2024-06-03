@@ -4,6 +4,7 @@
 ** This file is part of mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
+** Extended (C) 2018-2024 Kyonides-Arkanthes
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -56,6 +57,7 @@ struct SharedMidiState;
 struct SharedState
 {
 	void check_encrypted_game_file(const char* game_fn);
+	void check_soundfont_dir(const char *sf_dir);
 	void *bindingData() const;
 	void setBindingData(void *data);
 

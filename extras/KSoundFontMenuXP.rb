@@ -1,6 +1,6 @@
 # * KSoundFontMenu XP * # 
 #   Scripter : Kyonides Arkanthes
-#   2024-05-30
+#   2024-06-03
 
 # Note: It seems like the MIDI file should be playing BEFORE you proceed to call
 #       Game.choose_soundfont while loading a save game. Otherwise, the MIDI
@@ -16,12 +16,13 @@ module KSoundFont
   TITLE = "Select a SoundFont"
   THIS_SOUNDFONT = "Current SoundFont"
   DELAY_MESSAGE = "Processing New SF..."
+  NO_SOUNDFONT = "No SoundFont"
   TRANSPARENT = Color.new(0, 0, 0, 0)
 
 class PathsWindow < Window_Command
   def initialize(w, paths)
     @paths = paths
-    commands = paths.map {|fn| fn.split("/")[-1].sub(".sf2", "") }
+    commands = paths.map {|fn| fn.split(/[\/|\\]/)[-1].sub(".sf2", "") }
     super(w, commands)
   end
 
@@ -66,10 +67,10 @@ class Menu
     @full_list = Game.soundfonts.size == @total
     soundfont = soundfonts[pos]
     dialog_box soundfont
-    if soundfont&.empty?
-      soundfont = "No SoundFont"
-    else
+    if soundfonts.any?
       soundfont = soundfont.split("/")[-1].sub(".sf2", "")
+    else
+      soundfont = NO_SOUNDFONT
     end
     @help_window = Window_Help.new
     @help_window.set_text(TITLE, 1)

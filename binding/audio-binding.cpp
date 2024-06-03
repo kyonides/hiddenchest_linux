@@ -1,10 +1,10 @@
 /*
 ** audio-binding.cpp
 **
-** This file is part of hiddenchest and mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** 2018 (C) Modified by Kyonides Arkanthes <kyonides@gmail.com>
+** Modified  (C) 2018-2024 Kyonides <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -55,6 +55,16 @@ static VALUE audio_bgm_resume(VALUE self)
 {
   shState->audio().bgm_resume();
   return Qnil;
+}
+
+static VALUE audio_bgm_playing(VALUE self)
+{
+  return shState->audio().bgm_playing() ? Qtrue : Qfalse;
+}
+
+static VALUE audio_bgm_stopped(VALUE self)
+{
+  return shState->audio().bgm_stopped() ? Qtrue : Qfalse;
 }
 
 static VALUE audio_bgm_loop(VALUE self)
@@ -293,6 +303,8 @@ void audioBindingInit()
   module_func(md, "bgm_stop", audio_bgmStop, 0);
   module_func(md, "bgm_pause", audio_bgm_pause, 0);
   module_func(md, "bgm_resume", audio_bgm_resume, 0);
+  module_func(md, "bgm_playing?", audio_bgm_playing, 0);
+  module_func(md, "bgm_stopped?", audio_bgm_stopped, 0);
   module_func(md, "bgm_loop", audio_bgm_loop, 0);
   module_func(md, "bgm_no_loop", audio_bgm_no_loop, 0);
   module_func(md, "bgm_fade", audio_bgmFade, -1);

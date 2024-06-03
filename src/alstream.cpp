@@ -1,9 +1,10 @@
 /*
 ** alstream.cpp
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2014 Jonas Kulla <Nyocurio@gmail.com>
+** Modified  (C) 2018-2024 Kyonides <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -107,7 +108,8 @@ void ALStream::stop()
 
 void ALStream::play(float offset)
 {
-  if (!source) return;
+  if (!source)
+    return;
   checkStopped();
   switch (state) {
   case Closed:
@@ -156,9 +158,20 @@ ALStream::State ALStream::queryState()
 
 float ALStream::queryOffset()
 {
-  if (state == Closed) return 0;
+  if (state == Closed)
+    return 0;
   float procOffset = static_cast<float>(procFrames) / source->sampleRate();
   return procOffset + AL::Source::getSecOffset(alSrc);
+}
+
+bool ALStream::is_playing()
+{
+  return AL::Source::getState(alSrc) == AL_PLAYING && state == Playing;
+}
+
+bool ALStream::has_stopped()
+{
+  return AL::Source::getState(alSrc) == AL_STOPPED && state == Stopped;
 }
 
 void ALStream::closeSource()
@@ -273,16 +286,20 @@ void ALStream::checkStopped()
 {/* This only concerns the scenario where
    * state is still 'Playing', but the stream
    * has already ended on its own (EOF, Error) */
-  if (state != Playing) return;
+  if (state != Playing)
+    return;
   /* If streaming thread hasn't queued up
    * buffers yet there's not point in querying
    * the AL source */
-  if (!streamInited) return;
+  if (!streamInited)
+    return;
   /* If alSrc isn't playing, but we haven't
    * exhausted the data source yet, we're just
    * having a buffer underrun */
-  if (!sourceExhausted) return;
-  if (AL::Source::getState(alSrc) == AL_PLAYING) return;
+  if (!sourceExhausted)
+    return;
+  if (AL::Source::getState(alSrc) == AL_PLAYING)
+    return;
   stopStream();
   state = Stopped;
 }

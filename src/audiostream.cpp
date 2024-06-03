@@ -1,9 +1,10 @@
 /*
 ** audiostream.cpp
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2014 Jonas Kulla <Nyocurio@gmail.com>
+** Modified  (C) 2018-2024 Kyonides <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -230,6 +231,16 @@ float AudioStream::getVolume(VolumeType type)
 float AudioStream::playingOffset()
 {
   return stream.queryOffset();
+}
+
+bool AudioStream::playing()
+{
+  return stream.is_playing();
+}
+
+bool AudioStream::stopped()
+{
+  return stream.has_stopped();
 }
 
 void AudioStream::updateVolume()
