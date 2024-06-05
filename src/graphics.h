@@ -71,7 +71,7 @@ public:
   bool save_screenshot();
   int width() const;
   int height() const;
-  void resizeScreen(int width, int height);
+  void resizeScreen(int width=0, int height=0, bool center=true);
   void center_window(int width=0, int height=0);
   void playMovie(const char *filename);
   void reset();

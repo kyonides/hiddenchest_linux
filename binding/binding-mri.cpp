@@ -43,6 +43,7 @@
 
 #define ch const char*
 
+extern const char module_rpg_audio[];
 extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
@@ -598,6 +599,7 @@ static void mriBindingExecute()
   init_scripts();
   init_system();
   init_game();
+  rb_eval_string(module_rpg_audio);
   int state = rb_check_rgss_version();
   if (state) {
     rb_p(rb_errinfo());

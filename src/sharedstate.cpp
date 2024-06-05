@@ -385,8 +385,6 @@ void SharedState::init_size(int w, int h)
 {
   p->config.defScreenW = w;
   p->config.defScreenH = h;
-  if (!p->graphics.get_fullscreen())
-    p->graphics.resizeScreen(w, h);
 }
 
 void SharedState::reset_config(int rgss, const char *version,
@@ -405,7 +403,8 @@ Font &SharedState::defaultFont() const
 }
 
 unsigned long long SharedState::runTime() {
-  if (!p) return 0;
+  if (!p)
+    return 0;
   const auto now = std::chrono::steady_clock::now();
   return std::chrono::duration_cast<std::chrono::microseconds>(now - p->startupTime).count();
 }

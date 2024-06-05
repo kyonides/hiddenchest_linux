@@ -230,10 +230,8 @@ class Scene_Title
     elsif Input.trigger?(Input::C) or Input.double_left_click?
       case @command_window.index
       when 0  # New game
-        Graphics.center_window
         command_new_game
       when 1  # Continue
-        Graphics.center_window
         command_continue
       when 2  # Shutdown
         command_shutdown

@@ -1542,15 +1542,4 @@ module RPG
     attr_accessor :battler_hue
     attr_accessor :edit_map_id
   end
-
-  class AudioFile
-    def initialize(name = "", volume = 100, pitch = 100)
-      @name = name
-      @volume = volume
-      @pitch = pitch
-    end
-    attr_accessor :name
-    attr_accessor :volume
-    attr_accessor :pitch
-  end
 end

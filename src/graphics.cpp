@@ -529,9 +529,9 @@ struct GraphicsPrivate
   IntruList<Disposable> dispList;
 
   GraphicsPrivate(RGSSThreadData *rtData)
-  : scRes(START_WIDTH, START_HEIGHT),// scRes(WIDTH_MAX, HEIGHT_MAX),
+  : scRes(SPLASH_WIDTH, SPLASH_HEIGHT),// scRes(WIDTH_MAX, HEIGHT_MAX),
     scSize(scRes),
-    winSize(START_WIDTH, START_HEIGHT),
+    winSize(SPLASH_WIDTH, SPLASH_HEIGHT),
     screen(scRes.x, scRes.y),
     threadData(rtData),
     glCtx(SDL_GL_GetCurrentContext()),
@@ -560,17 +560,9 @@ struct GraphicsPrivate
   {
     TEXFBO::fini(frozenScene);
   }
-
-  void updateScreenResoRatio(RGSSThreadData *rtData)
-  {
-    Vec2 &ratio = rtData->sizeResoRatio;
-    ratio.x = (float) scRes.x / scSize.x;
-    ratio.y = (float) scRes.y / scSize.y;
-    rtData->screenOffset = scOffset;
-  }
-  /* Enforces fixed aspect ratio, if desired */
+  // Enforces fixed aspect ratio, if desired
   void recalculateScreenSize(RGSSThreadData *rtData)
-  {// Debug() << winSize.x << " " << winSize.y;
+  {
     scSize = winSize;
     if (!rtData->config.fixedAspectRatio) {
       scOffset = Vec2i(0, 0);
@@ -584,6 +576,18 @@ struct GraphicsPrivate
       scSize.x = scSize.y * resRatio;
     scOffset.x = (winSize.x - scSize.x) / 2.f;
     scOffset.y = (winSize.y - scSize.y) / 2.f;
+    if (scOffset.x < 0)
+      scOffset.x = 0;
+    if (scOffset.y < 0)
+      scOffset.y = 0;
+  }
+
+  void updateScreenResoRatio(RGSSThreadData *rtData)
+  {
+    Vec2 &ratio = rtData->sizeResoRatio;
+    ratio.x = (float) scRes.x / scSize.x;
+    ratio.y = (float) scRes.y / scSize.y;
+    rtData->screenOffset = scOffset;
   }
 
   void checkResize()
@@ -598,6 +602,17 @@ struct GraphicsPrivate
     }
   }
 
+  void auto_resize()
+  {
+    if (!threadData->ethread->getFullscreen()) {
+      glState.viewport.refresh();
+      recalculateScreenSize(threadData);
+      updateScreenResoRatio(threadData);
+      SDL_Rect screen = { scOffset.x, scOffset.y, scSize.x, scSize.y };
+      threadData->ethread->notifyGameScreenChange(screen);
+    }
+  }
+      
   void checkShutDownReset()
   {
     shState->checkShutdown();
@@ -1080,18 +1095,23 @@ int Graphics::height() const
   return p->scRes.y;
 }
 
-void Graphics::resizeScreen(int width, int height)
+void Graphics::resizeScreen(int w, int h, bool center)
 {
-  width = clamp(width, 320, WIDTH_MAX);
-  height = clamp(height, 240, HEIGHT_MAX);
-  Vec2i size(width, height);
+  if (!w)
+    w = width();
+  if (!h)
+    h = height();
+  w = clamp(w, 320, WIDTH_MAX);
+  h = clamp(h, 240, HEIGHT_MAX);
+  Vec2i size(w, h);
   p->scRes = size;
-  p->screen.setResolution(width, height);
-  TEXFBO::allocEmpty(p->frozenScene, width, height);
-  FloatRect screenRect(0, 0, width, height);
+  p->screen.setResolution(w, h);
+  TEXFBO::allocEmpty(p->frozenScene, w, h);
+  FloatRect screenRect(0, 0, w, h);
   p->screenQuad.setTexPosRect(screenRect, screenRect);
-  shState->eThread().requestWindowResize(width, height);
-  center_window(width, height);
+  shState->eThread().requestWindowResize(w, h);
+  if (center)
+    center_window(w, h);
 }
 
 void Graphics::center_window(int width, int height)

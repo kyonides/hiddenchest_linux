@@ -22,6 +22,7 @@
 
 #include "hcextras.h"
 #include "graphics.h"
+#include <SDL_image.h>
 #include "sharedstate.h"
 #include "binding-util.h"
 #include "binding-types.h"
@@ -170,10 +171,18 @@ static VALUE graphics_save_screenshot(VALUE self)
   return result;
 }
 
-static VALUE graphics_resize_screen(VALUE self, VALUE w, VALUE h)
+static VALUE graphics_resize_screen(int n, VALUE *args, VALUE self)
 {
-  int width = RB_FIX2INT(w), height = RB_FIX2INT(h);
-  shState->graphics().resizeScreen(width, height);
+  if (!n)
+    return Qnil;
+  bool center = true;
+  int height = 0;
+  int width = RB_FIX2INT(args[0]);
+  if (n >= 2)
+    height = RB_FIX2INT(args[1]);
+  if (n >= 3)
+    center = args[2] == Qtrue;
+  shState->graphics().resizeScreen(width, height, center);
   return Qnil;
 }
 
@@ -280,9 +289,29 @@ static VALUE graphics_set_show_cursor(VALUE self, VALUE boolean)
   return boolean;
 }
 
+static VALUE graphics_set_window(VALUE self, VALUE sx, VALUE sy)
+{
+  int x = RB_FIX2INT(sx);
+  int y = RB_FIX2INT(sy);
+  shState->graphics().center_window(x, y);
+  return Qnil;
+}
+
 static VALUE graphics_center_window(VALUE self)
 {
   shState->graphics().center_window();
+  return Qnil;
+}
+
+static VALUE graphics_show_window(VALUE self)
+{
+  SDL_ShowWindow(shState->sdlWindow());
+  return Qnil;
+}
+  
+static VALUE graphics_hide_window(VALUE self)
+{
+  SDL_HideWindow(shState->sdlWindow());
   return Qnil;
 }
 
@@ -321,8 +350,8 @@ void graphicsBindingInit()
   module_func(graph, "save_screenshot", graphics_save_screenshot, 0);
   module_func(graph, "screenshot", graphics_save_screenshot, 0);
   module_func(graph, "snapshot", graphics_save_screenshot, 0);
-  module_func(graph, "resize_screen", graphics_resize_screen, 2);
-  module_func(graph, "resize", graphics_resize_screen, 2);
+  module_func(graph, "resize_screen", graphics_resize_screen, -1);
+  module_func(graph, "resize", graphics_resize_screen, -1);
   module_func(graph, "brightness", graphicsGetBrightness, 0);
   module_func(graph, "brightness=", graphicsSetBrightness, 1);
   module_func(graph, "play_movie", graphicsPlayMovie, 1);
@@ -336,7 +365,10 @@ void graphicsBindingInit()
   module_func(graph, "fullscreen=", graphicsSetFullscreen, 1);
   module_func(graph, "show_cursor", graphics_get_show_cursor, 0);
   module_func(graph, "show_cursor=", graphics_set_show_cursor, 1);
+  module_func(graph, "set_window", graphics_center_window, 2);
   module_func(graph, "center_window", graphics_center_window, 0);
+  module_func(graph, "show_window", graphics_show_window, 0);
+  module_func(graph, "hide_window", graphics_hide_window, 0);
   module_func(graph, "delta", graphics_get_delta, 0);
   VALUE sys = rb_define_module("System");
   module_func(sys, "delta", graphics_get_delta, 0);

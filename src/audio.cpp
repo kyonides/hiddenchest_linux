@@ -239,6 +239,16 @@ void Audio::bgsStop()
   p->bgs.stop();
 }
 
+void Audio::bgs_pause()
+{
+  p->bgs.pause();
+}
+
+void Audio::bgs_resume()
+{
+  p->bgs.resume();
+}
+
 void Audio::bgsFade(int time)
 {
   p->bgs.fadeOut(time);

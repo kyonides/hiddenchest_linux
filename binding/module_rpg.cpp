@@ -1,5 +1,6 @@
 #include "module_hc.xxd"
 #include "scene_hc.xxd"
+#include "module_rpg_audio.xxd"
 #include "game_ini.xxd"
 #include "win32api_fake.xxd"
 #include "module_rpg1.xxd"

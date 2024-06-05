@@ -96,7 +96,7 @@ module Game
     if System.windows?
       default = DATA.delete("SoundFontWin").to_s
       sf_dir = DATA.delete("SoundFontPathWin").to_s
-      sf_dir.gsub!(/[\\]/, "/")
+      sf_dir = sf_dir.gsub(/[\\]/, "/")
     elsif System.linux?
       default = DATA.delete("SoundFontLnx").to_s
       sf_dir = DATA.delete("SoundFontPathLnx").to_s
@@ -105,8 +105,8 @@ module Game
     System.const_set("SOUNDFONT", default)
     @soundfonts = []
     @soundfont = default
-    add_soundfonts(sf_dir)
-    add_soundfonts(Dir.pwd + "/Audio/SF2")
+    self.add_soundfonts(sf_dir)
+    self.add_soundfonts(Dir.pwd + "/Audio/SF2")
     if @soundfont.empty?
       if @soundfonts.size > 0
         @soundfont = @soundfonts[0]
@@ -127,15 +127,13 @@ module Game
       icon_name = ""
     end
     const_set("ICON", icon_name)
-    self.icon = ICON
-    self.title = TITLE
     projects = [".rhproj", ".rxproj", ".rvproj", ".rvproj2"]
     encrypt_ext = [".rhc", ".rgssad", ".rgss2a", ".rgss3a"]
     makers = ["HiddenChest", "XP", "VX", "VX Ace"]
-    n = process_exe_name(encrypt_ext)
+    n = self.process_exe_name(encrypt_ext)
     encrypted = n > 0
     unless encrypted
-      n = process_exe_name(projects)
+      n = self.process_exe_name(projects)
     end
     Font.default_shadow = n == 2
     Font.default_outline = n == 3
@@ -150,15 +148,8 @@ module Game
     h = (h == 0 ? START_HEIGHT : h)
     const_set("WIDTH", w)
     const_set("HEIGHT", h)
-    if normal_size?
-      @setup_screen = change_size?
-    end
     state = DATA["Fullscreen"][/true/i] != nil
     const_set("FULLSCREEN", state)
-    unless state
-      Graphics.resize(w, h)
-      Graphics.center_window
-    end
     state = DATA["SubImageFix"][/true/i] != nil
     const_set("SUB_IMAGE_FIX", state)
     puts "RGSS Version:       #{n} (#{MAKER})"
@@ -192,6 +183,9 @@ module Game
     process_ini
     set_basic_values
     set_internal_values
+    if System.linux?
+      Graphics.wait(60)
+    end
     $scene = nil
   end
 
@@ -212,16 +206,16 @@ class SplashScene
       @visual = true
       @backdrop = Sprite.new
       @backdrop.bitmap = Bitmap.new(filename)
+      b = Bitmap.new(480, 80)
       @title = Sprite.new
-      @title.x = (Graphics.width - 400) / 2
-      @title.y = (Graphics.height - 60) / 2
-      b = Bitmap.new(400, 60)
+      @title.x = (Graphics.width - b.width) / 2
+      @title.y = (Graphics.height - b.height) / 2
+      @title.bitmap = b
       font = b.font
-      font.size = 40
+      font.size = 48
       font.outline = true
       font.outline_size = 3
       b.draw_text(b.rect, "Loading...", 1)
-      @title.bitmap = b
     end
   end
 
@@ -250,7 +244,18 @@ begin
   while $scene
     $scene.main
   end
-  Graphics.center_window unless Graphics.fullscreen
+  Graphics.hide_window
+  puts "Completed setup successfully."
+  Game.window_show_borders = true
+  Graphics.resize(Game::WIDTH, Game::HEIGHT)
+  Game.icon = Game::ICON
+  Game.title = Game::TITLE
+  if System.windows?
+    Graphics.wait(4)
+    Graphics.transition(1)
+    Graphics.freeze
+  end
+  Graphics.show_window
 rescue => e
   puts e.class, e.message, e.backtrace
   Game.setup

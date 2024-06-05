@@ -45,18 +45,20 @@ public:
 	             float pos = 0);
 	void bgmStop();
 	void bgmFade(int time);
-	void bgsPlay(const char *filename,
-	             int volume = 100,
-	             int pitch = 100,
-	             float pos = 0);
-	void bgsStop();
   void bgm_pause();
   void bgm_resume();
   bool bgm_playing();
   bool bgm_stopped();
 	void bgm_loop();
 	void bgm_no_loop();
+	void bgsPlay(const char *filename,
+	             int volume = 100,
+	             int pitch = 100,
+	             float pos = 0);
+	void bgsStop();
 	void bgsFade(int time);
+  void bgs_pause();
+  void bgs_resume();
 	void mePlay(const char *filename,
 	            int volume = 100,
 	            int pitch = 100);

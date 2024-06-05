@@ -223,9 +223,10 @@ int main(int argc, char *argv[])
     winFlags |= SDL_WINDOW_RESIZABLE;
   if ((START_WIDTH == scr.w && START_HEIGHT == scr.h) || conf.fullscreen)
     winFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+  winFlags |= SDL_WINDOW_BORDERLESS;
   win = SDL_CreateWindow("",
                          SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_CENTERED,
-                         START_WIDTH, START_HEIGHT, winFlags);
+                         480, 320, winFlags);
   if (!win) {
     showInitError(std::string("Error creating window: ") + SDL_GetError());
     return 0;
@@ -233,9 +234,9 @@ int main(int argc, char *argv[])
   // OSX and Windows have their own native ways of
   // dealing with icons; don't interfere with them
 #ifdef __LINUX__
-  setupWindowIcon(conf, win);
+  //setupWindowIcon(conf, win);
 #else
-  (void) setupWindowIcon;
+  //(void) setupWindowIcon;
 #endif
   SDL_DisplayMode mode;
   SDL_GetDisplayMode(0, 0, &mode);

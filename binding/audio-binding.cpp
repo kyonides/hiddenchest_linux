@@ -69,13 +69,13 @@ static VALUE audio_bgm_stopped(VALUE self)
 
 static VALUE audio_bgm_loop(VALUE self)
 {
-  shState->audio().bgm_resume();
+  shState->audio().bgm_loop();
   return Qtrue;
 }
 
 static VALUE audio_bgm_no_loop(VALUE self)
 {
-  shState->audio().bgm_resume();
+  shState->audio().bgm_no_loop();
   return Qfalse;
 }
 
@@ -99,6 +99,18 @@ static VALUE audio_bgsPlay(int argc, VALUE* argv, VALUE self)
 static VALUE audio_bgsStop(VALUE self)
 {
   shState->audio().bgsStop();
+  return Qnil;
+}
+
+static VALUE audio_bgs_pause(VALUE self)
+{
+  shState->audio().bgs_pause();
+  return Qnil;
+}
+
+static VALUE audio_bgs_resume(VALUE self)
+{
+  shState->audio().bgm_resume();
   return Qnil;
 }
 
@@ -262,28 +274,11 @@ static VALUE audioSetupMidi(VALUE self)
   return Qnil;
 }
 
-static VALUE audioReset(VALUE self)
+static VALUE audio_reset(VALUE self)
 {
   shState->audio().reset();
   return Qnil;
 }
-
-static VALUE rpg_audio_file_initialize(int argc, VALUE* argv, VALUE self)
-{
-  VALUE name, volume, pitch, pos;
-  rb_scan_args(argc, argv, "04", &name, &volume, &pitch, &pos);
-  if ( RB_NIL_P(name) ) name = rb_str_new_cstr("");
-  if ( RB_NIL_P(volume) ) volume = RB_INT2FIX(100);
-  if ( RB_NIL_P(pitch) ) pitch = RB_INT2FIX(100);
-  if ( RB_NIL_P(pos) ) pos = rb_float_new(0.0);
-  rb_iv_set(self, "@name", name);
-  rb_iv_set(self, "@volume", volume);
-  rb_iv_set(self, "@pitch", pitch);
-  rb_iv_set(self, "@pos", pos);
-  return self;
-}
-
-#define RMF(func) ((VALUE (*)(ANYARGS))(func))
 
 void audioBindingInit()
 {
@@ -310,6 +305,8 @@ void audioBindingInit()
   module_func(md, "bgm_fade", audio_bgmFade, -1);
   module_func(md, "bgs_play", audio_bgsPlay, -1);
   module_func(md, "bgs_stop", audio_bgsStop, 0);
+  module_func(md, "bgs_pause", audio_bgm_pause, 0);
+  module_func(md, "bgs_resume", audio_bgm_resume, 0);
   module_func(md, "bgs_fade", audio_bgsFade, -1);
   module_func(md, "me_play", audio_mePlay, -1);
   module_func(md, "me_stop", audio_meStop, 0);
@@ -334,5 +331,5 @@ void audioBindingInit()
     module_func(md, "setup_midi", audioSetupMidi, 0);
   module_func(md, "se_play", audio_sePlay, -1);
   module_func(md, "se_stop", audio_seStop, 0);
-  module_func(md, "__reset__", audioReset, 0);
+  module_func(md, "reset", audio_reset, 0);
 }

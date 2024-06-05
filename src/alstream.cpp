@@ -171,7 +171,8 @@ bool ALStream::is_playing()
 
 bool ALStream::has_stopped()
 {
-  return AL::Source::getState(alSrc) == AL_STOPPED && state == Stopped;
+  return AL::Source::getState(alSrc) == AL_STOPPED ||
+         state == Stopped || state == Closed;
 }
 
 void ALStream::closeSource()
