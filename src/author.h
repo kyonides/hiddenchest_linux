@@ -1,5 +1,5 @@
 #define HIDDENAUTHOR "Kyonides Arkanthes"
-#define HIDDENVERSION "1.1.77"
+#define HIDDENVERSION "1.1.78"
 #define HIDDENDATE "2024-06-05"
 #define CODENAME "HeadPhones"
 #define SYSTEM_STRING "linux"

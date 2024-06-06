@@ -243,6 +243,16 @@ bool AudioStream::stopped()
   return stream.has_stopped();
 }
 
+bool AudioStream::paused()
+{
+  return stream.queryState() == ALStream::Paused;
+}
+
+bool AudioStream::looping()
+{
+  return stream.looped == ALStream::Looped;
+}
+
 void AudioStream::updateVolume()
 {
   float vol = GLOBAL_VOLUME;

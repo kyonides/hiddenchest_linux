@@ -171,7 +171,7 @@ module RPG
         font.size = 20
         font.color.set(0, 0, 0)
         font.color.set(255, 255, 255)
-        bitmap.draw_text(0, 0, 160, 20, Terms.critical_hit, 1)
+        bitmap.draw_text(0, 0, 160, 20, "CRITICAL", 1)
       end
       @_damage_sprite = ::Sprite.new(self.viewport)
       @_damage_sprite.bitmap = bitmap
@@ -207,7 +207,7 @@ module RPG
         font.size = 20
         font.color.set(0, 0, 0)
         font.color.set(255, 255, 255)
-        bitmap.draw_text(0, 0, 160, 20, Terms.critical_hit, 1)
+        bitmap.draw_text(0, 0, 160, 20, "CRITICAL", 1)
       end
       @_damage_sprite = ::Sprite.new(self.viewport)
       @_damage_sprite.bitmap = bitmap

@@ -114,6 +114,8 @@ struct AudioStream
   float playingOffset();
   bool playing();
   bool stopped();
+  bool paused();
+  bool looping();
 
 private:
   float volumes[VolumeTypeCount];

@@ -152,6 +152,7 @@ module Game
     const_set("FULLSCREEN", state)
     state = DATA["SubImageFix"][/true/i] != nil
     const_set("SUB_IMAGE_FIX", state)
+    puts "Ruby Version:       #{RUBY_VERSION}"
     puts "RGSS Version:       #{n} (#{MAKER})"
     puts "Game Screen Size:   #{WIDTH}x#{HEIGHT}"
     puts "Enable Debug:       #{DEBUG}"
@@ -178,7 +179,6 @@ module Game
   end
 
   def self.setup
-    clear
     auto_create_dir
     process_ini
     set_basic_values
@@ -200,33 +200,9 @@ class SplashScene
   end
 
   def start
-    @visual = nil
-    filename = "Graphics/Splash/screen"
-    if FileInt.exist?(filename)
-      @visual = true
-      @backdrop = Sprite.new
-      @backdrop.bitmap = Bitmap.new(filename)
-      b = Bitmap.new(480, 80)
-      @title = Sprite.new
-      @title.x = (Graphics.width - b.width) / 2
-      @title.y = (Graphics.height - b.height) / 2
-      @title.bitmap = b
-      font = b.font
-      font.size = 48
-      font.outline = true
-      font.outline_size = 3
-      b.draw_text(b.rect, "Loading...", 1)
-    end
   end
 
   def terminate
-    if @visual
-      @title.bitmap.dispose
-      @title.dispose
-      @backdrop.bitmap.dispose
-      @backdrop.dispose
-      @visual = nil
-    end
   end
 end
 
@@ -234,11 +210,14 @@ end
 
 begin
   $LOAD_PATH << Dir.pwd
+  Game.clear
   Game.setup_custom_scene
   if FileInt.exist?(Game.custom_scene_file)
     lines = load_data(Game.custom_scene_file)
     lines = Zlib::Inflate.inflate(lines)
     eval lines
+  else
+    Graphics.hide_window
   end
   $scene = Game::SplashScene.new
   while $scene

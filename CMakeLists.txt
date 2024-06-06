@@ -359,7 +359,6 @@ if (BINDING STREQUAL "MRI")
     binding/backdrop.cpp
     binding/scripts.cpp
     binding/system.cpp
-    binding/terms.cpp
     binding/zlib.c
   )
 elseif(BINDING STREQUAL "MRUBY")

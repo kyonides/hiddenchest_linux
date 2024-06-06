@@ -173,14 +173,14 @@ static VALUE graphics_save_screenshot(VALUE self)
 
 static VALUE graphics_resize_screen(int n, VALUE *args, VALUE self)
 {
-  if (!n)
+  if (!n || n > 3)
     return Qnil;
   bool center = true;
   int height = 0;
   int width = RB_FIX2INT(args[0]);
   if (n >= 2)
     height = RB_FIX2INT(args[1]);
-  if (n >= 3)
+  if (n == 3)
     center = args[2] == Qtrue;
   shState->graphics().resizeScreen(width, height, center);
   return Qnil;

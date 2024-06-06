@@ -49,6 +49,8 @@ public:
   void bgm_resume();
   bool bgm_playing();
   bool bgm_stopped();
+  bool bgm_paused();
+	bool bgm_looping();
 	void bgm_loop();
 	void bgm_no_loop();
 	void bgsPlay(const char *filename,
@@ -59,6 +61,10 @@ public:
 	void bgsFade(int time);
   void bgs_pause();
   void bgs_resume();
+  bool bgs_playing();
+  bool bgs_stopped();
+  bool bgs_paused();
+	bool bgs_looping();
 	void mePlay(const char *filename,
 	            int volume = 100,
 	            int pitch = 100);

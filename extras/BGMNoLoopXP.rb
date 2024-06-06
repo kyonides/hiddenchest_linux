@@ -18,7 +18,8 @@ class Game_Map
   end
 
   def check_bgm_loop(map_id)
-    BgmNoLoop::NO_LOOP[map_id] ? Audio.bgm_no_loop : Audio.bgm_loop
+    can_loop = (Audio.default_bgm_loop or !BgmNoLoop::NO_LOOP[map_id])
+    can_loop ? Audio.bgm_loop : Audio.bgm_no_loop
   end
 
   def map_bgm

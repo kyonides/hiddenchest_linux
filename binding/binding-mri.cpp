@@ -60,7 +60,6 @@ void init_zlib();
 }
 void init_game();
 void init_scripts();
-void init_terms();
 void init_system();
 void init_backdrop();
 int system_is_really_linux();
@@ -566,9 +565,6 @@ static void mriBindingExecute()
   ruby_sysinit(&argc, &argv);
   ruby_init();
   rb_enc_set_default_external(rb_enc_from_encoding(rb_utf8_encoding()));
-  VALUE rversion = rb_const_get(rb_cObject, rb_intern("RUBY_VERSION"));
-  rversion = rb_str_plus(rstr("Ruby Version: "), rversion);
-  rb_print(1, rversion);
   Config &conf = shState->rtData().config;
   if (!conf.rubyLoadpaths.empty()) {
     // Setup custom load paths
@@ -594,7 +590,6 @@ static void mriBindingExecute()
   audioBindingInit();
   graphicsBindingInit();
   inputBindingInit();
-  init_terms();
   init_backdrop();
   init_scripts();
   init_system();
