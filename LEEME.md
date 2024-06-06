@@ -203,21 +203,10 @@ Bueno lo hacen indirectamente... Necesitarán usar el arreglo `@area` con cada R
     - `show_cursor` esconde el cursor del Sistema Operativo de estar dentro de la ventana de juego si se fija en `false`
     - `block_fullscreen` (`true` o `false`) impedirá o permitirá que el jugador entre en modo de pantalla completa incluso si cambian la configuración en el archivo de configuración hiddenchest.conf.
     - Permite hacer capturas de pantalla:
-      `screenshot` o `save_screenshot` o `save_snapshot`
+      `screenshot` o `ssnapshot` o `save_screenshot`
          - Lo guarda en la carpeta Screenshots
     - `dimensions` permite obtener su ancho y su altura en un arreglo o lista.
-* Módulo `Setup` permite personalizar las configuraciones de su juego via llamados a script.
-    - `image_format` y `image_format=` permiten verificar o asignar el formato preferido de imágenes para sus capturas. Opciones disponibles:
-         - :jpg o 0 para formato JPG - opción por defecto
-         - :png o 1 para formato PNG
-    - `shot_dir` y `shot_filename` para definir la carpeta y el nombre base de los archivos de capturas de pantalla.
-    - `save_dir` y `save_filename` para definir la carpeta y el nombre base de los archivos de partidas guardadas.
-    - `auto_create_dirs` para que se creen las carpetas si cambiaron la ruta de alguna de las carpetas.
-    - `soundfont` te muestra tu soundfont actual.
-    - `soundfonts` consiste en una lista de soundfonts disponibles.
-    - `soundfont_index` te entrega el índice de la soundfont actual si la hay.
-    - `choose_soundfont` más un número entero como único parámetro te permite cambiar la soundfont en plena ejecución.
-* Módulo `Game` incluye las siguientes constantes: `TITLE`, `VERSION`, `SCRIPTS`, `ICON`, `DEBUG` y `FULLSCREEN`. Estas son extraídas del archivo Game.ini de forma automática.
+
 * Módulo `Backdrop`, disponibles en todas las versiones de RGSS, permite crear una captura temporal del mapa previo para usarlo como fondo de una escena distinta. Usen cualquiera de los siguientes llamados para crear el bitmap que necesitarán en su escena personalizada. Después pueden asignarle su bitmap a una variable de @instancia de su elección al llamar a su método `bitmap` o `bitmap_dup` (duplicado). Luego de congelar la escena con `Graphics.freeze`, llamen a `clear_bitmap` para desecharlo apropiadamente o desechen el bitmap de su sprite directamente en caso de que deseen guardarlo para más adelante y hayan utilizado el método `bitmap_dup` anteriormente.
     - `keep_bitmap` - Su mapa sin efectos especiales
     - `gray_bitmap` - Versión en Gris de su mapa
@@ -236,7 +225,30 @@ Bueno lo hacen indirectamente... Necesitarán usar el arreglo `@area` con cada R
 * Módulo `Scripts` permite que guarden en una cadena de texto o String de Ruby o en un símbolo como un ID de script via `Scripts << :nombre_script`. Una vez que sean guardados allí, podrán llamar métodos como `Scripts.all` o `Scripts.include?(:nombre_script)` para acceder a los IDs de arreglos (arrays) o confirmar si ya los han incluido.
 * `RPG::Weather.sprite_max = numero`. donde numero es un número entero positivo, permite que definan el máximo de sprites de clima como los de efectos de lluvia o tormenta o nieve. Actualmente está fijado en 1000 sprites, pero puede ser elevado o disminuido cuando sea necesario.
 * Clase `FileInt` permite que pregunten si un archivo existe `exist?` incluso si está comprimido en el RGSSAD o pueden llamar a `File#exist_compressed?` en su lugar.
-* Módulo `Audio` incluye más métodos como `bgm_volume`, `bgs_volume`, `se_volume` y `me_volume`.
+
+### Módulo Audio
+
+* Módulo `Audio` incluye más métodos como:
+    - `bgm_volume`
+    - `bgs_volume`
+    - `se_volume`
+    - `me_volume`
+    - `bgm_loop?`
+    - `bgm_paused?`
+    - `bgm_playing?`
+    - `bgm_stopped?`
+    - `bgm_loop=`
+    - `bgm_pause`
+    - `bgm_resume`
+    - `default_bgs_loop`
+    - `bgs_loop?`
+    - `bgs_paused?`
+    - `bgs_playing?`
+    - `bgs_stopped?`
+    - `bgs_loop=`
+    - `bgs_pause`
+    - `bgs_resume`
+    - `default_bgm_loop`
 
 ### Módulo Input
 
@@ -267,6 +279,32 @@ Bueno lo hacen indirectamente... Necesitarán usar el arreglo `@area` con cada R
     - `shadow_size` - entero entre 1 y 3 - grosor del contorno
     - `shadow_color` - Color en formato RGBA (Rojo Verde Azul Alfa)
     - `outline`, `out_color` y `outline_color` también están disponibles para RMXP y RMVX.
+
+### Módulo Game
+
+* Módulo `Game` permite personalizar las configuraciones de su juego via llamados a script.
+    - `image_format` y `image_format=` permiten verificar o asignar el formato preferido de imágenes para sus capturas. Opciones disponibles:
+         - :jpg o 0 para formato JPG - opción por defecto
+         - :png o 1 para formato PNG
+    - `shot_dir` y `shot_filename` para definir la carpeta y el nombre base de los archivos de capturas de pantalla.
+    - `save_dir` y `save_filename` para definir la carpeta y el nombre base de los archivos de partidas guardadas.
+    - `auto_create_dirs` para que se creen las carpetas si cambiaron la ruta de alguna de las carpetas.
+    - `soundfont` te muestra tu soundfont actual.
+    - `soundfonts` consiste en una lista de soundfonts disponibles.
+    - `soundfont_index` te entrega el índice de la soundfont actual si la hay.
+    - `choose_soundfont` más un número entero como único parámetro te permite cambiar la soundfont en plena ejecución.
+* Módulo `Game` incluye las siguientes constantes:
+    - `TITLE`
+    - `VERSION`
+    - `SCRIPTS`
+    - `ICON`
+    - `DEBUG`
+    - `FULLSCREEN`
+    - `WIDTH`
+    - `HEIGHT`
+    - `SUB_IMAGE_FIX`
+ 
+ Estas son extraídas del archivo Game.ini de forma automática.
 
 ## Lista de Arreglos de Errores en HiddenChest
 

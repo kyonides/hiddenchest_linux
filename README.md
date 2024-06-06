@@ -203,21 +203,10 @@ Well, they indirectly do it... You got to set the `@area` array with every singl
    - `show_cursor` hides the system cursor inside the game window when `false`
    - `block_fullscreen` (`true` or `false`) will prevent the player from entering fullscreen mode or not even if they change the configuration file settings.
    - It also lets you take snapshots by calling:
-     `screenshot` or `save_screenshot` or `save_snapshot`
+     `screenshot` or `snapshot` or `save_screenshot`
          - The image is stored in the Screenshots directory by default.
    - `dimensions` lets you get its width and height as an array.
-* `Setup` module lets you customize your game settings via script calls.
-    - `image_format` and `image_format=` let you check out or assign a preferred image format for your screenshots. Available options are:
-         - :jpg or 0 for JPG format - default option
-         - :png or 1 for PNG format
-    - `shot_dir` and `shot_filename` define the directory and base name of your screenshots.
-    - `save_dir` and `save_filename` define the directory and base name of your saved games.
-    - `auto_create_dirs` lets you create directories whenever you do not want to use any of the default paths.
-    - `soundfont` shows your current soundfont.
-    - `soundfonts` consists of a list of available soundfonts.
-    - `soundfont_index` retrieves the index of the current soundfont if any.
-    - `choose_soundfont` and an integer as its only parameter lets you change the current soundfont on the fly.
-* The `Game` module includes the following constants: `TITLE`, `VERSION`, `SCRIPTS`, `ICON`, `DEBUG` & `FULLSCREEN`. They are automatically extracted from the Game.ini file.
+
 * The `Backdrop` module, available on all RGSS versions, lets you create a temporary snapshot of a previous map to use it in any scene class at will. Use any of the following calls to create the bitmap you will need in your (custom) scene. Later you can assign its bitmap to an instance variable of your choice by calling its `bitmap` or `bitmap_dup` method. After freezing the scene with `Graphics.freeze`, call `clear_bitmap` to dispose it properly or dispose your sprite's bitmap directly in case you want to keep it for later use and you previously used the `bitmap_dup` method.
     - `keep_bitmap` - Your map without any special effects.
     - `gray_bitmap` - Grayish version of your map.
@@ -235,7 +224,30 @@ Well, they indirectly do it... You got to set the `@area` array with every singl
 * The `Scripts` module allows you to store a Ruby string or symbol as a script ID via `Scripts << :script_name`. Once it has been stored there, you can call its methods, i.e. `Scripts.all` or `Scripts.include?(:script_name)` to access the Scripts IDs Array and confirm if it has been included respectively.
 * `RPG::Weather.sprite_max = Number`. where Number is a positive integer number, lets you define the upper limit of the weather sprites like rain or storm or snow effects. Currently it is set at 1000 sprites, but it could handle even more if deemed necessary.
 * `FileInt` class allows you to ask if a file `exist?` even if it is compressed or you can call `File#exist_compressed?` instead.
-* `Audio` module includes more methods like `bgm_volume`, `bgs_volume`, `se_volume` and `me_volume`.
+
+### Audio Module
+
+* `Audio` module includes more methods like:
+    - `bgm_volume`
+    - `bgs_volume`
+    - `se_volume`
+    - `me_volume`
+    - `bgm_loop?`
+    - `bgm_paused?`
+    - `bgm_playing?`
+    - `bgm_stopped?`
+    - `bgm_loop=`
+    - `bgm_pause`
+    - `bgm_resume`
+    - `default_bgs_loop`
+    - `bgs_loop?`
+    - `bgs_paused?`
+    - `bgs_playing?`
+    - `bgs_stopped?`
+    - `bgs_loop=`
+    - `bgs_pause`
+    - `bgs_resume`
+    - `default_bgm_loop`
 
 ### Input Module
 
@@ -266,6 +278,32 @@ Well, they indirectly do it... You got to set the `@area` array with every singl
     - `shadow_size` - Integer 1 through 3
     - `shadow_color` - Color in RGBA format
     - `outline`, `out_color` & `outline_color` are available for RMXP & RMVX as well.
+
+### Game Module
+
+* This module lets you customize your game settings via script calls.
+    - `image_format` and `image_format=` let you check out or assign a preferred image format for your screenshots. Available options are:
+         - :jpg or 0 for JPG format - default option
+         - :png or 1 for PNG format
+    - `shot_dir` and `shot_filename` define the directory and base name of your screenshots.
+    - `save_dir` and `save_filename` define the directory and base name of your saved games.
+    - `auto_create_dirs` lets you create directories whenever you do not want to use any of the default paths.
+    - `soundfont` shows your current soundfont.
+    - `soundfonts` consists of a list of available soundfonts.
+    - `soundfont_index` retrieves the index of the current soundfont if any.
+    - `choose_soundfont` and an integer as its only parameter lets you change the current soundfont on the fly.
+* It includes the following constants:
+    - `TITLE`
+    - `VERSION`
+    - `SCRIPTS`
+    - `ICON`
+    - `DEBUG`
+    - `FULLSCREEN`
+    - `WIDTH`
+    - `HEIGHT`
+    - `SUB_IMAGE_FIX`
+
+  They are automatically extracted from the Game.ini file.
 
 ## List of Bug Fixes for HiddenChest
 
