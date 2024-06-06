@@ -65,6 +65,8 @@ public:
   bool bgs_stopped();
   bool bgs_paused();
 	bool bgs_looping();
+	void bgs_loop();
+	void bgs_no_loop();
 	void mePlay(const char *filename,
 	            int volume = 100,
 	            int pitch = 100);

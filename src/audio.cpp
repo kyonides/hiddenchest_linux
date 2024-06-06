@@ -279,6 +279,16 @@ bool Audio::bgs_looping()
   return p->bgs.looping();
 }
 
+void Audio::bgs_loop()
+{
+  p->bgs.loop();
+}
+
+void Audio::bgs_no_loop()
+{
+  p->bgs.no_loop();
+}
+
 void Audio::bgsFade(int time)
 {
   p->bgs.fadeOut(time);

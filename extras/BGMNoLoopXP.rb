@@ -2,11 +2,13 @@
 #   Scripter : Kyonides Arkanthes
 #   2024-06-05
 
+# This scriptlet allows you to prevent the game from playing the same old song
+# over and over again. Now you can define a list of BGMs for specific maps!
+
 module BgmNoLoop
-  BGM_WAIT = 20
+  WAIT = 20
   NO_LOOP = [1]
   MAP_BGM = {}
-  MAP_BGM.default = []
   MAP_BGM[1] = ["015-Theme04", "017-Theme06"]
 end
 
@@ -18,12 +20,18 @@ class Game_Map
   end
 
   def check_bgm_loop(map_id)
-    can_loop = (Audio.default_bgm_loop or !BgmNoLoop::NO_LOOP[map_id])
-    can_loop ? Audio.bgm_loop : Audio.bgm_no_loop
+    Audio.bgm_loop = (Audio.default_bgm_loop or !BgmNoLoop::NO_LOOP[map_id])
   end
 
   def map_bgm
     @map.bgm
+  end
+
+  def find_bgms
+    bgm = map_bgm
+    bgms = []
+    bgms += [bgm] unless bgm.name.empty?
+    bgms + BgmNoLoop::MAP_BGM[@map_id]
   end
 end
 
@@ -37,7 +45,7 @@ class Game_System
   end
 
   def reset_bgm_timer
-    @bgm_timer = BgmNoLoop::BGM_WAIT
+    @bgm_timer = BgmNoLoop::WAIT
   end
 
   def update
@@ -49,16 +57,10 @@ class Game_System
     end
     reset_bgm_timer
     @bgm_index ||= 0
-    bgms = find_bgms
+    bgms = $game_map.find_bgms
     @bgm_index = (@bgm_index + 1) % bgms.size
     bgm = bgms[@bgm_index]
     bgm = RPG::AudioFile.new(bgm) if bgm.is_a?(String)
     bgm_play(bgm) if bgm != nil
-  end
-
-  def find_bgms
-    map_bgm = $game_map.map_bgm
-    bgms = $game_map.map_bgm.name.empty? ? [] : [map_bgm]
-    bgms + BgmNoLoop::MAP_BGM[$game_map.map_id]
   end
 end
