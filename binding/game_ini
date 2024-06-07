@@ -30,7 +30,7 @@ module Game
   attr_reader(:shot_formats, :shot_format, :shot_dir)
   attr_reader(:shot_filename, :save_filename)
   attr_reader(:soundfont, :soundfonts)
-  attr_accessor(:save_dir, :save_filename, :click_timer, :setup_screen)
+  attr_accessor(:save_dir, :save_filename, :setup_screen)
   def self.clear
     @shot_formats = ["jpg", "png"]
     @shot_format = "jpg"
@@ -38,7 +38,6 @@ module Game
     @shot_filename = "screenshot"
     @save_dir = "Saves"
     @save_filename = "Save"
-    @click_timer = 10
     @soundfont = ""
   end
 

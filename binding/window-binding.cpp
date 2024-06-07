@@ -318,6 +318,22 @@ static VALUE window_is_mouse_inside(int argc, VALUE *v, VALUE self)
   return w->is_mouse_inside(r->x, r->y, r->width, r->height) ? Qtrue : Qfalse;
 }
 
+static VALUE window_mouse_target(VALUE self)
+{
+  VALUE mouse = rb_define_module("Mouse");
+  return rb_iv_get(mouse, "mouse_target") == self ? Qtrue : Qfalse;
+}
+
+static VALUE window_mouse_draggable(VALUE self)
+{
+  return rb_iv_get(self, "draggable");
+}
+
+static VALUE window_mouse_draggable_set(VALUE self, VALUE state)
+{
+  return rb_iv_set(self, "draggable", state);
+}
+
 DEF_PROP_OBJ_REF(Window, Bitmap, Contents,   "contents")
 DEF_PROP_OBJ_VAL(Window, Rect,   CursorRect, "cursor_rect")
 DEF_PROP_B(Window, Stretch)
@@ -335,6 +351,7 @@ void windowBindingInit()
   VALUE klass = rb_define_class("Window", rb_cObject);
   rb_iv_set(klass, "@open_mode", hc_sym("center"));
   rb_iv_set(klass, "@scroll_y", RB_INT2FIX(SCROLL_FACTOR));
+  rb_iv_set(klass, "draggable", Qfalse);
   rb_define_alloc_func(klass, classAllocate<&WindowType>);
   disposableBindingInit     <Window>(klass);
   viewportElementBindingInit<Window>(klass);
@@ -363,6 +380,9 @@ void windowBindingInit()
   rb_define_method(klass, "pause_xy", RMF(window_pause_set_xy), 2);
   rb_define_method(klass, "mouse_inside?", RMF(window_is_mouse_inside), -1);
   rb_define_method(klass, "mouse_above?", RMF(window_is_mouse_inside), -1);
+  rb_define_method(klass, "mouse_target?", RMF(window_mouse_target), 0);
+  rb_define_method(klass, "draggable?", RMF(window_mouse_draggable), 0);
+  rb_define_method(klass, "draggable=", RMF(window_mouse_draggable_set), 1);
   rb_define_attr(klass, "area", 1, 0);
   rb_define_attr(klass, "scroll_y", 1, 0);
   INIT_PROP_BIND( Window, Contents,        "contents"         );

@@ -104,8 +104,6 @@ pkg_check_modules(SDL2         REQUIRED sdl2)
 pkg_check_modules(SDL2_TTF     REQUIRED SDL2_ttf)
 pkg_check_modules(SDL2_IMAGE   REQUIRED SDL2_image)
 pkg_check_modules(SDL_SOUND    REQUIRED SDL_sound)
-
-find_package(Boost 1.49 COMPONENTS program_options REQUIRED)
 find_package(OpenAL REQUIRED)
 find_package(ZLIB REQUIRED)
 
@@ -336,7 +334,7 @@ if (BINDING STREQUAL "MRI")
     binding/output.h
   )
   set(BINDING_SOURCE
-    binding/binding-mri.cpp
+    binding/rgss.cpp
     binding/binding-util.cpp
     binding/game.cpp
     binding/table-binding.cpp
@@ -345,6 +343,7 @@ if (BINDING STREQUAL "MRI")
     binding/font-binding.cpp
     binding/graphics-binding.cpp
     binding/input-binding.cpp
+    binding/mouse.cpp
     binding/sprite-binding.cpp
     binding/msgboxsprite-binding.cpp
     binding/viewport-binding.cpp
@@ -361,45 +360,6 @@ if (BINDING STREQUAL "MRI")
     binding/system.cpp
     binding/zlib.c
   )
-elseif(BINDING STREQUAL "MRUBY")
-  message(FATAL_ERROR "Mruby support in CMake needs to be finished")
-  list(APPEND DEFINES BINDING_MRUBY)
-  set(BINDING_HEADERS
-    binding-mruby/binding-util.h
-    binding-mruby/disposable-binding.h
-    binding-mruby/flashable-binding.h
-    binding-mruby/binding-types.h
-    binding-mruby/sceneelement-binding.h
-    binding-mruby/viewportelement-binding.h
-    binding-mruby/serializable-binding.h
-    binding-mruby/mrb-ext/file.h
-    binding-mruby/mrb-ext/rwmem.h
-    binding-mruby/mrb-ext/marshal.h
-  )
-  set(BINDING_SOURCE
-    binding-mruby/binding-mruby.cpp
-    binding-mruby/binding-util.cpp
-    binding-mruby/window-binding.cpp
-    binding-mruby/bitmap-binding.cpp
-    binding-mruby/sprite-binding.cpp
-    binding-mruby/font-binding.cpp
-    binding-mruby/viewport-binding.cpp
-    binding-mruby/plane-binding.cpp
-    binding-mruby/audio-binding.cpp
-    binding-mruby/tilemap-binding.cpp
-    binding-mruby/etc-binding.cpp
-    binding-mruby/graphics-binding.cpp
-    binding-mruby/input-binding.cpp
-    binding-mruby/table-binding.cpp
-    binding-mruby/module_rpg.c
-    binding-mruby/mrb-ext/file.cpp
-    binding-mruby/mrb-ext/marshal.cpp
-    binding-mruby/mrb-ext/rwmem.cpp
-    binding-mruby/mrb-ext/kernel.cpp
-    binding-mruby/mrb-ext/time.cpp
-  )
-elseif(BINDING STREQUAL "NULL")
-  set(BINDING_SOURCE binding-null/binding-null.cpp)
 else()
   message(FATAL_ERROR "Must choose a valid binding type.  MRI, MRUBY, or NULL")
 endif()
@@ -424,7 +384,6 @@ link_directories(
   ${PIXMAN_LIBRARY_DIRS}
   ${PHYSFS_LIBRARY_DIRS}
   ${SDL2_LIBRARY_DIRS} # Blindly assume other SDL bits are in same directory
-  ${Boost_LIBRARY_DIR}
   ${MRI_LIBDIR}
 )
 
@@ -444,7 +403,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${PIXMAN_INCLUDE_DIRS}
   ${PHYSFS_INCLUDE_DIRS}
   ${SDL2_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIR}
   ${MRI_INCLUDE_DIRS}
   ${VORBISFILE_INCLUDE_DIRS}
   ${FLUID_INCLUDE_DIRS}
@@ -460,13 +418,12 @@ target_link_libraries(${PROJECT_NAME}
   ${SDL_SOUND_LIBRARIES}
   ${PHYSFS_LIBRARIES}
   ${PIXMAN_LIBRARIES}
-  ${Boost_LIBRARIES}
   ${MRI_LIBRARIES}
   ${VORBISFILE_LIBRARIES}
   ${FLUID_LIBRARIES}
   ${OPENAL_LIBRARY}
   ${ZLIB_LIBRARY}
-  ${PLATFORM_LIBRARIES} #stdc++fs
+  ${PLATFORM_LIBRARIES}
 )
 
 PostBuildMacBundle(${PROJECT_NAME} "" "${PLATFORM_COPY_LIBS}")

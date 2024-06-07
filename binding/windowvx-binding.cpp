@@ -238,6 +238,22 @@ static VALUE window_is_mouse_inside(int argc, VALUE *v, VALUE self)
   return w->is_mouse_inside(r->x, r->y, r->width, r->height) ? Qtrue : Qfalse;
 }
 
+static VALUE window_mouse_target(VALUE self)
+{
+  VALUE mouse = rb_define_module("Mouse");
+  return rb_iv_get(mouse, "mouse_target") == self ? Qtrue : Qfalse;
+}
+
+static VALUE window_mouse_draggable(VALUE self)
+{
+  return rb_iv_get(self, "draggable");
+}
+
+static VALUE window_mouse_draggable_set(VALUE self, VALUE state)
+{
+  return rb_iv_set(self, "draggable", state);
+}
+
 DEF_PROP_OBJ_REF(WindowVX, Bitmap, Windowskin, "windowskin")
 DEF_PROP_OBJ_REF(WindowVX, Bitmap, Contents, "contents")
 DEF_PROP_OBJ_VAL(WindowVX, Rect, CursorRect, "cursor_rect")
@@ -260,6 +276,7 @@ void windowVXBindingInit()
   rb_define_alloc_func(klass, classAllocate<&WindowVXType>);
   disposableBindingInit<WindowVX>(klass);
   viewportElementBindingInit<WindowVX>(klass);
+  rb_iv_set(klass, "draggable", Qfalse);
   rb_define_attr(klass, "area", 1, 0);
   rb_define_method(klass, "initialize", RMF(windowVXInitialize), -1);
   rb_define_method(klass, "update", RMF(windowVXUpdate), 0);
@@ -291,6 +308,9 @@ void windowVXBindingInit()
   rb_define_method(klass, "pause_xy", RMF(window_pause_set_xy), 2);
   rb_define_method(klass, "mouse_inside?", RMF(window_is_mouse_inside), -1);
   rb_define_method(klass, "mouse_above?", RMF(window_is_mouse_inside), -1);
+  rb_define_method(klass, "mouse_target?", RMF(window_mouse_target), 0);
+  rb_define_method(klass, "draggable?", RMF(window_mouse_draggable), 0);
+  rb_define_method(klass, "draggable=", RMF(window_mouse_draggable_set), 1);
   _rb_define_method(klass, "move", windowVXMove);
   rb_define_method(klass, "open?", RMF(windowVXIsOpen), 0);
   rb_define_method(klass, "close?", RMF(windowVXIsClosed), 0);

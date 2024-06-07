@@ -20,7 +20,6 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clicks.h"
 #include "input.h"
 #include "sharedstate.h"
 #include "exception.h"
@@ -47,42 +46,6 @@ static int getButtonArg(VALUE number)
     return RB_FIX2INT(rb_hash_aref(sym_hash, number));
   }
   return 0;
-}
-
-static VALUE input_click_timer(VALUE self)
-{
-  int n = shState->input().click_timer();
-  return RB_INT2FIX(n);
-}
-
-static VALUE input_default_timer(VALUE self)
-{
-  return rb_iv_get(self, "@default_timer");
-}
-
-static VALUE input_default_timer_set(VALUE self, VALUE val)
-{
-  val = rb_funcall(val, rb_intern("to_i"), 0);
-  int n = RB_FIX2INT(val);
-  if (n < 0)
-    return rb_iv_get(self, "@default_timer");
-  shState->input().set_base_timer(n);
-  return rb_iv_set(self, "@default_timer", val);
-}
-
-static VALUE input_scroll_factor(VALUE self)
-{
-  return rb_iv_get(self, "@scroll_factor");
-}
-
-static VALUE input_scroll_factor_set(VALUE self, VALUE val)
-{
-  val = rb_funcall(val, rb_intern("to_i"), 0);
-  int n = RB_FIX2INT(val);
-  if (n < 0)
-    return rb_iv_get(self, "@scroll_factor");
-  shState->input().set_scroll_factor(n);
-  return rb_iv_set(self, "@scroll_factor", val);
 }
 
 static VALUE inputPress(VALUE self, VALUE number)
@@ -153,6 +116,16 @@ static VALUE input_are_pressed(int size, VALUE* buttons, VALUE self)
   return Qtrue;
 }
 
+static VALUE input_press_left_click(VALUE self)
+{
+  return shState->input().press_left_click() ? Qtrue : Qfalse;
+}
+
+static VALUE input_press_right_click(VALUE self)
+{
+  return shState->input().press_right_click() ? Qtrue : Qfalse;
+}
+
 static VALUE input_trigger_up_down(VALUE self)
 {
   if (shState->input().isTriggered(Input::Up))
@@ -202,68 +175,6 @@ static VALUE input_is_dir8(VALUE self)
 }
 
 // Non-standard extensions
-static VALUE inputMouseX(VALUE self)
-{
-  return RB_INT2FIX(shState->input().mouseX());
-}
-
-static VALUE inputMouseY(VALUE self)
-{
-  return RB_INT2FIX(shState->input().mouseY());
-}
-
-static VALUE input_mouse_ox(VALUE self)
-{
-  return rb_iv_get(self, "@mouse_ox");
-}
-
-static VALUE input_mouse_oy(VALUE self)
-{
-  return rb_iv_get(self, "@mouse_oy");
-}
-
-static VALUE input_mouse_xy_set(VALUE self, VALUE mx, VALUE my)
-{
-  int x = RB_FIX2INT(mx);
-  int y = RB_FIX2INT(my);
-  shState->input().mouse_set_xy(x, y);
-  return rb_ary_new3(2, mx, my);
-}
-
-static VALUE input_mouse_ox_set(VALUE self, VALUE val)
-{
-  val = rb_funcall(val, rb_intern("to_i"), 0);
-  int n = RB_FIX2INT(val);
-  shState->input().mouse_set_ox(n);
-  return rb_iv_set(self, "@mouse_ox", val);
-}
-
-static VALUE input_mouse_oy_set(VALUE self, VALUE val)
-{
-  val = rb_funcall(val, rb_intern("to_i"), 0);
-  int n = RB_FIX2INT(val);
-  shState->input().mouse_set_oy(n);
-  return rb_iv_set(self, "@mouse_oy", val);
-}
-
-static VALUE input_mouse_scroll_x(VALUE self)
-{
-  int n = shState->input().mouse_scroll_x();
-  return RB_INT2FIX(n);
-}
-
-static VALUE input_mouse_scroll_y(VALUE self)
-{
-  int n = shState->input().mouse_scroll_y();
-  return RB_INT2FIX(n);
-}
-
-static VALUE input_mouse_scroll_reset(VALUE self)
-{
-  shState->input().mouse_scroll_reset();
-  return ZERO;
-}
-
 static VALUE input_left_click(VALUE self)
 {
   return shState->input().is_left_click() ? Qtrue : Qfalse;
@@ -293,30 +204,6 @@ static VALUE input_double_left_click(VALUE self)
 static VALUE input_double_right_click(VALUE self)
 {
   return shState->input().is_double_right_click() ? Qtrue : Qfalse; 
-}
-
-static VALUE input_is_mouse_scroll_x(VALUE self, VALUE val)
-{
-  bool go_up;
-  if (hc_sym("UP") == val)
-    go_up = true;
-  else if (hc_sym("DOWN") == val)
-    go_up = false;
-  else
-    return Qnil;
-  return shState->input().is_mouse_scroll_x(go_up) ? Qtrue : Qfalse; 
-}
-
-static VALUE input_is_mouse_scroll_y(VALUE self, VALUE val)
-{
-  bool go_up;
-  if (hc_sym("UP") == val)
-    go_up = true;
-  else if (hc_sym("DOWN") == val)
-    go_up = false;
-  else
-    return Qnil;
-  return shState->input().is_mouse_scroll_y(go_up) ? Qtrue : Qfalse; 
 }
 
 static VALUE input_is_any_char(VALUE self)
@@ -482,27 +369,16 @@ static elementsN(buttonCodes);
 void inputBindingInit()
 {
   VALUE input = rb_define_module("Input");
-  rb_iv_set(input, "@mouse_ox", RB_INT2FIX(8));
-  rb_iv_set(input, "@mouse_oy", RB_INT2FIX(-4));
-  rb_iv_set(input, "@default_timer", RB_INT2FIX(CLICK_TIMER));
-  rb_iv_set(input, "@scroll_factor", RB_INT2FIX(SCROLL_FACTOR));
   module_func(input, "update", inputUpdate, 0);
-  module_func(input, "click_timer", input_click_timer, 0);
-  module_func(input, "base_timer", input_default_timer, 0);
-  module_func(input, "base_timer=", input_default_timer_set, 1);
-  module_func(input, "default_timer", input_default_timer, 0);
-  module_func(input, "default_timer=", input_default_timer_set, 1);
-  module_func(input, "scroll_factor", input_scroll_factor, 0);
-  module_func(input, "scroll_factor=", input_scroll_factor_set, 1);
   module_func(input, "left_click?", input_left_click, 0);
   module_func(input, "middle_click?", input_middle_click, 0);
   module_func(input, "right_click?", input_right_click, 0);
   module_func(input, "double_click?", input_double_click, 1);
   module_func(input, "double_left_click?", input_double_left_click, 0);
   module_func(input, "double_right_click?", input_double_right_click, 0);
-  module_func(input, "mouse_scroll_x?", input_is_mouse_scroll_x, 1);
-  module_func(input, "mouse_scroll_y?", input_is_mouse_scroll_y, 1);
   module_func(input, "press?", inputPress, 1);
+  module_func(input, "press_left_click?", input_press_left_click, 0);
+  module_func(input, "press_right_click?", input_press_right_click, 0);
   module_func(input, "trigger?", inputTrigger, 1);
   module_func(input, "repeat?", inputRepeat, 1);
   module_func(input, "press_any?", input_press_any, 0);
@@ -517,16 +393,6 @@ void inputBindingInit()
   module_func(input, "dir8", inputDir8, 0);
   module_func(input, "dir4?", input_is_dir4, 0);
   module_func(input, "dir8?", input_is_dir8, 0);
-  module_func(input, "mouse_x", inputMouseX, 0);
-  module_func(input, "mouse_y", inputMouseY, 0);
-  module_func(input, "mouse_ox", input_mouse_ox, 0);
-  module_func(input, "mouse_oy", input_mouse_oy, 0);
-  module_func(input, "mouse_set_xy", input_mouse_xy_set, 2);
-  module_func(input, "mouse_ox=", input_mouse_ox_set, 1);
-  module_func(input, "mouse_oy=", input_mouse_oy_set, 1);
-  module_func(input, "mouse_scroll_x", input_mouse_scroll_x, 0);
-  module_func(input, "mouse_scroll_y", input_mouse_scroll_y, 0);
-  module_func(input, "mouse_scroll_reset", input_mouse_scroll_reset, 0);
   module_func(input, "any_char?", input_is_any_char, 0);
   module_func(input, "string", input_string, 0);
   module_func(input, "enable_edit=", input_enable_edit, 1);

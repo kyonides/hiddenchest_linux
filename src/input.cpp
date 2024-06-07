@@ -805,6 +805,20 @@ bool Input::is_double_click(int btn)
   return (clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
+bool Input::press_left_click()
+{
+  if (p->getStateCheck(MouseLeft).triggered)
+    return false;
+  return p->getStateCheck(MouseLeft).pressed;
+}
+
+bool Input::press_right_click()
+{
+  if (p->getStateCheck(MouseRight).triggered)
+    return false;
+  return p->getStateCheck(MouseRight).pressed;
+}
+
 bool Input::is_mouse_scroll_x(bool go_up)
 {
   if (shState->rtData().mouse_moved)
@@ -831,12 +845,11 @@ bool Input::is_mouse_scroll_y(bool go_up)
 
 bool Input::isPressed(int button)
 {
-  if (button == MouseLeft || button == MouseRight) {
-    bool trig = p->getStateCheck(button).pressed;
-    p->getStateCheck(button).pressed = false;
-    return trig;
-  }
-  return p->getStateCheck(button).pressed;
+  ButtonState state = p->getStateCheck(button);
+  if (button == MouseLeft || button == MouseRight)
+    if (state.triggered)
+      return false;
+  return state.pressed;
 }
 
 bool Input::isTriggered(int button)

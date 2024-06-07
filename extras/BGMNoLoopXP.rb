@@ -7,7 +7,6 @@
 
 module BgmNoLoop
   WAIT = 20
-  NO_LOOP = [1]
   MAP_BGM = {}
   MAP_BGM[1] = ["015-Theme04", "017-Theme06"]
 end
@@ -20,7 +19,7 @@ class Game_Map
   end
 
   def check_bgm_loop(map_id)
-    Audio.bgm_loop = (Audio.default_bgm_loop or !BgmNoLoop::NO_LOOP[map_id])
+    Audio.bgm_loop = (Audio.default_bgm_loop or !BgmNoLoop::MAP_BGM[map_id])
   end
 
   def map_bgm

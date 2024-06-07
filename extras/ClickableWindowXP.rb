@@ -1,6 +1,6 @@
 # * ClickableWindow XP * #
 #   Scripter : Kyonides Arkanthes
-#   2024-06-02
+#   2024-06-07
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.
@@ -8,9 +8,40 @@
 # Input.right_click? or even Input.middle_click? to your target scenes to make
 # this work.
 
+class Window_Base
+  def update
+    super
+    if $game_system.windowskin_name != @windowskin_name
+      @windowskin_name = $game_system.windowskin_name
+      self.windowskin = RPG::Cache.windowskin(@windowskin_name)
+    end
+    # Added Draggable Window Check
+    check_draggable
+  end
+
+  def check_draggable
+    return unless draggable?
+    if Input.press_left_click?
+      if Mouse.no_target? and mouse_inside?
+        Mouse.target = self
+        @mouse_x = Mouse.x
+        @mouse_y = Mouse.y
+      elsif Mouse.target?(self)
+        self.x += Mouse.x - @mouse_x
+        self.y += Mouse.y - @mouse_y
+        @mouse_x = Mouse.x
+        @mouse_y = Mouse.y
+      end
+      return
+    elsif Mouse.target?(self)
+      Mouse.target = nil
+    end
+  end
+end
+
 class Window_Selectable
   def one_click_selection
-  # Set Index to invisible if clicked outside this window
+    # Set Index to invisible if clicked outside this window
     self.index = -1
     # Check each area - a list of Rect's
     @area.size.times do |n|
@@ -23,18 +54,18 @@ class Window_Selectable
   def update
     super
     return unless self.active
-    return if @item == 0
+    return if @item_max == 0
     # Added Left Click Check
     if Input.left_click?
       one_click_selection
       return
     end
     if mouse_inside?
-      if Input.mouse_scroll_y?(:UP)
+      if Mouse.scroll_y?(:UP)
         $game_system.se_play($data_system.cursor_se)
         self.index = (@index - @column_max) % @item_max
         return
-      elsif Input.mouse_scroll_y?(:DOWN)
+      elsif Mouse.scroll_y?(:DOWN)
         $game_system.se_play($data_system.cursor_se)
         self.index = (@index + @column_max) % @item_max
         return
@@ -177,8 +208,52 @@ class Window_Message
 end
 
 class Scene_Title
-  alias :kyon_click_win_scn_ttl_main :main
+  def load_database
+    $data_actors        = load_data("Data/Actors.rxdata")
+    $data_classes       = load_data("Data/Classes.rxdata")
+    $data_skills        = load_data("Data/Skills.rxdata")
+    $data_items         = load_data("Data/Items.rxdata")
+    $data_weapons       = load_data("Data/Weapons.rxdata")
+    $data_armors        = load_data("Data/Armors.rxdata")
+    $data_enemies       = load_data("Data/Enemies.rxdata")
+    $data_troops        = load_data("Data/Troops.rxdata")
+    $data_states        = load_data("Data/States.rxdata")
+    $data_animations    = load_data("Data/Animations.rxdata")
+    $data_tilesets      = load_data("Data/Tilesets.rxdata")
+    $data_common_events = load_data("Data/CommonEvents.rxdata")
+    $data_system        = load_data("Data/System.rxdata")
+  end
+
+  def reset_game_system
+    $game_system = Game_System.new
+  end
+
   def start
+    create_backdrop
+    create_command_window
+    create_title
+    create_extras
+    check_continue
+    setup_audio
+  end
+
+  def create_backdrop
+    @sprite = Sprite.new
+    @sprite.bitmap = RPG::Cache.title($data_system.title_name)
+  end
+
+  def create_command_window
+    s1 = "New Game"
+    s2 = "Continue"
+    s3 = "Shutdown"
+    @command_window = Window_Command.new(192, [s1, s2, s3])
+    @command_window.back_opacity = 160
+    @command_window.x = 320 - @command_window.width / 2
+    @command_window.y = 288
+    @command_window.draggable = true
+  end
+
+  def create_title
     @title = Sprite.new
     @title.set_xyz(0, 60, 100)
     @title.bitmap = b = Bitmap.new(Graphics.width, 60)
@@ -187,6 +262,9 @@ class Scene_Title
     font.outline = true
     font.outline_size = 4
     b.draw_text(b.rect, Game::TITLE, 1)
+  end
+
+  def create_extras
     @day_index = 0
     @days = %w{Sunday Monday Tuesday Wednesday Thursday Friday Saturday}
     # Make day of the week graphic
@@ -201,17 +279,48 @@ class Scene_Title
     @block.bitmap = @bitmap
   end
 
+  def check_continue
+    @continue_enabled = Dir["Save*.rxdata"].any?
+    if @continue_enabled
+      @command_window.index = 1
+    else
+      @command_window.disable_item(1)
+    end
+  end
+
+  def setup_audio
+    $game_system.bgm_play($data_system.title_bgm)
+    Audio.me_stop
+    Audio.bgs_stop
+  end
+
   def terminate
+    @command_window.dispose
     @bitmap.dispose
     @block.dispose
     @title.bitmap.dispose
     @title.dispose
+    @sprite.bitmap.dispose
+    @sprite.dispose
   end
 
   def main
-    start unless $BTEST
-    kyon_click_win_scn_ttl_main
-    terminate unless $BTEST
+    if $BTEST
+      battle_test
+      return
+    end
+    load_database
+    reset_game_system
+    start
+    Graphics.transition
+    loop do
+      Graphics.update
+      Input.update
+      update
+      break if $scene != self
+    end
+    Graphics.freeze
+    terminate
   end
 
   def update
@@ -344,7 +453,7 @@ class Scene_Menu
   def start
     create_command_window
     create_windows
-    Input.mouse_set_xy(80, 28 + @menu_index * 32)
+    Mouse.set_xy(80, 28 + @menu_index * 32)
   end
 
   def create_command_window
@@ -412,19 +521,19 @@ class Scene_Menu
         @command_window.active = false
         @status_window.active = true
         @status_window.index = 0
-        Input.mouse_set_xy(@command_window.width + 120, 28)
+        Mouse.set_xy(@command_window.width + 120, 28)
       when 2  # equipment
         $game_system.se_play($data_system.decision_se)
         @command_window.active = false
         @status_window.active = true
         @status_window.index = 0
-        Input.mouse_set_xy(@command_window.width + 120, 28)
+        Mouse.set_xy(@command_window.width + 120, 28)
       when 3  # status
         $game_system.se_play($data_system.decision_se)
         @command_window.active = false
         @status_window.active = true
         @status_window.index = 0
-        Input.mouse_set_xy(@command_window.width + 120, 28)
+        Mouse.set_xy(@command_window.width + 120, 28)
       when 4  # save
         if $game_system.save_disabled
           $game_system.se_play($data_system.buzzer_se)
@@ -447,7 +556,9 @@ class Scene_Menu
       @command_window.active = true
       @status_window.active = false
       @status_window.index = -1
-      Input.mouse_set_xy(80, 28 + @command_window.index * 32)
+      mx = @command_window.x + 80
+      my = 28 + @command_window.index * 32
+      Mouse.set_xy(mx, my)
       return
     end
     # Modified OK Button Functionality
@@ -550,6 +661,29 @@ class Scene_File
 end
 
 class Scene_End
+  def main
+    s1 = "To Title"
+    s2 = "Shutdown"
+    s3 = "Cancel"
+    @command_window = Window_Command.new(192, [s1, s2, s3])
+    @command_window.x = 320 - @command_window.width / 2
+    @command_window.y = 240 - @command_window.height / 2
+    @command_window.draggable = true
+    Graphics.transition
+    loop do
+      Graphics.update
+      Input.update
+      update
+      break if $scene != self
+    end
+    Graphics.freeze
+    @command_window.dispose
+    if $scene.is_a?(Scene_Title)
+      Graphics.transition
+      Graphics.freeze
+    end
+  end
+
   def update
     @command_window.update
     # Added Right Click Check

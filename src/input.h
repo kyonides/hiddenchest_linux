@@ -82,6 +82,8 @@ public:
   bool is_double_left_click();
   bool is_double_right_click();
   bool is_double_click(int btn);
+  bool press_left_click();
+  bool press_right_click();
   bool is_mouse_scroll_x(bool go_up);
   bool is_mouse_scroll_y(bool go_up);
   bool isPressed(int button);

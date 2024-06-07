@@ -1,5 +1,5 @@
 /*
-** binding-mri.cpp
+** rgss.cpp
 **
 ** This file is part of HiddenChest and mkxp.
 **
@@ -58,6 +58,7 @@ static void mriBindingReset();
 extern "C" {
 void init_zlib();
 }
+void init_mouse();
 void init_game();
 void init_scripts();
 void init_system();
@@ -590,6 +591,7 @@ static void mriBindingExecute()
   audioBindingInit();
   graphicsBindingInit();
   inputBindingInit();
+  init_mouse();
   init_backdrop();
   init_scripts();
   init_system();

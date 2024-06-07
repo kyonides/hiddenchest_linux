@@ -22,9 +22,6 @@
 
 #include "config.h"
 #include "resolution.h"
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <boost/program_options/variables_map.hpp>
 #include <SDL_filesystem.h>
 #include <fstream>
 #include <stdint.h>
@@ -122,57 +119,54 @@ std::set<T> setFromVec(const std::vector<T> &vec)
 {
 	return std::set<T>(vec.begin(), vec.end());
 }
-
+/*
 typedef std::vector<std::string> StringVec;
 namespace po = boost::program_options;
 
 #define CONF_FILE "hiddenchest.conf"
-
+*/
 Config::Config()
-{}
+{
+	rgssVersion = 0;
+	debugMode = false;
+	printFPS = false;
+	winResizable = true;
+	fullscreen = false;
+	fixedAspectRatio = true;
+	smoothScaling = true;
+	vsync = true;
+	defScreenW = START_WIDTH;
+	defScreenH = START_HEIGHT;
+	windowTitle = "";
+	fixedFramerate = 0;
+	frameSkip = true;
+	syncToRefreshrate = false;
+	solidFonts = false;
+	subImageFix = false;
+	enableBlitting = true;
+	maxTextureSize = 0;
+	gameFolder = ".";
+	anyAltToggleFS = false;
+	enableReset = true;
+	allowSymlinks = false;
+	dataPathOrg = "";
+	dataPathApp = "";
+	iconPath = "";
+	execName = "Game";
+	titleLanguage = "";
+	midi.soundFont = "";
+	midi.chorus = false;
+	midi.reverb = false;
+	SE.sourceCount = 12;
+	customScript = "";
+	pathCache = true;
+	font_cache = false;
+	useScriptNames = false;
+}
 
 void Config::read(int argc, char *argv[])
 {
-#define PO_DESC_ALL \
-	PO_DESC(rgssVersion, int, 0) \
-	PO_DESC(debugMode, bool, false) \
-	PO_DESC(printFPS, bool, false) \
-	PO_DESC(winResizable, bool, true) \
-	PO_DESC(fullscreen, bool, false) \
-	PO_DESC(fixedAspectRatio, bool, true) \
-	PO_DESC(smoothScaling, bool, true) \
-	PO_DESC(vsync, bool, true) \
-	PO_DESC(defScreenW, int, START_WIDTH) \
-	PO_DESC(defScreenH, int, START_HEIGHT) \
-	PO_DESC(windowTitle, std::string, "") \
-	PO_DESC(fixedFramerate, int, 0) \
-	PO_DESC(frameSkip, bool, true) \
-	PO_DESC(syncToRefreshrate, bool, false) \
-	PO_DESC(solidFonts, bool, false) \
-	PO_DESC(subImageFix, bool, false) \
-	PO_DESC(enableBlitting, bool, true) \
-	PO_DESC(maxTextureSize, int, 0) \
-	PO_DESC(gameFolder, std::string, ".") \
-	PO_DESC(anyAltToggleFS, bool, false) \
-	PO_DESC(enableReset, bool, true) \
-	PO_DESC(allowSymlinks, bool, false) \
-	PO_DESC(dataPathOrg, std::string, "") \
-	PO_DESC(dataPathApp, std::string, "") \
-	PO_DESC(iconPath, std::string, "") \
-	PO_DESC(execName, std::string, "Game") \
-	PO_DESC(titleLanguage, std::string, "") \
-	PO_DESC(midi.soundFont, std::string, "") \
-	PO_DESC(midi.chorus, bool, false) \
-	PO_DESC(midi.reverb, bool, false) \
-	PO_DESC(SE.sourceCount, int, 6) \
-	PO_DESC(customScript, std::string, "") \
-	PO_DESC(pathCache, bool, true) \
-	PO_DESC(font_cache, bool, false) \
-	PO_DESC(useScriptNames, bool, false)
-
-// Not gonna take your shit boost
 #define GUARD_ALL( exp ) try { exp } catch(...) {}
-
   editor.debug = false;
   editor.battleTest = false;
   // Read arguments sent from the editor
@@ -189,48 +183,8 @@ void Config::read(int argc, char *argv[])
       argv++;
     }
   }
-
-#define PO_DESC(key, type, def) (#key, po::value< type >()->default_value(def))
-
-  po::options_description podesc;
-  podesc.add_options()
-          PO_DESC_ALL
-          ("preloadScript", po::value<StringVec>()->composing())
-          ("RTP", po::value<StringVec>()->composing())
-          ("fontSub", po::value<StringVec>()->composing())
-          ("rubyLoadpath", po::value<StringVec>()->composing())
-          ;
-
-  po::variables_map vm;
-  // Parse command line options
-  try {
-    po::parsed_options cmdPo =
-        po::command_line_parser(argc, argv).options(podesc).run();
-    po::store(cmdPo, vm);
-  } catch (po::error &error) {
-    Debug() << "Command line:" << error.what();
-  }
-  /* Parse configuration file */
-  SDLRWStream confFile(CONF_FILE, "r");
-  if (confFile) {
-    try {
-      po::store(po::parse_config_file(confFile.stream(), podesc, true), vm);
-      po::notify(vm);
-    } catch (po::error &error) {
-      Debug() << CONF_FILE":" << error.what();
-    }
-  }
-#undef PO_DESC
-#define PO_DESC(key, type, def) GUARD_ALL( key = vm[#key].as< type >(); )
-  PO_DESC_ALL;
-  GUARD_ALL( preloadScripts = setFromVec(vm["preloadScript"].as<StringVec>()); );
-  GUARD_ALL( rtps = vm["RTP"].as<StringVec>(); );
-  GUARD_ALL( fontSubs = vm["fontSub"].as<StringVec>(); );
-  GUARD_ALL( rubyLoadpaths = vm["rubyLoadpath"].as<StringVec>(); );
-#undef PO_DESC
-#undef PO_DESC_ALL
   rgssVersion = clamp(rgssVersion, 0, 3);
-  SE.sourceCount = clamp(SE.sourceCount, 1, 64);
+  SE.sourceCount = clamp(SE.sourceCount, 12, 64);
   if (!dataPathOrg.empty() && !dataPathApp.empty())
     customDataPath = prefPath(dataPathOrg.c_str(), dataPathApp.c_str());
   commonDataPath = prefPath(".", "hiddenchest");
