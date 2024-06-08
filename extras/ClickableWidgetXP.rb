@@ -1,12 +1,93 @@
-# * ClickableWindow XP * #
+# * ClickableWidget XP * #
 #   Scripter : Kyonides Arkanthes
-#   2024-06-07
+#   2024-06-08
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.
 # Normally, you would have to add some calls to Input.left_click? or
 # Input.right_click? or even Input.middle_click? to your target scenes to make
 # this work.
+
+class Sprite
+  alias :kyon_click_sprite_sprite_up :update
+  def update
+    kyon_click_sprite_sprite_up
+    # Added Draggable Window Check
+    check_draggable
+    check_mouse_inside
+  end
+
+  def check_draggable
+    return unless draggable?
+    if Input.press_left_click?
+      if Mouse.no_target?
+        if mouse_inside_color? and drag_color?
+          Mouse.target = self
+          @mouse_x = Mouse.x
+          @mouse_y = Mouse.y
+        end
+      elsif Mouse.target?(self)
+        self.x += Mouse.x - @mouse_x
+        self.y += Mouse.y - @mouse_y
+        @mouse_x = Mouse.x
+        @mouse_y = Mouse.y
+      end
+      return
+    elsif Mouse.target?(self)
+      Mouse.target = nil
+    end
+  end
+
+  def hover_can_change?
+    return false if @hover_changed
+    return false if @base_name.nil? or @base_name.empty?
+    return false if @hover_name.nil? or @hover_name.empty?
+    @hover_filetype != nil
+  end
+
+  def check_mouse_inside
+    return if Mouse.target?(self)
+    if mouse_inside?
+      if hover_can_change?
+        set_hover_bitmap
+        @hover_changed = true
+        return
+      end
+    elsif @hover_changed
+      self.bitmap.dispose
+      set_base_bitmap
+      @hover_changed = false
+    end
+  end
+
+  def set_hover_bitmap
+    filetype = @hover_filetype.to_sym
+    case filetype
+    when :battler 
+      self.bitmap = RPG::Cache.battler(@hover_name, @hover_hue)
+    when :character
+      self.bitmap = RPG::Cache.character(@hover_name, @hover_hue)
+    when :icon
+      self.bitmap = RPG::Cache.icon(@hover_name)
+    when :picture
+      self.bitmap = RPG::Cache.picture(@hover_name)
+    end
+  end
+
+  def set_base_bitmap
+    filetype = @hover_filetype.to_sym
+    case filetype
+    when :battler 
+      self.bitmap = RPG::Cache.battler(@base_name, @hover_hue)
+    when :character
+      self.bitmap = RPG::Cache.character(@base_name, @hover_hue)
+    when :icon
+      self.bitmap = RPG::Cache.icon(@base_name)
+    when :picture
+      self.bitmap = RPG::Cache.picture(@base_name)
+    end
+  end
+end
 
 class Window_Base
   def update
@@ -208,6 +289,7 @@ class Window_Message
 end
 
 class Scene_Title
+  LOGO = "icon_sound"
   def load_database
     $data_actors        = load_data("Data/Actors.rxdata")
     $data_classes       = load_data("Data/Classes.rxdata")
@@ -265,6 +347,13 @@ class Scene_Title
   end
 
   def create_extras
+    @logo = Sprite.new
+    @logo.set_xyz(24, 24, 100)
+    @logo.drag_condition = :color
+    @logo.base_name = LOGO
+    @logo.hover_name = LOGO + "2"
+    @logo.hover_filetype = :picture
+    @logo.set_base_bitmap
     @day_index = 0
     @days = %w{Sunday Monday Tuesday Wednesday Thursday Friday Saturday}
     # Make day of the week graphic
@@ -298,6 +387,8 @@ class Scene_Title
     @command_window.dispose
     @bitmap.dispose
     @block.dispose
+    @logo.bitmap.dispose
+    @logo.dispose
     @title.bitmap.dispose
     @title.dispose
     @sprite.bitmap.dispose
@@ -324,6 +415,7 @@ class Scene_Title
   end
 
   def update
+    @logo.update
     @command_window.update
     # Added Right Click Check
     if Input.right_click?
@@ -350,6 +442,9 @@ class Scene_Title
       @day_index = (@day_index + 1) % 7
       @bitmap.clear
       @bitmap.draw_text(@bitmap.rect, @days[@day_index], 1)
+    elsif Input.trigger?(Input::LeftShift)
+      $game_system.se_play($data_system.equip_se)
+      Graphics.screenshot
     end
   end
 end

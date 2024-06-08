@@ -104,7 +104,7 @@ public:
   bool is_height_reduced();
   bool mouse_is_inside();
   bool mouse_is_inside_area(Rect *rect, bool state);
-  bool isMouseAboveColorFound();
+  bool mouse_is_above_color_found();
   void initDynAttribs();
   void onGeometryChange(const Scene::Geometry &);
 

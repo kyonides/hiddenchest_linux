@@ -35,6 +35,8 @@
 #define ARRAY_TYPE_P(obj) (!RB_SPECIAL_CONST_P(obj) && \
   RB_BUILTIN_TYPE(obj) == RUBY_T_ARRAY)
 
+#define SYMBOL_TYPE_P(obj) RB_DYNAMIC_SYM_P(obj)
+
 static VALUE hc_sym(const char* str)
 {
   return rb_id2sym(rb_intern(str));

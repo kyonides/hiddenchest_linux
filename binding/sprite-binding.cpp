@@ -44,10 +44,15 @@ static VALUE spriteInitialize(int argc, VALUE* argv, VALUE self)
   wrapProperty(self, &s->getSrcRect(), "src_rect", RectType);
   wrapProperty(self, &s->getColor(), "color", ColorType);
   wrapProperty(self, &s->getTone(), "tone", ToneType);
+  VALUE zero = RB_INT2FIX(0);
   rb_iv_set(self, "opacity", RB_INT2FIX(255));
-  rb_iv_set(self, "blend_type", RB_INT2FIX(0));
+  rb_iv_set(self, "blend_type", zero);
   rb_iv_set(self, "@area", rb_ary_new());
   rb_iv_set(self, "drag_margin_y", 8);
+  rb_iv_set(self, "draggable", Qfalse);
+  rb_iv_set(self, "drag_condition", hc_sym("always"));
+  rb_iv_set(self, "@hover_hue", zero);
+  rb_iv_set(self, "@hover_changed", Qfalse);
   return self;
 }
 
@@ -665,7 +670,48 @@ static VALUE sprite_is_mouse_above_color(VALUE self)
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
     return Qnil;
-  return s->isMouseAboveColorFound() ? Qtrue : Qfalse;
+  return s->mouse_is_above_color_found() ? Qtrue : Qfalse;
+}
+
+static VALUE sprite_mouse_target(VALUE self)
+{
+  VALUE mouse = rb_define_module("Mouse");
+  return rb_iv_get(mouse, "mouse_target") == self ? Qtrue : Qfalse;
+}
+
+static VALUE sprite_draggable(VALUE self)
+{
+  return rb_iv_get(self, "draggable");
+}
+
+static VALUE sprite_draggable_set(VALUE self, VALUE state)
+{
+  return rb_iv_set(self, "draggable", state);
+}
+
+static VALUE sprite_drag_always(VALUE self)
+{
+  return rb_iv_get(self, "drag_condition") == hc_sym("always") ? Qtrue : Qfalse;
+}
+
+static VALUE sprite_drag_color(VALUE self)
+{
+  VALUE cnd = rb_iv_get(self, "drag_condition");
+  return (cnd == hc_sym("always") || cnd == hc_sym("color"))? Qtrue : Qfalse;
+}
+
+static VALUE sprite_drag_condition(VALUE self)
+{
+  return rb_iv_get(self, "drag_condition");
+}
+
+static VALUE sprite_drag_condition_set(VALUE self, VALUE symbol)
+{
+  if (symbol == Qnil || symbol == Qfalse)
+    rb_iv_set(self, "draggable", Qfalse);
+  else
+    rb_iv_set(self, "draggable", Qtrue);
+  return rb_iv_set(self, "drag_condition", symbol);
 }
 
 static VALUE check_click_area(VALUE self, VALUE pos, bool state)
@@ -734,6 +780,10 @@ void SpriteBindingInit()
   disposableBindingInit<Sprite>(sprite);
   flashableBindingInit<Sprite>(sprite);
   viewportElementBindingInit<Sprite>(sprite);
+  rb_define_attr(sprite, "base_name", 1, 1);
+  rb_define_attr(sprite, "hover_name", 1, 1);
+  rb_define_attr(sprite, "hover_hue", 1, 1);
+  rb_define_attr(sprite, "hover_filetype", 1, 1);
   rb_define_method(sprite, "initialize", RMF(spriteInitialize), -1);
   rb_define_method(sprite, "bitmap", RMF(SpriteGetBitmap), 0);
   rb_define_method(sprite, "bitmap=", RMF(SpriteSetBitmap), 1);
@@ -792,7 +842,15 @@ void SpriteBindingInit()
   rb_define_method(sprite, "reduced_height?", RMF(sprite_is_height_reduced), 0);
   rb_define_method(sprite, "mouse_inside?", RMF(sprite_is_mouse_inside), 0);
   rb_define_method(sprite, "mouse_above?", RMF(sprite_is_mouse_inside), 0);
+  rb_define_method(sprite, "mouse_inside_color?", RMF(sprite_is_mouse_above_color), 0);
   rb_define_method(sprite, "mouse_above_color?", RMF(sprite_is_mouse_above_color), 0);
+  rb_define_method(sprite, "mouse_target?", RMF(sprite_mouse_target), 0);
+  rb_define_method(sprite, "drag_condition", RMF(sprite_drag_condition), 0);
+  rb_define_method(sprite, "drag_condition=", RMF(sprite_drag_condition_set), 1);
+  rb_define_method(sprite, "drag_always?", RMF(sprite_drag_always), 0);
+  rb_define_method(sprite, "drag_color?", RMF(sprite_drag_color), 0);
+  rb_define_method(sprite, "draggable?", RMF(sprite_draggable), 0);
+  rb_define_method(sprite, "draggable=", RMF(sprite_draggable_set), 1);
   rb_define_method(sprite, "click_area?", RMF(sprite_is_click_area), 1);
   rb_define_method(sprite, "press_click_area?", RMF(sprite_is_press_click_area), 1);
   rb_define_method(sprite, "drag_margin_y", RMF(sprite_is_drag_margin_y), 0);

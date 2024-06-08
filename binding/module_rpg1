@@ -81,21 +81,24 @@ module RPG
     end
   end
 
+  class DamageFont
+    attr_accessor :font_name, :font_size, :font_outline_size
+    attr_accessor :atk_color, :heal_color, :default_color
+    def get_color(damage)
+      damage < 0 ? @heal_color : @atk_color
+    end
+  end
+
   class Sprite < ::Sprite
+    DAMAGE_SIZE = 32
+    OUTLINE_SIZE = 3
     @@_animations = []
     @@_reference_count = {}
     def initialize(viewport = nil)
       super(viewport)
-      @hp_dmg_font = "Arial Black"
-      @hp_dmg_size = 32
-      @hp_dmg_plus_color = Color.new(176, 255, 144)
-      @hp_dmg_minus_color = Color.new(176, 255, 144)
-      @hp_dmg_default_color = Color.new(255, 255, 255)
-      @sp_dmg_font = "Arial Black"
-      @sp_dmg_size = 32
-      @sp_dmg_plus_color = Color.new(140, 140, 100)
-      @sp_dmg_minus_color = Color.new(140, 140, 100)
-      @sp_dmg_default_color = Color.new(255, 255, 255)
+      create_hp_sp_damage
+      setup_hp_damage
+      setup_sp_damage
       @_whiten_duration = 0
       @_appear_duration = 0
       @_escape_duration = 0
@@ -103,6 +106,26 @@ module RPG
       @_damage_duration = 0
       @_animation_duration = 0
       @_blink = false
+    end
+    def create_hp_sp_damage
+      @hp_dmg = DamageFont.new
+      @sp_dmg = DamageFont.new
+    end
+    def setup_hp_damage
+      @hp_dmg.font_name = "Arial Black"
+      @hp_dmg.font_size = DAMAGE_SIZE
+      @hp_dmg.font_outline_size = OUTLINE_SIZE
+      @hp_dmg.atk_color = Color.new(255, 255, 80)
+      @hp_dmg.heal_color = Color.new(180, 100, 180)
+      @hp_dmg.default_color = Color.new(255, 255, 255)
+    end
+    def setup_sp_damage
+      @sp_dmg.font_name = "Arial Black"
+      @sp_dmg.font_size = DAMAGE_SIZE
+      @sp_dmg.font_outline_size = OUTLINE_SIZE
+      @sp_dmg.atk_color = Color.new(180, 120, 180)
+      @sp_dmg.heal_color = Color.new(120, 120, 120)
+      @sp_dmg.default_color = Color.new(255, 255, 255)
     end
     def dispose
       dispose_damage
@@ -153,25 +176,25 @@ module RPG
       else
         damage_string = value.to_s
       end
-      bitmap = Bitmap.new(160, 52)
+      bitmap = Bitmap.new(180, 56)
       font = bitmap.font
-      font.name = @hp_dmg_font_name
-      font.size = @hp_dmg_font_size
+      font.name = @hp_dmg.font_name
+      font.size = @hp_dmg.font_size
       font.bold = true
       font.outline = true
-      font.outline_size = 3
+      font.outline_size = @hp_dmg.font_outline_size
       font.color.set(0, 0, 0)
       if value.is_a?(Numeric)
-        font.color = value < 0 ? @hp_dmg_minus_color : @hp_dmg_plus_color
+        font.color = @hp_dmg.get_color(value)
       else
-        font.color = @hp_dmg_default_color
+        font.color = @hp_dmg.default_color
       end
-      bitmap.draw_text(0, 12, 160, 36, damage_string, 1)
+      bitmap.draw_text(0, 12, 180, 40, damage_string, 1)
       if critical
         font.size = 20
         font.color.set(0, 0, 0)
         font.color.set(255, 255, 255)
-        bitmap.draw_text(0, 0, 160, 20, "CRITICAL", 1)
+        bitmap.draw_text(0, 0, 180, 20, "CRITICAL", 1)
       end
       @_damage_sprite = ::Sprite.new(self.viewport)
       @_damage_sprite.bitmap = bitmap
@@ -189,25 +212,25 @@ module RPG
       else
         damage_string = value.to_s
       end
-      bitmap = Bitmap.new(160, 52)
+      bitmap = Bitmap.new(180, 56)
       font = bitmap.font
-      font.name = @sp_dmg_font_name
-      font.size = @sp_dmg_font_size
+      font.name = @sp_dmg.font_name
+      font.size = @sp_dmg.font_size
       font.bold = true
       font.outline = true
-      font.outline_size = 3
+      font.outline_size = @sp_dmg.font_outline_size
       font.color.set(0, 0, 0)
       if value.is_a?(Numeric)
-        font.color = value < 0 ? @sp_dmg_minus_color : @sp_dmg_plus_color
+        font.color = @sp_dmg.get_color(value)
       else
-        font.color = @sp_dmg_default_color
+        font.color = @sp_dmg.default_color
       end
-      bitmap.draw_text(0, 12, 160, 36, damage_string, 1)
+      bitmap.draw_text(0, 12, 180, 40, damage_string, 1)
       if critical
         font.size = 20
         font.color.set(0, 0, 0)
         font.color.set(255, 255, 255)
-        bitmap.draw_text(0, 0, 160, 20, "CRITICAL", 1)
+        bitmap.draw_text(0, 0, 180, 20, "CRITICAL", 1)
       end
       @_damage_sprite = ::Sprite.new(self.viewport)
       @_damage_sprite.bitmap = bitmap

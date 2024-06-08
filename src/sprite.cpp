@@ -750,7 +750,7 @@ bool Sprite::mouse_is_inside_area(Rect *rect, bool state)
   return mp <= sp + rect->y + rect->height + mpoy;
 }
 
-bool Sprite::isMouseAboveColorFound()
+bool Sprite::mouse_is_above_color_found()
 {
   guardDisposed();
   if (!p->isVisible)
