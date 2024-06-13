@@ -224,14 +224,9 @@ bool Audio::bgm_looping()
   return p->bgm.looping();
 }
 
-void Audio::bgm_loop()
+void Audio::set_bgm_loop(bool state)
 {
-  p->bgm.loop();
-}
-
-void Audio::bgm_no_loop()
-{
-  p->bgm.no_loop();
+  p->bgm.set_loop(state);
 }
 
 void Audio::bgmFade(int time)
@@ -279,14 +274,9 @@ bool Audio::bgs_looping()
   return p->bgs.looping();
 }
 
-void Audio::bgs_loop()
+void Audio::set_bgs_loop(bool state)
 {
-  p->bgs.loop();
-}
-
-void Audio::bgs_no_loop()
-{
-  p->bgs.no_loop();
+  p->bgs.set_loop(state);
 }
 
 void Audio::bgsFade(int time)

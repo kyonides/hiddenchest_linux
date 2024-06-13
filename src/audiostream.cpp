@@ -66,7 +66,7 @@ void AudioStream::play(const std::string &filename,
   finiFadeOutInt();
   lockStream();
   float _volume = clamp<int>(volume, 0, 100) / 100.0f;
-  float _pitch  = clamp<int>(pitch, 50, 200) / 100.0f;
+  float _pitch  = clamp<int>(pitch, 25, 300) / 100.0f;
   ALStream::State sState = stream.queryState();
   /* If all parameters match the current ones and we're
    * still playing, there's nothing to do */
@@ -157,17 +157,10 @@ void AudioStream::resume()
   unlockStream();
 }
 
-void AudioStream::loop()
+void AudioStream::set_loop(bool state)
 {
   lockStream();
-  stream.looped = ALStream::Looped;
-  unlockStream();
-}
-
-void AudioStream::no_loop()
-{
-  lockStream();
-  stream.looped = ALStream::NotLooped;
+  stream.looped = state;
   unlockStream();
 }
 

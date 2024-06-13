@@ -51,8 +51,7 @@ public:
   bool bgm_stopped();
   bool bgm_paused();
 	bool bgm_looping();
-	void bgm_loop();
-	void bgm_no_loop();
+	void set_bgm_loop(bool state);
 	void bgsPlay(const char *filename,
 	             int volume = 100,
 	             int pitch = 100,
@@ -65,8 +64,7 @@ public:
   bool bgs_stopped();
   bool bgs_paused();
 	bool bgs_looping();
-	void bgs_loop();
-	void bgs_no_loop();
+	void set_bgs_loop(bool state);
 	void mePlay(const char *filename,
 	            int volume = 100,
 	            int pitch = 100);

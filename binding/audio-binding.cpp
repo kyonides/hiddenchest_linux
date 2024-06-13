@@ -27,26 +27,6 @@
 #include "filesystem.h"
 #include "hcextras.h"
 
-static VALUE audio_default_bgm_loop(VALUE self)
-{
-  return rb_iv_get(self, "@default_bgm_loop");
-}
-
-static VALUE audio_default_bgm_loop_set(VALUE self, VALUE state)
-{
-  return rb_iv_set(self, "@default_bgm_loop", state);
-}
-
-static VALUE audio_default_bgs_loop(VALUE self)
-{
-  return rb_iv_get(self, "@default_bgs_loop");
-}
-
-static VALUE audio_default_bgs_loop_set(VALUE self, VALUE state)
-{
-  return rb_iv_set(self, "@default_bgs_loop", state);
-}
-
 static VALUE audio_bgmPlay(int argc, VALUE* argv, VALUE self)
 {
   const char *filename;
@@ -94,16 +74,13 @@ static VALUE audio_bgm_paused(VALUE self)
 
 static VALUE audio_bgm_looping(VALUE self)
 {
-  return shState->audio().bgm_looping() ? Qtrue : Qfalse;
+  return rb_iv_get(self, "@bgm_loop");
 }
 
 static VALUE audio_bgm_loop_set(VALUE self, VALUE state)
 {
-  if (state == Qtrue)
-    shState->audio().bgm_loop();
-  else
-    shState->audio().bgm_no_loop();
-  return audio_bgm_looping(self);
+  shState->audio().set_bgm_loop(state == Qtrue);
+  return rb_iv_set(self, "@bgm_loop", state == Qtrue ? Qtrue : Qfalse);
 }
 
 static VALUE audio_bgmPos(VALUE self)
@@ -157,16 +134,13 @@ static VALUE audio_bgs_paused(VALUE self)
 
 static VALUE audio_bgs_looping(VALUE self)
 {
-  return shState->audio().bgs_looping() ? Qtrue : Qfalse;
+  return rb_iv_get(self, "@bgs_loop");
 }
 
 static VALUE audio_bgs_loop_set(VALUE self, VALUE state)
 {
-  if (state == Qtrue)
-    shState->audio().bgs_loop();
-  else
-    shState->audio().bgs_no_loop();
-  return audio_bgs_looping(self);
+  shState->audio().set_bgs_loop(state == Qtrue);
+  return rb_iv_set(self, "@bgs_loop", state == Qtrue ? Qtrue : Qfalse);
 }
 
 static VALUE audio_bgm_volume_get(VALUE self)
@@ -349,12 +323,8 @@ void audioBindingInit()
   rb_iv_set(md, "@bgs_volume", RB_INT2FIX(80));
   rb_iv_set(md, "@se_volume", RB_INT2FIX(80));
   rb_iv_set(md, "@me_volume", RB_INT2FIX(80));
-  rb_iv_set(md, "@default_bgm_loop", Qtrue);
-  rb_iv_set(md, "@default_bgs_loop", Qtrue);
-  module_func(md, "default_bgm_loop", audio_default_bgm_loop, 0);
-  module_func(md, "default_bgm_loop=", audio_default_bgm_loop_set, 1);
-  module_func(md, "default_bgs_loop", audio_default_bgs_loop, 0);
-  module_func(md, "default_bgs_loop=", audio_default_bgs_loop_set, 1);
+  rb_iv_set(md, "@bgm_loop", Qtrue);
+  rb_iv_set(md, "@bgs_loop", Qtrue);
   module_func(md, "bgm_play", audio_bgmPlay, -1);
   module_func(md, "bgm_stop", audio_bgmStop, 0);
   module_func(md, "bgm_pause", audio_bgm_pause, 0);
@@ -362,7 +332,7 @@ void audioBindingInit()
   module_func(md, "bgm_playing?", audio_bgm_playing, 0);
   module_func(md, "bgm_stopped?", audio_bgm_stopped, 0);
   module_func(md, "bgm_paused?", audio_bgm_paused, 0);
-  module_func(md, "bgm_loop?", audio_bgm_looping, 0);
+  module_func(md, "bgm_loop", audio_bgm_looping, 0);
   module_func(md, "bgm_loop=", audio_bgm_loop_set, 1);
   module_func(md, "bgm_fade", audio_bgmFade, -1);
   module_func(md, "bgs_play", audio_bgsPlay, -1);
@@ -372,7 +342,7 @@ void audioBindingInit()
   module_func(md, "bgs_playing?", audio_bgs_playing, 0);
   module_func(md, "bgs_stopped?", audio_bgs_stopped, 0);
   module_func(md, "bgs_paused?", audio_bgs_paused, 0);
-  module_func(md, "bgs_loop?", audio_bgs_looping, 0);
+  module_func(md, "bgs_loop", audio_bgs_looping, 0);
   module_func(md, "bgs_loop=", audio_bgs_loop_set, 1);
   module_func(md, "bgs_fade", audio_bgsFade, -1);
   module_func(md, "me_play", audio_mePlay, -1);

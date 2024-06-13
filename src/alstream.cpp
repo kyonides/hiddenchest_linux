@@ -104,6 +104,8 @@ void ALStream::stop()
     stopStream();
   }
   state = Stopped;
+  if (!looped)
+    close();
 }
 
 void ALStream::play(float offset)
@@ -309,20 +311,24 @@ void ALStream::streamData()
 {// Fill up queue
   bool firstBuffer = true;
   ALDataSource::Status status;
-  if (threadTermReq) return;
+  if (threadTermReq)
+    return;
   if (needsRewind) source->seekToOffset(startOffset);
   for (int i = 0; i < STREAM_BUFS; ++i) {
-    if (threadTermReq) return;
+    if (threadTermReq)
+      return;
     AL::Buffer::ID buf = alBuf[i];
     status = source->fillBuffer(buf);
-    if (status == ALDataSource::Error) return;
+    if (status == ALDataSource::Error)
+      return;
     AL::Source::queueBuffer(alSrc, buf);
     if (firstBuffer) {
       resumeStream();
       firstBuffer = false;
       streamInited.set();
     }
-    if (threadTermReq) return;
+    if (threadTermReq)
+      return;
     if (status == ALDataSource::EndOfStream) {
       sourceExhausted.set();
       break;
@@ -332,10 +338,12 @@ void ALStream::streamData()
     shState->rtData().syncPoint.passSecondarySync();
     ALint procBufs = AL::Source::getProcBufferCount(alSrc);
     while (procBufs--) {
-      if (threadTermReq) break;
+      if (threadTermReq)
+        break;
       AL::Buffer::ID buf = AL::Source::unqueueBuffer(alSrc);
       // If something went wrong, try again later
-      if (buf == AL::Buffer::ID(0)) break;
+      if (buf == AL::Buffer::ID(0))
+        break;
       if (buf == lastBuf) {
 // Reset processed sample count so querying playback offset returns 0.0 again
         procFrames = source->loopStartFrames();
@@ -348,7 +356,8 @@ void ALStream::streamData()
         if (bits != 0 && chan != 0)
           procFrames += ((size / (bits / 8)) / chan);
       }
-      if (sourceExhausted) continue;
+      if (sourceExhausted)
+        continue;
       status = source->fillBuffer(buf);
       if (status == ALDataSource::Error) {
         sourceExhausted.set();
@@ -367,7 +376,8 @@ void ALStream::streamData()
       if (status == ALDataSource::EndOfStream)
         sourceExhausted.set();
     }
-    if (threadTermReq) break;
+    if (threadTermReq)
+      break;
     SDL_Delay(AUDIO_SLEEP);
   }
 }
