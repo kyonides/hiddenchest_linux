@@ -1,15 +1,15 @@
 # * BGM No Loop XP * #
 #   Scripter : Kyonides Arkanthes
-#   2024-06-13
+#   2024-06-18
 
 # This scriptlet allows you to prevent the game from playing the same old song
 # over and over again. Now you can define a list of BGMs for specific maps!
 
 module BgmNoLoop
-  WAIT = 20
+  WAIT = 10 * 6
   VOLUME = 60
   MAP_BGM = {}
-  MAP_BGM[1] = ["015-Theme04", "017-Theme06"]
+  MAP_BGM[1] = ["015-Theme04"]#, "017-Theme06"]
 end
 
 class Game_Map
@@ -57,19 +57,25 @@ class Game_System
 
   def update
     kyon_bgm_no_loop_gm_sys_up
-    return if $game_temp.in_battle or Audio.bgm_playing?
-    return if Audio.bgm_loop
+    update_bgm
+  end
+
+  def update_bgm
+    return if $game_temp.in_battle or Audio.bgm_loop
+    return unless Audio.bgm_stopped?
+    puts "BGM Stopped!" if BgmNoLoop::WAIT == @bgm_timer
     if @bgm_timer > 0
       @bgm_timer -= 1
       return
     end
+    puts "Looking for a new BGM to play"
     reset_bgm_timer
     bgms = $game_map.find_bgms
     @bgm_index ||= 0
     @bgm_index = (@bgm_index + 1) % bgms.size
     bgm = bgms[@bgm_index]
     bgm = RPG::AudioFile.new(bgm) if bgm.is_a?(String)
-    bgm_play(bgm) if bgm != nil
+    bgm_play(bgm)
   end
 
   def bgm_play(bgm)
@@ -83,4 +89,16 @@ class Game_System
     Graphics.frame_reset
   end
   attr_accessor :bgm_volume
+end
+
+class Scene_Title
+  alias :kyon_bgm_no_loop_main :main
+  def main
+    if Audio.bgm_playing?
+      Audio.bgm_stop
+      Audio.bgm_close rescue nil
+    end
+    Audio.bgm_loop = true
+    kyon_bgm_no_loop_main
+  end
 end

@@ -1,4 +1,3 @@
-í
 module RPG
   class Map
     class Encounter

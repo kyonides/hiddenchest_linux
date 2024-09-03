@@ -194,6 +194,11 @@ void Audio::bgmStop()
   p->bgm.stop();
 }
 
+void Audio::bgm_close()
+{
+  p->bgm.close();
+}
+
 void Audio::bgm_pause()
 {
   p->bgm.pause();
@@ -212,6 +217,11 @@ bool Audio::bgm_playing()
 bool Audio::bgm_stopped()
 {
   return p->bgm.stopped();
+}
+
+bool Audio::bgm_closed()
+{
+  return p->bgm.closed();
 }
 
 bool Audio::bgm_paused()
@@ -244,6 +254,11 @@ void Audio::bgsStop()
   p->bgs.stop();
 }
 
+void Audio::bgs_close()
+{
+  p->bgs.close();
+}
+
 void Audio::bgs_pause()
 {
   p->bgs.pause();
@@ -262,6 +277,11 @@ bool Audio::bgs_playing()
 bool Audio::bgs_stopped()
 {
   return p->bgs.stopped();
+}
+
+bool Audio::bgs_closed()
+{
+  return p->bgs.closed();
 }
 
 bool Audio::bgs_paused()

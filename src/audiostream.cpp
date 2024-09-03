@@ -63,7 +63,8 @@ AudioStream::~AudioStream()
 void AudioStream::play(const std::string &filename,
   int volume, int pitch, float offset)
 {
-  finiFadeOutInt();
+  if (stream.looped)
+    finiFadeOutInt();
   lockStream();
   float _volume = clamp<int>(volume, 0, 100) / 100.0f;
   float _pitch  = clamp<int>(pitch, 25, 300) / 100.0f;
@@ -135,6 +136,17 @@ void AudioStream::stop()
   lockStream();
   noResumeStop = true;
   stream.stop();
+  unlockStream();
+}
+
+void AudioStream::close()
+{
+  
+  lockStream();
+  noResumeStop = true;
+  if (!stream.has_stopped())
+    stream.stop();
+  stream.close();
   unlockStream();
 }
 
@@ -234,6 +246,11 @@ bool AudioStream::playing()
 bool AudioStream::stopped()
 {
   return stream.has_stopped();
+}
+
+bool AudioStream::closed()
+{
+  return stream.is_closed();
 }
 
 bool AudioStream::paused()

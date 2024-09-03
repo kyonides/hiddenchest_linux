@@ -92,6 +92,7 @@ struct ALStream
   bool queryNativePitch();
   bool is_playing();
   bool has_stopped();
+  bool is_closed();
 
 private:
   void closeSource();
@@ -103,6 +104,8 @@ private:
   void checkStopped();
   /* thread func */
   void streamData();
+  void play_repeat(int play_state);
+  void play_once(int play_state);
 };
 
 #endif // ALSTREAM_H

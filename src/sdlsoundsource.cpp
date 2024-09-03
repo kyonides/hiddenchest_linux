@@ -22,6 +22,7 @@
 #include "aldatasource.h"
 #include "exception.h"
 #include <SDL_sound.h>
+#include "debugwriter.h"
 
 struct SDLSoundSource : ALDataSource
 {
@@ -33,8 +34,8 @@ struct SDLSoundSource : ALDataSource
   ALsizei alFreq;
 
   SDLSoundSource(SDL_RWops &ops, const char *extension,
-    uint32_t maxBufSize, bool looped)
-  : srcOps(ops), looped(looped)
+    uint32_t maxBufSize, bool looping)
+  : srcOps(ops), looped(looping)
   {
     sample = Sound_NewSample(&srcOps, extension, 0, maxBufSize);
     if (!sample) {
@@ -58,15 +59,20 @@ struct SDLSoundSource : ALDataSource
     {// Try to decode one more time on EAGAIN
       decoded = Sound_Decode(sample);
       // Give up
-      if (sample->flags & SOUND_SAMPLEFLAG_EAGAIN) return ALDataSource::Error;
+      if (sample->flags & SOUND_SAMPLEFLAG_EAGAIN)
+        return ALDataSource::Error;
     }
-    if (sample->flags & SOUND_SAMPLEFLAG_ERROR) return ALDataSource::Error;
+    if (sample->flags & SOUND_SAMPLEFLAG_ERROR)
+      return ALDataSource::Error;
     AL::Buffer::uploadData(alBuffer, alFormat, sample->buffer, decoded, alFreq);
     if (sample->flags & SOUND_SAMPLEFLAG_EOF) {
+      Debug() << "Loops?" << looped;
       if (looped) {
+        Debug() << "Wrap Around";
         Sound_Rewind(sample);
         return ALDataSource::WrapAround;
       } else {
+        Debug() << "End of Stream";
         return ALDataSource::EndOfStream;
       }
     }

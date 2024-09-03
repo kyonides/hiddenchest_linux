@@ -99,6 +99,7 @@ struct AudioStream
   ~AudioStream();
   void play(const std::string &filename, int volume, int pitch, float offset=0);
   void stop();
+  void close();
   void pause();
   void resume();
   void set_loop(bool state);
@@ -113,6 +114,7 @@ struct AudioStream
   float playingOffset();
   bool playing();
   bool stopped();
+  bool closed();
   bool paused();
   bool looping();
 

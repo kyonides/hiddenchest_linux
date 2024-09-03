@@ -45,6 +45,12 @@ static VALUE audio_bgmStop(VALUE self)
   return Qnil;
 }
 
+static VALUE audio_bgm_close(VALUE self)
+{
+  shState->audio().bgm_close();
+  return Qnil;
+}
+
 static VALUE audio_bgm_pause(VALUE self)
 {
   shState->audio().bgm_pause();
@@ -65,6 +71,11 @@ static VALUE audio_bgm_playing(VALUE self)
 static VALUE audio_bgm_stopped(VALUE self)
 {
   return shState->audio().bgm_stopped() ? Qtrue : Qfalse;
+}
+
+static VALUE audio_bgm_closed(VALUE self)
+{
+  return shState->audio().bgm_closed() ? Qtrue : Qfalse;
 }
 
 static VALUE audio_bgm_paused(VALUE self)
@@ -106,6 +117,12 @@ static VALUE audio_bgsStop(VALUE self)
   return Qnil;
 }
 
+static VALUE audio_bgs_close(VALUE self)
+{
+  shState->audio().bgs_close();
+  return Qnil;
+}
+
 static VALUE audio_bgs_pause(VALUE self)
 {
   shState->audio().bgs_pause();
@@ -125,6 +142,11 @@ static VALUE audio_bgs_playing(VALUE self)
 static VALUE audio_bgs_stopped(VALUE self)
 {
   return shState->audio().bgs_stopped() ? Qtrue : Qfalse;
+}
+
+static VALUE audio_bgs_closed(VALUE self)
+{
+  return shState->audio().bgs_closed() ? Qtrue : Qfalse;
 }
 
 static VALUE audio_bgs_paused(VALUE self)
@@ -327,20 +349,24 @@ void audioBindingInit()
   rb_iv_set(md, "@bgs_loop", Qtrue);
   module_func(md, "bgm_play", audio_bgmPlay, -1);
   module_func(md, "bgm_stop", audio_bgmStop, 0);
+  module_func(md, "bgm_close", audio_bgm_close, 0);
   module_func(md, "bgm_pause", audio_bgm_pause, 0);
   module_func(md, "bgm_resume", audio_bgm_resume, 0);
   module_func(md, "bgm_playing?", audio_bgm_playing, 0);
   module_func(md, "bgm_stopped?", audio_bgm_stopped, 0);
+  module_func(md, "bgm_closed?", audio_bgm_closed, 0);
   module_func(md, "bgm_paused?", audio_bgm_paused, 0);
   module_func(md, "bgm_loop", audio_bgm_looping, 0);
   module_func(md, "bgm_loop=", audio_bgm_loop_set, 1);
   module_func(md, "bgm_fade", audio_bgmFade, -1);
   module_func(md, "bgs_play", audio_bgsPlay, -1);
   module_func(md, "bgs_stop", audio_bgsStop, 0);
+  module_func(md, "bgs_close", audio_bgs_close, 0);
   module_func(md, "bgs_pause", audio_bgm_pause, 0);
   module_func(md, "bgs_resume", audio_bgm_resume, 0);
   module_func(md, "bgs_playing?", audio_bgs_playing, 0);
   module_func(md, "bgs_stopped?", audio_bgs_stopped, 0);
+  module_func(md, "bgs_closed?", audio_bgs_closed, 0);
   module_func(md, "bgs_paused?", audio_bgs_paused, 0);
   module_func(md, "bgs_loop", audio_bgs_looping, 0);
   module_func(md, "bgs_loop=", audio_bgs_loop_set, 1);

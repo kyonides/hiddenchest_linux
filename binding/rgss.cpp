@@ -179,16 +179,23 @@ static void mriBindingInit()
   debug = rb_const_get(game, rb_intern("DEBUG"));
   fullscreen = rb_const_get(game, rb_intern("FULLSCREEN"));
   shState->graphics().set_fullscreen(fullscreen == Qtrue);
+  int state;
   if (rgssVer == 1) {
-    rb_eval_string(module_rpg1);
     rb_gv_set("$DEBUG", debug);
+    rb_eval_string_protect(module_rpg1, &state);
   } else {
     rb_gv_set("$TEST", debug);
     if (rgssVer == 2)
-      rb_eval_string(module_rpg2);
+      rb_eval_string_protect(module_rpg2, &state);
     else if (rgssVer == 3)
-      rb_eval_string(module_rpg3);
+      rb_eval_string_protect(module_rpg3, &state);
   }
+  if (state) {
+    Debug() << "C Splash - Error State:" << state;
+    scripts_error_handling();
+    return;
+  }
+  Debug() << "Loaded RGSS Module";
   // Load global constants
   rb_gv_set("HiddenChest", Qtrue);
   rb_gv_set("$BTEST", shState->config().editor.battleTest ? Qtrue : Qfalse);

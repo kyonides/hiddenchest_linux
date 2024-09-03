@@ -55,20 +55,23 @@ static inline
 SDL_RWops *RWFromFile(const char *filename, const char *mode)
 {
   FILE *f = fopen(filename, mode);
-  if (!f) return SDL_RWFromFile(filename, mode);
+  if (!f)
+    return SDL_RWFromFile(filename, mode);
   return SDL_RWFromFP(f, SDL_TRUE);
 }
 
 inline bool readFileSDL(const char *path, std::string &out)
 {
   SDL_RWops *f = RWFromFile(path, "rb");
-  if (!f) return false;
+  if (!f)
+    return false;
   long size = SDL_RWsize(f);
   size_t back = out.size();
   out.resize(back+size);
   size_t read = SDL_RWread(f, &out[back], 1, size);
   SDL_RWclose(f);
-  if (read != (size_t) size) out.resize(back+read);
+  if (read != (size_t) size)
+    out.resize(back+read);
   return true;
 }
 
@@ -84,8 +87,10 @@ public:
 
 private:
   int_type underflow() {
-    if (!ops) return traits_type::eof();
-    if (gptr() < egptr()) return traits_type::to_int_type(*gptr());
+    if (!ops)
+      return traits_type::eof();
+    if (gptr() < egptr())
+      return traits_type::to_int_type(*gptr());
     char *base = buf;
     char *start = base;
     if (eback() == base) {
@@ -93,7 +98,8 @@ private:
       start += pbSize;
     }
     size_t n = SDL_RWread(ops, start, 1, bufSize - (start - base));
-    if (n == 0) return traits_type::eof();
+    if (n == 0)
+      return traits_type::eof();
     setg(base, start, start + n);
     return underflow();
   }
@@ -110,7 +116,8 @@ public:
 
   ~SDLRWStream()
   {
-    if (ops) SDL_RWclose(ops);
+    if (ops)
+      SDL_RWclose(ops);
   }
 
   operator bool() const

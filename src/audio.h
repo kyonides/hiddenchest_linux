@@ -45,10 +45,12 @@ public:
 	             float pos = 0);
 	void bgmStop();
 	void bgmFade(int time);
+  void bgm_close();
   void bgm_pause();
   void bgm_resume();
   bool bgm_playing();
   bool bgm_stopped();
+	bool bgm_closed();
   bool bgm_paused();
 	bool bgm_looping();
 	void set_bgm_loop(bool state);
@@ -58,10 +60,12 @@ public:
 	             float pos = 0);
 	void bgsStop();
 	void bgsFade(int time);
+	void bgs_close();
   void bgs_pause();
   void bgs_resume();
   bool bgs_playing();
   bool bgs_stopped();
+	bool bgs_closed();
   bool bgs_paused();
 	bool bgs_looping();
 	void set_bgs_loop(bool state);
