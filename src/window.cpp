@@ -723,6 +723,7 @@ void Window::setHeight(int value)
   if (p->size.y == value)
     return;
   p->size.y = value;
+  p->baseVertDirty = true;
   p->needOpenness = p->openMode > 0;
   p->processOpenMode();
 }
