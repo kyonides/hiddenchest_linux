@@ -49,7 +49,7 @@ class Scene
     @blur.z = 11000
     @blur.bitmap = Bitmap.new(width, height)
     @blur.bitmap.fill_rect(Graphics.screen_rect, Color.new(0, 0, 0, 140))
-    title_width = 260
+    title_width = 340
     @sprites << @frame = Sprite.new
     @frame.x = (width - title_width) / 2 - 68
     @frame.y = height / 3 - 52
