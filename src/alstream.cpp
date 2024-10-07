@@ -146,10 +146,7 @@ void ALStream::setVolume(float value)
 }
 
 void ALStream::setPitch(float value)
-{/* If the source supports setting pitch natively,
-  * we don't have to do it via OpenAL */
-  if (source && source->setPitch(value))
-    value = 1.0f;
+{
   AL::Source::setPitch(alSrc, value);
 }
 
