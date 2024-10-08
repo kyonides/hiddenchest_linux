@@ -17,7 +17,12 @@ module RPG
         Audio.bgm_stop
         @@last = BGM.new
       else
-        Audio.bgm_play("Audio/BGM/" + @name, @volume, @pitch, pos)
+        full_path = "Audio/BGM/" + @name
+        if Audio.bgm_loop
+          Audio.bgm_play(full_path, @volume, @pitch, pos)
+        else
+          Audio.me_play(full_path, @volume, @pitch)
+        end
         @@last = self.clone
       end
     end
@@ -36,8 +41,10 @@ module RPG
       @@last = BGM.new
     end
     def self.last
+      @@last.pos = Audio.bgm_pos
       @@last
     end
+    attr_accessor :pos
   end
 
   class BGS < AudioFile

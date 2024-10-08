@@ -29,11 +29,17 @@
 
 static VALUE audio_bgmPlay(int argc, VALUE* argv, VALUE self)
 {
+  int volume = 100;
+  int pitch = 100;
+  double pos = 0.0;
   rb_iv_set(self, "@old_bgm_name", argv[0]);
   const char *filename = StringValueCStr(argv[0]);
-  int volume = (argv[1] != Qnil)? RB_FIX2INT(argv[1]) : 100;
-  int pitch  = (argv[2] != Qnil)? RB_FIX2INT(argv[2]) : 100;
-  double pos = (argv[3] != Qnil)? NUM2DBL(argv[3]) : 0.0;
+  if (argc >= 2)
+    int volume = RB_FIX2INT(argv[1]);
+  if (argc >= 3)
+    int pitch  = RB_FIX2INT(argv[2]);
+  if (argc == 4)
+    double pos = NUM2DBL(argv[3]);
   GUARD_EXC( shState->audio().bgmPlay(filename, volume, pitch, pos); )
   return Qnil;
 }
@@ -101,10 +107,16 @@ static VALUE audio_bgmPos(VALUE self)
 
 static VALUE audio_bgsPlay(int argc, VALUE* argv, VALUE self)
 {
+  int volume = 100;
+  int pitch = 100;
+  double pos = 0.0;
   const char *filename = StringValueCStr(argv[0]);
-  int volume = (argv[1] != Qnil)? RB_FIX2INT(argv[1]) : 100;
-  int pitch  = (argv[2] != Qnil)? RB_FIX2INT(argv[2]) : 100;
-  double pos = (argv[3] != Qnil)? NUM2DBL(argv[3]) : 0.0;
+  if (argc >= 2)
+    int volume = RB_FIX2INT(argv[1]);
+  if (argc >= 3)
+    int pitch  = RB_FIX2INT(argv[2]);
+  if (argc == 4)
+    double pos = NUM2DBL(argv[3]);
   GUARD_EXC( shState->audio().bgsPlay(filename, volume, pitch, pos); )
   return Qnil;
 }
@@ -279,9 +291,13 @@ static VALUE audio_seStop(VALUE self)
 
 static VALUE audio_mePlay(int argc, VALUE* argv, VALUE self)
 {
+  int volume = 100;
+  int pitch = 100;
   const char *filename = StringValueCStr(argv[0]);
-  int volume = (argv[1] != Qnil)? RB_FIX2INT(argv[1]) : 100;
-  int pitch  = (argv[2] != Qnil)? RB_FIX2INT(argv[2]) : 100;
+  if (argc >= 2)
+    int volume = RB_FIX2INT(argv[1]);
+  if (argc >= 3)
+    int pitch  = RB_FIX2INT(argv[2]);
   GUARD_EXC( shState->audio().mePlay(filename, volume, pitch); )
   return Qnil;
 }

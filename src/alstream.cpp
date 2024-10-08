@@ -350,7 +350,7 @@ void ALStream::streamData()
 
 void ALStream::play_repeat(int play_state)
 {
-  Debug() << "play_repeat";
+  //Debug() << "play_repeat";
   ALDataSource::Status status = (ALDataSource::Status) play_state;
   while (true) {
     shState->rtData().syncPoint.passSecondarySync();
@@ -402,7 +402,7 @@ void ALStream::play_repeat(int play_state)
 
 void ALStream::play_once(int play_state)
 {
-  Debug() << "play_once";
+  //Debug() << "play_once";
   ALDataSource::Status status = (ALDataSource::Status) play_state;
   int timer = 20;
   while (true) {
