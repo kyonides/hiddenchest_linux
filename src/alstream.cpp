@@ -317,41 +317,25 @@ void ALStream::streamData()
 {// Fill up queue
   bool firstBuffer = true;
   ALDataSource::Status status;
-  if (threadTermReq)
-    return;
-  if (needsRewind)
-    source->seekToOffset(startOffset);
+  if (threadTermReq) return;
+  if (needsRewind) source->seekToOffset(startOffset);
   for (int i = 0; i < STREAM_BUFS; ++i) {
-    if (threadTermReq)
-      return;
+    if (threadTermReq) return;
     AL::Buffer::ID buf = alBuf[i];
     status = source->fillBuffer(buf);
-    if (status == ALDataSource::Error)
-      return;
+    if (status == ALDataSource::Error) return;
     AL::Source::queueBuffer(alSrc, buf);
     if (firstBuffer) {
       resumeStream();
       firstBuffer = false;
       streamInited.set();
     }
-    if (threadTermReq)
-      return;
+    if (threadTermReq) return;
     if (status == ALDataSource::EndOfStream) {
       sourceExhausted.set();
       break;
     }
   }// Wait for buffers to be consumed, then refill and queue them up again
-  int play_state = status;
-  if (looped)
-    play_repeat(play_state);
-  else
-    play_once(play_state);
-}
-
-void ALStream::play_repeat(int play_state)
-{
-  //Debug() << "play_repeat";
-  ALDataSource::Status status = (ALDataSource::Status) play_state;
   while (true) {
     shState->rtData().syncPoint.passSecondarySync();
     ALint procBufs = AL::Source::getProcBufferCount(alSrc);
@@ -393,63 +377,6 @@ void ALStream::play_repeat(int play_state)
         lastBuf = buf;
       if (status == ALDataSource::EndOfStream)
         sourceExhausted.set();
-    }
-    if (threadTermReq)
-      break;
-    SDL_Delay(AUDIO_SLEEP);
-  }
-}
-
-void ALStream::play_once(int play_state)
-{
-  //Debug() << "play_once";
-  ALDataSource::Status status = (ALDataSource::Status) play_state;
-  int timer = 20;
-  while (true) {
-    shState->rtData().syncPoint.passSecondarySync();
-    ALint procBufs = AL::Source::getProcBufferCount(alSrc) + timer;
-    while (procBufs--) {
-      if (threadTermReq)
-        break;
-      AL::Buffer::ID buf = AL::Source::unqueueBuffer(alSrc);
-      if (buf == AL::Buffer::ID(0))
-        break;
-      if (buf == lastBuf) {
-        procFrames = 0;
-        lastBuf = AL::Buffer::ID(0);
-      } else {
-      // Add the frame count contained in this buffer to the total count
-        ALint bits = AL::Buffer::getBits(buf);
-        ALint size = AL::Buffer::getSize(buf);
-        ALint chan = AL::Buffer::getChannels(buf);
-        if (bits != 0 && chan != 0)
-          procFrames += ((size / (bits / 8)) / chan);
-      }
-      if (sourceExhausted) {
-        timer--;
-        //if (AL::Source::getState(alSrc) == AL_STOPPED) {
-        Debug() << "Source Exhausted";
-        Debug() << "Buffers Left:" << procBufs << timer;
-        if (!timer) {
-          AL::Source::setVolume(alSrc, 0);
-          AL::Source::stop(alSrc); //}
-          timer = 20;
-        }
-        continue;
-      }
-      status = source->fillBuffer(buf);
-      if (status == ALDataSource::Error) {
-        Debug() << "Status: Error";
-        sourceExhausted.set();
-        return;
-      }
-      AL::Source::queueBuffer(alSrc, buf);
-      if (status == ALDataSource::EndOfStream) {
-        Debug() << "End of Stream";
-        Debug() << "Buffers Left:" << procBufs << timer;
-        sourceExhausted.set();
-      }
-      // In case of buffer underrun, start playing again
     }
     if (threadTermReq)
       break;
