@@ -70,6 +70,7 @@ public:
   static bool get_default_shadow();
   static bool get_default_underline();
   static bool get_default_strikethrough();
+  static bool get_default_no_squeeze();
   static void set_default_name(const std::vector<std::string> &names,
                                const SharedFontState &sfs);
   static void set_default_size(int value);
@@ -79,6 +80,7 @@ public:
   static void set_default_shadow(bool value);
   static void set_default_underline(bool value);
   static void set_default_strikethrough(bool value);
+  static void set_default_no_squeeze(bool value);
   static void set_default_color(Color& value);
   static void set_default_out_color(Color& value);
   static void set_default_shadow_color(Color& value);

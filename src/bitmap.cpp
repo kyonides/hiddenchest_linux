@@ -4,7 +4,7 @@
 ** This file is part of mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** (C) 2018-2019 Kyonides Arkanthes <kyonides@gmail.com>
+** (C) 2018-2024 Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -928,64 +928,74 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     alignX += rect.w - surf->w;
     break;
   }
-  if (alignX < rect.x) alignX = rect.x;
+  if (alignX < rect.x)
+    alignX = rect.x;
   int alignY = rect.y + (rect.h - surf->h) / 2;
   float squeeze = (float) rect.w / surf->w;
-  if (p->font->get_no_squeeze() || squeeze > 1) squeeze = 1;
-  FloatRect posRect(alignX, alignY, surf->w, surf->h);
-  IntRect irect(alignX, alignY, surf->w, surf->h);
+  if (p->font->get_no_squeeze() || squeeze >= 1.0f)
+		squeeze = 1;
+  FloatRect posRect(alignX, alignY, surf->w * squeeze, surf->h);
   Vec2i gpTexSize;
   shState->ensureTexSize(surf->w, surf->h, gpTexSize);
   bool fastBlit = !p->touchesTaintedArea(posRect) && txtAlpha == 1.0f;
-  if (fastBlit) {//Debug() << "Fast Blit";
+  if (fastBlit) {
     if (squeeze == 1.0f && !shState->config().subImageFix) {
       // Even faster: upload directly to bitmap texture.
       // We have to make sure the posRect lies within the texture
       // boundaries or texSubImage will generate errors.
       // If it partly lies outside bounds we have to upload
-      // the clipped visible part of it.  Debug() << "Squeeze is equal to 1";
-      SDL_Rect btmRect = { 0, 0, width(), height() };
-      SDL_Rect txtRect = { irect.x, irect.y, irect.w, irect.h };
+      // the clipped visible part of it.
+      SDL_Rect btmRect;
+      btmRect.x = btmRect.y = 0;
+      btmRect.w = width();
+      btmRect.h = height();
+      SDL_Rect txtRect;
+      txtRect.x = posRect.x;
+      txtRect.y = posRect.y;
+      txtRect.w = posRect.w;
+      txtRect.h = posRect.h;
       SDL_Rect inters;
       // There's nothing to upload if there's no intersection
       if (SDL_IntersectRect(&btmRect, &txtRect, &inters)) {
         bool subImage = false;
         int subSrcX = 0, subSrcY = 0;
         if (inters.w != txtRect.w || inters.h != txtRect.h) {
-          // Clip the text surface Debug() << "Clipped!";
+          // Clip the text surface
+          Debug() << "Clipped!";
           subSrcX = inters.x - txtRect.x;
           subSrcY = inters.y - txtRect.y;
           subImage = true;
-          irect = IntRect(inters.x, inters.y, inters.w, inters.h);
+          posRect.x = inters.x;
+          posRect.y = inters.y;
+          posRect.w = inters.w;
+          posRect.h = inters.h;
         }
         TEX::bind(p->gl.tex);
-        if (!subImage) {// Debug() << "No subimage";
-          TEX::uploadSubImage(irect.x, irect.y, irect.w, irect.h,
+        if (!subImage) {
+          Debug() << "No previous subimage";
+          TEX::uploadSubImage(posRect.x, posRect.y,
+                              posRect.w, posRect.h,
                               surf->pixels, GL_RGBA);
         } else {
           GLMeta::subRectImageUpload(surf->w, subSrcX, subSrcY,
-            irect.x, irect.y, irect.w, irect.h, surf, GL_RGBA);
+                                     posRect.x, posRect.y,
+                                     posRect.w, posRect.h,
+                                     surf, GL_RGBA);
           GLMeta::subRectImageEnd();
         }
       }
-    } else {// Squeezing involved: need to use intermediary TexFBO Debug() << "Squeezed!";
-      SDL_Rect btmRect = { 0, 0, width(), height() };
-      SDL_Rect txtRect = { irect.x, irect.y, irect.w, irect.h };
-      SDL_Rect inters;
-      if (SDL_IntersectRect(&btmRect, &txtRect, &inters)) {
-        int subSrcX = 0, subSrcY = 0;
-        if (inters.w != txtRect.w || inters.h != txtRect.h) {
-          subSrcX = inters.x - txtRect.x;
-          subSrcY = inters.y - txtRect.y;
-          irect = IntRect(inters.x, inters.y, inters.w, inters.h);
-        }
-        TEX::bind(p->gl.tex);
-        GLMeta::subRectImageUpload(surf->w, subSrcX, subSrcY,
-          irect.x, irect.y, irect.w, irect.h, surf, GL_RGBA);
-        GLMeta::subRectImageEnd();
-      }
+    } else {// Squeezing involved: need to use intermediary TexFBO
+      Debug() << "Squeezed!";
+      TEXFBO &gpTF = shState->gpTexFBO(surf->w, surf->h);
+      TEX::bind(gpTF.tex);
+      TEX::uploadSubImage(0, 0, surf->w, surf->h, surf->pixels, GL_RGBA);
+      GLMeta::blitBegin(p->gl);
+      GLMeta::blitSource(gpTF);
+      GLMeta::blitRectangle(IntRect(0, 0, surf->w, surf->h), posRect, true);
+      GLMeta::blitEnd();
     }
   } else {
+    Debug() << "Slow Blit";
     // Acquire partial copy of the destination buffer we're about to render to
     TEXFBO &gpTex2 = shState->gpTexFBO(posRect.w, posRect.h);
     GLMeta::blitBegin(gpTex2);

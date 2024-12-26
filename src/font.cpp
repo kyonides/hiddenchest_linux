@@ -264,6 +264,7 @@ struct FontPrivate
   static bool default_shadow;
   static bool default_underline;
   static bool default_strikethrough;
+  static bool default_no_squeeze;
   static Color *default_color;
   static Color *default_out_color;
   static Color *default_shadow_color;
@@ -353,6 +354,7 @@ bool        FontPrivate::default_outline = false; /* Inited at runtime */
 bool        FontPrivate::default_shadow = false; /* Inited at runtime */
 bool        FontPrivate::default_underline = false;
 bool        FontPrivate::default_strikethrough = false;
+bool        FontPrivate::default_no_squeeze = false;
 Color *FontPrivate::default_color = &FontPrivate::default_color_tmp;
 Color *FontPrivate::default_out_color = &FontPrivate::default_out_color_tmp;
 Color *FontPrivate::default_shadow_color = &FontPrivate::default_shadow_color_tmp;
@@ -535,6 +537,12 @@ bool Font::get_default_strikethrough()
   return FontPrivate::default_strikethrough;
 }
 
+bool Font::get_default_no_squeeze()
+{
+  guardDisposed();
+  return FontPrivate::default_no_squeeze;
+}
+
 Color& Font::get_default_color()
 {
   guardDisposed();
@@ -689,6 +697,12 @@ void Font::set_default_strikethrough(bool value)
 {
   guardDisposed();
   FontPrivate::default_strikethrough = value;
+}
+
+void Font::set_default_no_squeeze(bool value)
+{
+  guardDisposed();
+  FontPrivate::default_no_squeeze = value;
 }
 
 void Font::set_color(Color& value)

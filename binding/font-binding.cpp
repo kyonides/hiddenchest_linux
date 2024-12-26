@@ -399,6 +399,11 @@ static VALUE font_default_strikethrough(VALUE self)
   return Font::get_default_strikethrough() ? Qtrue : Qfalse;
 }
 
+static VALUE font_default_no_squeeze(VALUE self)
+{
+  return Font::get_default_no_squeeze() ? Qtrue : Qfalse;
+}
+
 static VALUE font_default_color(VALUE self)
 {
   return rb_iv_get(self, "default_color");
@@ -459,6 +464,12 @@ static VALUE font_set_default_strikethrough(VALUE self, VALUE boolean)
 {
   Font::set_default_strikethrough(boolean == Qtrue);
   return rb_iv_set(self, "default_strikethrough", boolean);
+}
+
+static VALUE font_set_default_no_squeeze(VALUE self, VALUE boolean)
+{
+  Font::set_default_no_squeeze(boolean == Qtrue);
+  return rb_iv_set(self, "default_no_squeeze", boolean);
 }
 
 static VALUE font_set_default_color(VALUE self, VALUE color)
@@ -587,6 +598,8 @@ void init_font_binding()
   rb_define_singleton_method(klass, "default_strikethrough=", RMF(font_set_default_strikethrough), 1);
   rb_define_singleton_method(klass, "default_strikethru", RMF(font_default_strikethrough), 0);
   rb_define_singleton_method(klass, "default_strikethru=", RMF(font_set_default_strikethrough), 1);
+  rb_define_singleton_method(klass, "default_no_squeeze", RMF(font_default_no_squeeze), 0);
+  rb_define_singleton_method(klass, "default_no_squeeze=", RMF(font_set_default_no_squeeze), 1);
   rb_define_singleton_method(klass, "solid_fonts", RMF(font_solid_fonts), 0);
   rb_define_singleton_method(klass, "solid_fonts=", RMF(font_solid_fonts_set), 1);
   rb_define_singleton_method(klass, "exist?", RMF(font_does_exist), 1);
