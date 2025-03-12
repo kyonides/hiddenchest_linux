@@ -30,7 +30,7 @@ static VALUE mouse_default_timer_set(VALUE self, VALUE val)
   int n = RB_FIX2INT(val);
   if (n < 0)
     return rb_iv_get(self, "default_timer");
-  shState->input().set_base_timer(n);
+  shState->input().set_click_base_timer(n);
   return rb_iv_set(self, "default_timer", val);
 }
 

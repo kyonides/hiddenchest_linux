@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Extended (C) 2018-2024 Kyonides-Arkanthes <kyonides@gmail.com>
+** Extended (C) 2018-2025 Kyonides-Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -88,7 +88,8 @@ struct KbBinding : public Binding
   {
     return (source >= SDL_SCANCODE_A     && source <= SDL_SCANCODE_0)    ||
            (source >= SDL_SCANCODE_RIGHT && source <= SDL_SCANCODE_UP)   ||
-           (source >= SDL_SCANCODE_F1    && source <= SDL_SCANCODE_F12);
+           (source >= SDL_SCANCODE_F1    && source <= SDL_SCANCODE_F12)  ||
+           (source == Input::X);
   }
   SDL_Scancode source;
 };
@@ -340,11 +341,16 @@ struct InputPrivate
   ButtonState stateArray[520 * 2]; // stateArray[BUTTON_CODE_COUNT*2];
   ButtonState *states;
   ButtonState *statesOld;
+  Input::ButtonCode btn;
   Input::ButtonCode repeating;
+  Input::ButtonCode trigger_old;
+  Input::ButtonCode trigger_new;
   Input *input;
   unsigned int repeatCount;
+  unsigned int trigger_timer;
+  unsigned int trigger_base_timer;
   unsigned int click_timer;
-  unsigned int base_timer;
+  unsigned int click_base_timer;
   unsigned int clicks;
   unsigned int double_target;
   int ox;
@@ -387,6 +393,8 @@ struct InputPrivate
     clearBuffer();
     swapBuffers();
     clearBuffer();
+    trigger_old = Input::None;
+    trigger_new = Input::None;
     repeating = Input::None;
     repeatCount = 0;
     ox = 8;
@@ -403,8 +411,7 @@ struct InputPrivate
 
   inline ButtonState &getState(Input::ButtonCode code)
   {
-    if (code < 0) return states[0];
-    return states[code];
+    return (code < 0 ? states[0] : states[code]);
   }
 
   inline ButtonState &getOldState(Input::ButtonCode code)
@@ -505,6 +512,8 @@ struct InputPrivate
 
   void initStaticKbBindings()
   {
+    trigger_base_timer = TRIGGER_TIMER;
+    trigger_timer = 0;
     kbStatBindings.clear();
     for (size_t i = 0; i < staticKbBindingsN; ++i)
       kbStatBindings.push_back(KbBinding(staticKbBindings[i]));
@@ -512,7 +521,7 @@ struct InputPrivate
 
   void initMsBindings()
   {
-    base_timer = CLICK_TIMER;
+    click_base_timer = CLICK_TIMER;
     click_timer = 0;
     clicks = 0;
     last_mx = 0;
@@ -533,6 +542,10 @@ struct InputPrivate
 
   void update_timers()
   {
+    if (trigger_timer > 0)
+      trigger_timer--;
+    else
+      trigger_old = Input::None;
     if (EventThread::mouseState.scrolled_x) {
       scroll_remainder = scroll_x - old_scroll_x;
       if (scroll_remainder == scroll_factor || scroll_remainder == -scroll_factor)
@@ -547,41 +560,47 @@ struct InputPrivate
     }
     EventThread::mouseState.scroll_x = 0;
     EventThread::mouseState.scroll_y = 0;
-    if (click_timer > 0) {
+    if (click_timer > 0)
       click_timer--;
-      return;
-    }
-    double_target = clicks = 0;
+    else
+      double_target = clicks = 0;
   }
 
-  void pollBindings(Input::ButtonCode &repeatCand)
+  void pollBindings(Input::ButtonCode &repeat_btn)
   {
     for (size_t i = 0; i < bindings.size(); ++i)
-      pollBindingPriv(*bindings[i], repeatCand);
+      pollBindingPriv(*bindings[i], repeat_btn);
     poll_alt_ctrl_shift();
     updateDir4();
     updateDir8();
   }
 
-  void pollBindingPriv(const Binding &b, Input::ButtonCode &repeatCand)
+  void pollBindingPriv(const Binding &b, Input::ButtonCode &repeat_btn)
   {
     if (!b.sourceActive())
       return;
-    if (b.target == Input::None)
+    btn = b.target;
+    if (btn == Input::None)
       return;
-    ButtonState &state = getState(b.target);
-    ButtonState &oldState = getOldState(b.target);
+    ButtonState &state = getState(btn);
+    ButtonState &oldState = getOldState(btn);
     state.pressed = true;
     press_any = true;
     // Must have been released before to trigger it
     if (!oldState.pressed) {
       state.triggered = true;
       trigger_any = true;
+      trigger_old = trigger_new;
+      trigger_new = btn;
+      if (trigger_old == btn && trigger_timer == 0)
+        trigger_old = Input::None;
+      if (trigger_old != btn)
+        trigger_timer = trigger_base_timer;
       // Double Click Check
-      if (b.target == Input::MouseLeft || b.target == Input::MouseRight) {
-        clicks = (b.target == double_target)? 2 : 1;
+      if (btn == Input::MouseLeft || btn == Input::MouseRight) {
+        clicks = (btn == double_target)? 2 : 1;
         if (clicks == 1) {
-          set_click(b.target);
+          set_click(btn);
         } else if (clicks == 2) {
           click_timer = 0;
           same_mouse_pos = (input->mouseX() == last_mx && input->mouseY() == last_my);
@@ -590,20 +609,20 @@ struct InputPrivate
         clear_unused_clicks();
       }
     }
-    /* Unbound keys don't create/break repeat */
-    if (repeatCand != Input::None)
+    // Unbound keys don't create or break repeat
+    if (repeat_btn != Input::None)
       return;
-    if (repeating != b.target && !oldState.pressed) {
+    if (repeating != btn && !oldState.pressed) {
       if (b.sourceRepeatable())
-        repeatCand = b.target;
+        repeat_btn = btn;
       else /* Unrepeatable keys still break current repeat */
         repeating = Input::None;
     }
   }
-
+  
   void set_click(Input::ButtonCode button)
   {
-    click_timer = base_timer;
+    click_timer = click_base_timer;
     double_target = button;
     last_mx = input->mouseX();
     last_my = input->mouseY();
@@ -689,6 +708,13 @@ struct InputPrivate
     getState(Input::Shift).triggered = getState(Input::LeftShift).triggered ||
       getState(Input::RightShift).triggered;
   }
+
+  bool is_same_trigger(int button)
+  {
+    if (!getStateCheck(button).triggered || trigger_timer == 0)
+      return false;
+    return trigger_old == trigger_new;
+  }
 };
 
 Input::Input(const RGSSThreadData &rtData)
@@ -703,14 +729,14 @@ void Input::update()
   p->swapBuffers();
   p->clearBuffer();
   p->update_timers();
-  ButtonCode repeatCand = None;
+  ButtonCode repeat_btn = None;
   // Poll all bindings
-  p->pollBindings(repeatCand);
+  p->pollBindings(repeat_btn);
   // Check for new repeating key
-  if (repeatCand != None && repeatCand != p->repeating) {
-    p->repeating = repeatCand;
+  if (repeat_btn != None && repeat_btn != p->repeating) {
+    p->repeating = repeat_btn;
     p->repeatCount = 0;
-    p->getState(repeatCand).repeated = true;
+    p->getState(repeat_btn).repeated = true;
     return;
   }
   // Check if repeating key is still pressed
@@ -724,19 +750,34 @@ void Input::update()
   p->repeating = None;
 }
 
+int Input::trigger_timer() const
+{
+  return p->trigger_timer;
+}
+
+int Input::trigger_base_timer() const
+{
+  return p->trigger_base_timer;
+}
+
+void Input::set_trigger_base_timer(int timer)
+{
+  p->trigger_base_timer = timer;
+}
+
 int Input::click_timer() const
 {
   return p->click_timer;
 }
 
-int Input::base_timer() const
+int Input::click_base_timer() const
 {
-  return p->base_timer;
+  return p->click_base_timer;
 }
 
-void Input::set_base_timer(int timer)
+void Input::set_click_base_timer(int timer)
 {
-  p->base_timer = timer;
+  p->click_base_timer = timer;
 }
 
 int Input::scroll_factor() const
@@ -799,10 +840,11 @@ bool Input::is_double_right_click()
 
 bool Input::is_double_click(int btn)
 {
+  if (btn != MouseLeft || btn != MouseRight)
+    return false;
   if (!p->getStateCheck(btn).triggered || p->double_target != btn)
     return false;
-  int clicks = (btn == MouseLeft || btn == MouseRight)? p->clicks : 9;
-  return (clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
+  return (p->clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
 bool Input::press_left_click()
@@ -871,14 +913,29 @@ bool Input::isRepeated(int button)
   return p->getStateCheck(button).repeated;
 }
 
-bool Input::isPressedAny()
+bool Input::is_pressed_any()
 {
   return p->press_any;
 }
 
-bool Input::isTriggeredAny()
+bool Input::is_triggered_any()
 {
   return p->trigger_any;
+}
+
+bool Input::is_triggered_double(int button)
+{
+  return p->is_same_trigger(button);
+}
+
+int Input::is_triggered_last()
+{
+  return p->trigger_new;
+}
+
+int Input::is_triggered_old()
+{
+  return p->trigger_old;
 }
 
 int Input::dir4Value()

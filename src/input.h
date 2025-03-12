@@ -67,9 +67,12 @@ public:
   };
   void update();
   int timer() const;
+  int trigger_timer() const;
+  int trigger_base_timer() const;
+  void set_trigger_base_timer(int timer);
   int click_timer() const;
-  int base_timer() const;
-  void set_base_timer(int timer);
+  int click_base_timer() const;
+  void set_click_base_timer(int timer);
   int scroll_factor() const;
   void set_scroll_factor(int value);
   int mouse_scroll_x() const;
@@ -89,13 +92,16 @@ public:
   bool isPressed(int button);
   bool isTriggered(int button);
   bool isRepeated(int button);
-  bool isPressedAny();
-  bool isTriggeredAny();
+  bool is_pressed_any();
+  bool is_triggered_any();
+  bool is_triggered_double(int button);
+  int is_triggered_last();
+  int is_triggered_old();
   int dir4Value();
   int dir8Value();
   bool is_dir4();
   bool is_dir8();
-  /* Non-standard extensions */
+  // Mouse Extensions
   int mouseX();
   int mouseY();
   int mouse_ox() const;

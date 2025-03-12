@@ -1,2 +1,3 @@
+#define TRIGGER_TIMER 20
 #define CLICK_TIMER 20
 #define SCROLL_FACTOR 2

@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** 2018-2023 Extended by Kyonides-Arkanthes <kyonides@gmail.com>
+** 2018-2025 Extended by Kyonides-Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "clicks.h"
 #include "input.h"
 #include "sharedstate.h"
 #include "exception.h"
@@ -68,12 +69,30 @@ static VALUE inputRepeat(VALUE self, VALUE number)
 
 static VALUE input_press_any(VALUE self)
 {
-  return shState->input().isPressedAny()? Qtrue : Qfalse;
+  return shState->input().is_pressed_any()? Qtrue : Qfalse;
 }
 
 static VALUE input_trigger_any(VALUE self)
 {
-  return shState->input().isTriggeredAny()? Qtrue : Qfalse;
+  return shState->input().is_triggered_any()? Qtrue : Qfalse;
+}
+
+static VALUE input_trigger_double(VALUE self, VALUE number)
+{
+  int num = getButtonArg(number);
+  return shState->input().is_triggered_double(num) ? Qtrue : Qfalse;
+}
+
+static VALUE input_trigger_last(VALUE self)
+{
+  int num = shState->input().is_triggered_last();
+  return RB_INT2FIX(num);
+}
+
+static VALUE input_trigger_old(VALUE self)
+{
+  int num = shState->input().is_triggered_old();
+  return RB_INT2FIX(num);
 }
 
 static VALUE input_are_triggered(int size, VALUE* buttons, VALUE self)
@@ -223,6 +242,27 @@ static VALUE input_enable_edit(VALUE self, VALUE boolean)
   return boolean;
 }
 
+static VALUE input_trigger_timer(VALUE self)
+{
+  int n = shState->input().trigger_timer();
+  return RB_INT2FIX(n);
+}
+
+static VALUE input_default_trigger_timer(VALUE self)
+{
+  return rb_iv_get(self, "default_trigger_timer");
+}
+
+static VALUE input_default_trigger_timer_set(VALUE self, VALUE val)
+{
+  val = rb_funcall(val, rb_intern("to_i"), 0);
+  int n = RB_FIX2INT(val);
+  if (n < 0)
+    return rb_iv_get(self, "default_trigger_timer");
+  shState->input().set_trigger_base_timer(n);
+  return rb_iv_set(self, "default_trigger_timer", val);
+}
+
 struct
 {
   const char *str;
@@ -369,6 +409,12 @@ static elementsN(buttonCodes);
 void inputBindingInit()
 {
   VALUE input = rb_define_module("Input");
+  rb_iv_set(input, "default_trigger_timer", RB_INT2FIX(TRIGGER_TIMER));
+  module_func(input, "trigger_timer", input_trigger_timer, 0);
+  module_func(input, "base_trigger_timer", input_default_trigger_timer, 0);
+  module_func(input, "base_trigger_timer=", input_default_trigger_timer_set, 1);
+  module_func(input, "default_trigger_timer", input_default_trigger_timer, 0);
+  module_func(input, "default_trigger_timer=", input_default_trigger_timer_set, 1);
   module_func(input, "update", inputUpdate, 0);
   module_func(input, "left_click?", input_left_click, 0);
   module_func(input, "middle_click?", input_middle_click, 0);
@@ -379,14 +425,17 @@ void inputBindingInit()
   module_func(input, "press?", inputPress, 1);
   module_func(input, "press_left_click?", input_press_left_click, 0);
   module_func(input, "press_right_click?", input_press_right_click, 0);
-  module_func(input, "trigger?", inputTrigger, 1);
-  module_func(input, "repeat?", inputRepeat, 1);
   module_func(input, "press_any?", input_press_any, 0);
   module_func(input, "press_all?", input_are_pressed, -1);
+  module_func(input, "trigger?", inputTrigger, 1);
   module_func(input, "trigger_any?", input_trigger_any, 0);
+  module_func(input, "trigger_double?", input_trigger_double, 1);
   module_func(input, "trigger_buttons?", input_are_triggered, -1);
   module_func(input, "trigger_up_down?", input_trigger_up_down, 0);
   module_func(input, "trigger_left_right?", input_trigger_left_right, 0);
+  module_func(input, "trigger_last", input_trigger_last, 0);
+  module_func(input, "trigger_old", input_trigger_old, 0);
+  module_func(input, "repeat?", inputRepeat, 1);
   module_func(input, "repeat_left_click?", input_repeat_left_click, 0);
   module_func(input, "repeat_right_click?", input_repeat_right_click, 0);
   module_func(input, "dir4", inputDir4, 0);
