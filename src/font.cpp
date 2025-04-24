@@ -227,7 +227,8 @@ void pickExistingFontName(const std::vector<std::string> &names,
    * results in no text being drawn at all (same for "" and []);
    * we can't replicate this in HiddenChest due to the default substitute. */
   for (size_t i = 0; i < names.size(); ++i) {
-    if (!sfs.fontPresent(names[i])) continue;
+    if (!sfs.fontPresent(names[i]))
+      continue;
     out = names[i];
     return;
   }

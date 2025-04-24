@@ -536,9 +536,29 @@ VALUE linux_system_fonts_search()
   return fonts;
 }
 
+void set_rgss_default_names()
+{
+  const std::vector<std::string> &def_names = Font::getInitialDefaultNames();
+  VALUE default_names;
+  if (def_names.empty()) {
+    default_names = rstr(DEFAULT_FONT);
+  } else if (def_names.size() == 1) {
+    bool is_linux = strcmp(sys_kind, "linux") == 0;
+    if (is_linux && def_names[0] == "Arial")
+      default_names = rstr(DEFAULT_FONT);
+    else
+      default_names = rstr(def_names[0].c_str());
+  } else {
+    default_names = rb_ary_new2(def_names.size());
+    for (size_t i = 0; i < def_names.size(); ++i)
+      rb_ary_push(default_names, rstr(def_names[i].c_str()));
+  }
+  VALUE klass = rb_define_class("Font", rb_cObject);
+  rb_iv_set(klass, "default_name", default_names);
+}
+
 void init_font_binding()
 {
-  Font::initDefaults(shState->fontState());
   VALUE klass = rb_define_class("Font", rb_cObject);
   rb_define_alloc_func(klass, classAllocate<&FontType>);
   VALUE fonts = rb_ary_new();
@@ -552,21 +572,6 @@ void init_font_binding()
     Font::init_system_fonts(names);
   }
   Font::initDefaultDynAttribs();
-  const std::vector<std::string> &defNames = Font::getInitialDefaultNames();
-  VALUE default_names;
-  if (defNames.empty()) {
-    default_names = rstr(DEFAULT_FONT);
-  } else if (defNames.size() == 1) {
-    if (is_linux && defNames[0] == "Arial")
-      default_names = rstr(DEFAULT_FONT);
-    else
-      default_names = rstr(defNames[0].c_str());
-  } else {
-    default_names = rb_ary_new2(defNames.size());
-    for (size_t i = 0; i < defNames.size(); ++i)
-      rb_ary_push(default_names, rstr(defNames[i].c_str()));
-  }
-  rb_iv_set(klass, "default_name", default_names);
   wrapProperty(klass, &Font::get_default_color(), "default_color", ColorType);
   wrapProperty(klass, &Font::get_default_out_color(), "default_out_color", ColorType);
   wrapProperty(klass, &Font::get_default_shadow_color(), "default_shadow_color", ColorType);

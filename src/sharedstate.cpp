@@ -172,7 +172,6 @@ void SharedState::initInstance(RGSSThreadData *threadData)
   Font *defaultFont = 0;
   try {
     SharedState::instance = new SharedState(threadData);
-    Font::initDefaults(instance->p->fontState);
     defaultFont = new Font();
   } catch (const Exception &exc) {
     delete _globalIBO;
@@ -395,6 +394,7 @@ void SharedState::reset_config(int rgss, const char *version,
   p->config.game.version = version;
   p->config.game.scripts = scripts;
   p->config.rtps.insert(p->config.rtps.end(), rtps.begin(), rtps.end());
+  Font::initDefaults(instance->p->fontState);
 }
 
 Font &SharedState::defaultFont() const

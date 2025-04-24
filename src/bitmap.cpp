@@ -961,7 +961,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
         int subSrcX = 0, subSrcY = 0;
         if (inters.w != txtRect.w || inters.h != txtRect.h) {
           // Clip the text surface
-          Debug() << "Clipped!";
+          //Debug() << "Clipped!";
           subSrcX = inters.x - txtRect.x;
           subSrcY = inters.y - txtRect.y;
           subImage = true;
@@ -972,7 +972,6 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
         }
         TEX::bind(p->gl.tex);
         if (!subImage) {
-          Debug() << "No previous subimage";
           TEX::uploadSubImage(posRect.x, posRect.y,
                               posRect.w, posRect.h,
                               surf->pixels, GL_RGBA);
@@ -985,7 +984,6 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
         }
       }
     } else {// Squeezing involved: need to use intermediary TexFBO
-      Debug() << "Squeezed!";
       TEXFBO &gpTF = shState->gpTexFBO(surf->w, surf->h);
       TEX::bind(gpTF.tex);
       TEX::uploadSubImage(0, 0, surf->w, surf->h, surf->pixels, GL_RGBA);
@@ -995,7 +993,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
       GLMeta::blitEnd();
     }
   } else {
-    Debug() << "Slow Blit";
+    //Debug() << "Slow Blit";
     // Acquire partial copy of the destination buffer we're about to render to
     TEXFBO &gpTex2 = shState->gpTexFBO(posRect.w, posRect.h);
     GLMeta::blitBegin(gpTex2);

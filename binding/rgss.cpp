@@ -93,6 +93,7 @@ void inputBindingInit();
 void audioBindingInit();
 void graphicsBindingInit();
 void fileIntBindingInit();
+void set_rgss_default_names();
 
 RB_METHOD(mriPrint);
 RB_METHOD(mriP);
@@ -611,6 +612,7 @@ static void mriBindingExecute()
     shState->rtData().rqTermAck.set();
     return;
   }
+  set_rgss_default_names();
   sprite_setup_bush_opacity();
   BacktraceData btData;
   mriBindingInit();
