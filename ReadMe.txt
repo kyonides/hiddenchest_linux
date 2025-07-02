@@ -16,6 +16,13 @@ h800 or h800.exe
 h*anyotherwidth or h*anyotherwidth*.exe
   Possible resolutions 800*608, 960*736, 1088*608, 1280*768, 1680*1050 and 1920*1080
   Includes extra buttons not found in vanilla RGSS games
+ClickableWidget.rb
+ClickableSprite.rb
+ClickableWindow.rb
+PrintSceneHC.rb
+  Modifications of the default classes that allow you to click and move around
+  any kind of widgets, namely sprites and windows. The mouse wheel can also scroll
+  the menu window up and down at will.
 KSoundFontMenuXP.rb
   A custom menu that allows you to change your current soundfont SF2 on the fly!
 MapCustomResFixes.rb

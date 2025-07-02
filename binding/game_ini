@@ -28,7 +28,7 @@ module Game
   SOUNDFONT_REGEX = "/*.sf{2,3}"
   extend self
   attr_reader(:shot_formats, :shot_format, :shot_dir)
-  attr_reader(:shot_filename, :save_filename)
+  attr_reader(:shot_filename, :save_filenamem, :show_splash)
   attr_reader(:soundfont, :soundfonts)
   attr_accessor(:save_dir, :save_filename, :setup_screen)
   def self.clear
@@ -39,12 +39,17 @@ module Game
     @save_dir = "Saves"
     @save_filename = "Save"
     @soundfont = ""
+    @show_splash = false
   end
 
   def self.auto_create_dir
     unless Dir.exist?(@shot_dir)
       Dir.mkdir(@shot_dir)
     end
+  end
+
+  def self.init_size
+    [WIDTH, HEIGHT]
   end
 
   def self.normal_size?
@@ -169,6 +174,7 @@ module Game
   end
 
   def self.setup_custom_scene
+    @show_splash = DATA.delete("ShowSplash").to_s[/true/i] != nil
     if FileInt.exist?(SCENE_SCRIPT + ".rb")
       lines = File.binread(SCENE_SCRIPT + ".rb")
       lines = Zlib::Deflate.deflate(lines)
@@ -215,14 +221,18 @@ begin
     lines = load_data(Game.custom_scene_file)
     lines = Zlib::Inflate.inflate(lines)
     eval lines
-  else
-    Graphics.hide_window
-  end
-  $scene = Game::SplashScene.new
-  while $scene
-    $scene.main
   end
   Graphics.hide_window
+  if Game.show_splash
+    Graphics.hide_window
+    $scene = Game::SplashScene.new
+      while $scene
+      $scene.main
+    end
+    Graphics.hide_window
+  else
+    Game.setup
+  end
   puts "Completed setup successfully."
   Game.window_show_borders = true
   Graphics.resize(Game::WIDTH, Game::HEIGHT)
