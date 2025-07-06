@@ -4,7 +4,7 @@ rm -r *
 cmake .. #-DBOOST_INCLUDEDIR=$BOOST_I -DBOOST_LIBRARYDIR=$BOOST_L ..
 make
 echo "Moving binary executable to project's root directory..."
-mv hiddenchest* ../h
+mv hiddenchest* ../bin/h
 #cp $HOME/mkx/build/hiddenchest* /home/edwin/workspace/MKXP/EkuipSkillsXP/ES
 #echo "Searching for an executable file..."
 #echo "Stripping binary executable now..."

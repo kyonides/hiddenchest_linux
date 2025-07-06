@@ -55,7 +55,8 @@ static C * viewportElementInitialize(int argc, VALUE *v, VALUE self)
   rb_get_args(argc, v, "|o", &rbView RB_ARG_END);
   if (!RB_NIL_P(rbView)) {
     viewport = getPrivateDataCheck<Viewport>(rbView, ViewportType);
-    if (rgssVer == 1) disposableAddChild(rbView, self);
+    if (rgssVer == 1)
+      disposableAddChild(rbView, self);
   } // Construct object
   C *ve = new C(viewport);
   rb_iv_set(self, "viewport", rbView); // Set property objects
@@ -117,7 +118,9 @@ static VALUE MsgBoxSpriteSetBitmap(VALUE self, VALUE bit)
     b = getPrivateDataCheck<Bitmap>(bit, BitmapType);
   try {
     s->setBitmap(b);
-  } catch (Exception &e) { Debug() << "Could not create bitmap."; }
+  } catch (Exception &e) {
+    Debug() << "Could not create bitmap.";
+  }
   return rb_iv_set(self, "bitmap", bit);
 }
 
@@ -131,7 +134,9 @@ static VALUE MsgBoxSpriteSetContents(VALUE self, VALUE contents)
     b = getPrivateDataCheck<Bitmap>(contents, BitmapType);
   try {
     s->setContents(b);
-  } catch (Exception &e) { Debug() << "Could not create bitmap."; }
+  } catch (Exception &e) {
+    Debug() << "Could not create bitmap.";
+  }
   return rb_iv_set(self, "contents", contents);
 }
 
@@ -315,14 +320,16 @@ static VALUE MsgBoxSpriteSetZoomY(VALUE self, VALUE number)
 static VALUE MsgBoxSpriteGetAngle(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   return rb_float_new( s->getAngle() );
 }
 
 static VALUE MsgBoxSpriteSetAngle(VALUE self, VALUE number)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   GUARD_EXC( s->setAngle( NUM2DBL(number) ); )
   return rb_float_new( s->getAngle() );
 }
@@ -330,14 +337,16 @@ static VALUE MsgBoxSpriteSetAngle(VALUE self, VALUE number)
 static VALUE MsgBoxSpriteGetMirror(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   return s->getMirror() ? Qtrue : Qfalse;
 }
 
 static VALUE MsgBoxSpriteSetMirror(VALUE self, VALUE bln)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   GUARD_EXC( s->setMirror( bln == Qtrue ? true : false ); )
   return bln;
 }
@@ -345,14 +354,16 @@ static VALUE MsgBoxSpriteSetMirror(VALUE self, VALUE bln)
 static VALUE MsgBoxSpriteGetMirrorY(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   return s->getMirrorY() ? Qtrue : Qfalse;
 }
 
 static VALUE MsgBoxSpriteSetMirrorY(VALUE self, VALUE bln)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   GUARD_EXC( s->setMirrorY( bln == Qtrue ? true : false ); )
   return bln;
 }
@@ -360,28 +371,32 @@ static VALUE MsgBoxSpriteSetMirrorY(VALUE self, VALUE bln)
 static VALUE MsgBoxSpriteWidth(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   return RB_INT2FIX( s->getWidth() );
 }
 
 static VALUE MsgBoxSpriteHeight(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   return RB_INT2FIX( s->getHeight() );
 }
 
 static VALUE MsgBoxSpriteGetReduceSpeed(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   return RB_INT2FIX( s->getReduceSpeed() );
 }
 
 static VALUE MsgBoxSpriteSetReduceSpeed(VALUE self, VALUE rspeed)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return RB_INT2FIX(0);
+  if (!s)
+    return RB_INT2FIX(0);
   s->setReduceSpeed(RB_FIX2INT(rspeed));
   return rspeed;
 }
@@ -389,7 +404,8 @@ static VALUE MsgBoxSpriteSetReduceSpeed(VALUE self, VALUE rspeed)
 static VALUE MsgBoxSpriteIncreaseWidth(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   s->increaseWidth();
   return Qtrue;
 }
@@ -397,7 +413,8 @@ static VALUE MsgBoxSpriteIncreaseWidth(VALUE self)
 static VALUE MsgBoxSpriteIncreaseHeight(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   s->increaseHeight();
   return Qtrue;
 }
@@ -405,7 +422,8 @@ static VALUE MsgBoxSpriteIncreaseHeight(VALUE self)
 static VALUE MsgBoxSpriteIncreaseWidthHeight(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qfalse;
+  if (!s)
+    return Qfalse;
   s->increaseWidthHeight();
   return Qtrue;
 }
@@ -413,7 +431,8 @@ static VALUE MsgBoxSpriteIncreaseWidthHeight(VALUE self)
 static VALUE MsgBoxSpriteReduceWidth(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   s->reduceWidth();
   return Qtrue;
 }
@@ -421,7 +440,8 @@ static VALUE MsgBoxSpriteReduceWidth(VALUE self)
 static VALUE MsgBoxSpriteReduceHeight(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   s->reduceHeight();
   return Qtrue;
 }
@@ -429,7 +449,8 @@ static VALUE MsgBoxSpriteReduceHeight(VALUE self)
 static VALUE MsgBoxSpriteReduceWidthHeight(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   s->reduceWidthHeight();
   return Qtrue;
 }
@@ -437,49 +458,56 @@ static VALUE MsgBoxSpriteReduceWidthHeight(VALUE self)
 static VALUE MsgBoxSpriteIsWidthIncreased(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isWidthIncreased() ? Qtrue : Qfalse;
 }
 
 static VALUE MsgBoxSpriteIsHeightIncreased(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isHeightIncreased() ? Qtrue : Qfalse;
 }
 
 static VALUE MsgBoxSpriteIsWidthReduced(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isWidthReduced() ? Qtrue : Qfalse;
 }
 
 static VALUE MsgBoxSpriteIsHeightReduced(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isHeightReduced() ? Qtrue : Qfalse;
 }
 
 static VALUE MsgBoxSpriteIsMouseInside(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isMouseInside() ? Qtrue : Qfalse;
 }
 
 static VALUE MsgBoxSpriteIsMouseAboveColorFound(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isMouseAboveColorFound() ? Qtrue : Qfalse;
 }
 
 static VALUE MsgBoxSpriteIsMouseAboveCloseIcon(VALUE self)
 {
   MsgBoxSprite *s = static_cast<MsgBoxSprite*>(RTYPEDDATA_DATA(self));
-  if (!s) return Qnil;
+  if (!s)
+    return Qnil;
   return s->isMouseAboveCloseIcon() ? Qtrue : Qfalse;
 }
 

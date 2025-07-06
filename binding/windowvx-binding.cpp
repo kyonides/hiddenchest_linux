@@ -39,7 +39,7 @@ extern VALUE zero;
 static VALUE windowVXInitialize(int argc, VALUE *argv, VALUE self)
 {
   WindowVX *w;
-  if (rgssVer == 3) {
+  if (rgssVer == 3 || rgssVer == 4) {
     int x = 0, y = 0, width = 0, height = 0;
     if (argc == 4)
       rb_get_args(argc, argv, "iiii", &x, &y, &width, &height RB_ARG_END);
@@ -51,7 +51,7 @@ static VALUE windowVXInitialize(int argc, VALUE *argv, VALUE self)
   w->initDynAttribs();
   rb_iv_set(self, "@area", rb_ary_new());
   wrapProperty(self, &w->getCursorRect(), "cursor_rect", RectType);
-  if (rgssVer == 3)
+  if (rgssVer == 3 || rgssVer == 4)
     wrapProperty(self, &w->getTone(), "tone", ToneType);
   Bitmap *contents = new Bitmap(1, 1);
   VALUE contentsObj = wrapObject(contents, BitmapType);

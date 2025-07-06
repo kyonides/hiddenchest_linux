@@ -827,7 +827,7 @@ void Font::initDefaults(const SharedFontState &sfs)
     names.push_back("Arial");
     names.push_back("Courier New");
     break;
-  case 3 :
+  default :
     FontPrivate::default_size = 24;
     reduce_size = 5;
     names.push_back("VL Gothic");

@@ -760,7 +760,7 @@ static VALUE sprite_is_drag_margin_y_set(VALUE self, VALUE my)
 
 void sprite_setup_bush_opacity()
 {
-  if (rgssVer >= 2) {
+  if (rgssVer == 2 || rgssVer == 3) {
     VALUE sprite = rb_define_class("Sprite", rb_cObject);
     rb_define_method(sprite, "bush_opacity", RMF(SpriteGetBushOpacity), 0);
     rb_define_method(sprite, "bush_opacity=", RMF(SpriteSetBushOpacity), 1);

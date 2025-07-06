@@ -626,14 +626,16 @@ struct WindowVXPrivate
         Vec2i contTrans = pad.pos();
         contTrans.x += cursorRect->x;
         contTrans.y += cursorRect->y;
-        if (rgssVer >= 3) contTrans -= contentsOff;
+        if (rgssVer >= 3)
+          contTrans -= contentsOff;
         shader.setTranslation(contTrans);
         TEX::setSmooth(true);
         cursorVert.draw();
         TEX::setSmooth(false);
       }
       if (contentsValid) {
-        if (rgssVer <= 2) glState.scissorBox.setIntersect(clip);
+        if (rgssVer <= 2)
+          glState.scissorBox.setIntersect(clip);
         Vec2i contTrans = pad.pos();
         contTrans -= contentsOff;
         shader.setTranslation(contTrans);

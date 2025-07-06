@@ -57,6 +57,8 @@ static const char *gameArchExt()
     return ".rgss2a";
   else if (rgssVer == 3)
     return ".rgss3a";
+  else if (rgssVer == 4)
+    return ".rgss4a";
   assert(!"unreachable");
   return 0;
 }
@@ -124,7 +126,7 @@ struct SharedStatePrivate
     TEXFBO::linkFBO(gpTexFBO);
     /* RGSS3 games will call setup_midi, so there's
      * no need to do it on startup */
-    if (rgssVer <= 2)
+    if (rgssVer != 3)
       midiState.initIfNeeded(threadData->config);
   }
 

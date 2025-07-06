@@ -151,8 +151,11 @@ void hc_rb_splash(VALUE exception)
 
 static void mriBindingInit()
 {
-  if (rgssVer < 2) {
+  if (rgssVer == 1) {
     windowBindingInit();
+    tilemapBindingInit();
+  } else if (rgssVer == 4) {
+    windowVXBindingInit();
     tilemapBindingInit();
   } else {
     windowVXBindingInit();
@@ -162,7 +165,7 @@ static void mriBindingInit()
   module_func(rb_mKernel, "msgbox_p", mriP, -1);
   module_func(rb_mKernel, "print", mriPrint, -1);
   module_func(rb_mKernel, "p", mriP, -1);
-  if (rgssVer >= 3) {
+  if (rgssVer == 3) {
     module_func(rb_mKernel, "rgss_main", mriRgssMain, -1);
     module_func(rb_mKernel, "rgss_stop", mriRgssStop, -1);
   } else {
@@ -181,7 +184,7 @@ static void mriBindingInit()
   fullscreen = rb_const_get(game, rb_intern("FULLSCREEN"));
   shState->graphics().set_fullscreen(fullscreen == Qtrue);
   int state;
-  if (rgssVer == 1) {
+  if (rgssVer == 1 || rgssVer == 4) {
     rb_gv_set("$DEBUG", debug);
     rb_eval_string_protect(module_rpg1, &state);
   } else {
@@ -395,7 +398,7 @@ struct BacktraceData
   BoostHash<std::string, std::string> scriptNames;
 };
 
-#define SCRIPT_SECTION_FMT (rgssVer >= 3 ? "Section%04ld" : "Section%03ld")
+#define SCRIPT_SECTION_FMT (rgssVer == 3 ? "Section%04ld" : "Section%03ld")
 
 static void runRGSSscripts(BacktraceData &btData)
 {

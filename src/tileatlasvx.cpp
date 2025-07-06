@@ -279,7 +279,7 @@ void build(TEXFBO &tf, Bitmap *bitmaps[BM_COUNT])
 	FBO::clear();
 	glState.clearColor.pop();
 
-	if (rgssVer >= 3)
+	if (rgssVer == 3)
 	{
 		SDL_Surface *shadow = createShadowSet();
 		TEX::bind(tf.tex);
@@ -555,49 +555,36 @@ onTile(Reader &reader, int16_t tileID,
 	int16_t flag = tableGetSafe(flags, tileID);
 	bool overPlayer = flag & OVER_PLAYER_FLAG;
 	bool isTable;
-
-	if (rgssVer >= 3)
+	if (rgssVer == 3)
 		isTable = flag & TABLE_FLAG;
 	else
 		isTable = (tileID - 0x0B00) % (8 * 0x30) >= (7 * 0x30);
-
 	/* B ~ E */
-	if (tileID < 0x0400)
-	{
+	if (tileID < 0x0400) {
 		onTileBCDE(reader, tileID, x, y, overPlayer);
 		return;
 	}
-
 	/* A5 */
-	if (tileID >= 0x0600 && tileID < 0x0680)
-	{
+	if (tileID >= 0x0600 && tileID < 0x0680) {
 		onTileA5(reader, tileID, x, y, overPlayer);
 		return;
 	}
-
-	if (tileID >= 0x0800 && tileID < 0x0B00)
-	{
+	if (tileID >= 0x0800 && tileID < 0x0B00) {
 		onTileA1(reader, tileID, x, y);
 		return;
 	}
-
 	/* A2 */
-	if (tileID >= 0x0B00 && tileID < 0x1100)
-	{
+	if (tileID >= 0x0B00 && tileID < 0x1100) {
 		onTileA2(reader, tileID, x, y, isTable);
 		return;
 	}
-
 	/* A3 */
-	if (tileID < 0x1700)
-	{
+	if (tileID < 0x1700) {
 		onTileA3(reader, tileID, x, y);
 		return;
 	}
-
 	/* A4 */
-	if (tileID < 0x2000)
-	{
+	if (tileID < 0x2000) {
 		onTileA4(reader, tileID, x, y);
 		return;
 	}
@@ -611,15 +598,11 @@ readLayer(Reader &reader, const Table &data,
 	 * legs, etc.) which extend over the tile below. We process
 	 * the tiles in rows from bottom to top so the table extents
 	 * are added after the tile below and drawn over it. */
-
 	for (int y = h-1; y >= 0; --y)
-		for (int x = 0; x < w; ++x)
-		{
+		for (int x = 0; x < w; ++x) {
 			int16_t tileID = tableGetWrapped(data, x+ox, y+oy, z);
-
 			if (tileID <= 0)
 				continue;
-
 			onTile(reader, tileID, x, y, flags);
 		}
 }
@@ -630,12 +613,9 @@ onShadowTile(Reader &reader, int8_t value,
 {
 	if (value == 0)
 		return;
-
 	int oy = value;
-
 	FloatRect tex((shadowArea.x)*32+0.5, (shadowArea.y+oy)*32+0.5, 31, 31);
 	FloatRect pos(x*32, y*32, 32, 32);
-
 	reader.onQuads(&tex, &pos, 1, false);
 }
 
@@ -644,8 +624,7 @@ readShadowLayer(Reader &reader, const Table &data,
                 int ox, int oy, int w, int h)
 {
 	for (int y = 0; y < h; ++y)
-		for (int x = 0; x < w; ++x)
-		{
+		for (int x = 0; x < w; ++x) {
 			int16_t value = tableGetWrapped(data, x+ox, y+oy, 3);
 			onShadowTile(reader, value & 0xF, x, y);
 		}
@@ -656,10 +635,8 @@ void readTiles(Reader &reader, const Table &data,
 {
 	for (int i = 0; i < 2; ++i)
 		readLayer(reader, data, flags, ox, oy, w, h, i);
-
-	if (rgssVer >= 3)
+	if (rgssVer == 3)
 		readShadowLayer(reader, data, ox, oy, w, h);
-
 	readLayer(reader, data, flags, ox, oy, w, h, 2);
 }
 

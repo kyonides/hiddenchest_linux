@@ -259,7 +259,9 @@ static VALUE audio_play_se(int argc, VALUE* argv, VALUE self)
   int pit = RB_NIL_P(pitch) ? 100 : RB_FIX2INT(pitch);
   try {
     shState->audio().sePlay(fn, vol, pit);
-  } catch (const Exception &e) { raiseRbExc(e); }
+  } catch (const Exception &e) {
+    raiseRbExc(e);
+  }
   return Qnil;
 }
 
@@ -390,7 +392,7 @@ void audioBindingInit()
   module_func(md, "old_bgs_name", audio_old_bgs_name, 0);
   module_func(md, "save_bgm_data", audio_save_bgm_data, 0);
   module_func(md, "save_bgs_data", audio_save_bgs_data, 0);
-  if (rgssVer >= 3)
+  if (rgssVer == 3)
     module_func(md, "setup_midi", audioSetupMidi, 0);
   module_func(md, "se_play", audio_sePlay, -1);
   module_func(md, "se_stop", audio_seStop, 0);

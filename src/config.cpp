@@ -183,7 +183,7 @@ void Config::read(int argc, char *argv[])
       argv++;
     }
   }
-  rgssVersion = clamp(rgssVersion, 0, 3);
+  rgssVersion = clamp(rgssVersion, 0, 4);
   SE.sourceCount = clamp(SE.sourceCount, 12, 64);
   if (!dataPathOrg.empty() && !dataPathApp.empty())
     customDataPath = prefPath(dataPathOrg.c_str(), dataPathApp.c_str());

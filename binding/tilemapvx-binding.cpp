@@ -39,7 +39,7 @@ RB_METHOD(tilemapVXInitialize)
   Viewport *viewport = 0;
   rb_get_args(argc, argv, "|o", &viewportObj RB_ARG_END);
   if (!NIL_P(viewportObj))
-      viewport = getPrivateDataCheck<Viewport>(viewportObj, ViewportType);
+    viewport = getPrivateDataCheck<Viewport>(viewportObj, ViewportType);
   /* Construct object */
   t = new TilemapVX(viewport);
   setPrivateData(self, t);
@@ -49,7 +49,7 @@ RB_METHOD(tilemapVXInitialize)
   VALUE autotilesObj = rb_iv_get(self, "bitmap_array");
   VALUE ary = rb_ary_new2(9);
   for (int i = 0; i < 9; ++i)
-      rb_ary_push(ary, Qnil);
+    rb_ary_push(ary, Qnil);
   rb_iv_set(autotilesObj, "array", ary);
   // Circular reference so both objects are always alive at the same time
   rb_iv_set(autotilesObj, "tilemap", self);
@@ -98,7 +98,8 @@ RB_METHOD(tilemapVXBitmapsGet)
 {
   int i;
   rb_get_args (argc, argv, "i", &i RB_ARG_END);
-  if (i < 0 || i > 8) return Qnil;
+  if (i < 0 || i > 8)
+    return Qnil;
   VALUE ary = rb_iv_get(self, "array");
   return rb_ary_entry(ary, i);
 }

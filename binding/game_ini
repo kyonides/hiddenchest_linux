@@ -61,12 +61,13 @@ module Game
   end
 
   def self.process_exe_name(list)
-    4.times do |n|
-      if File.exist?(EXE_NAME + list[n])
-        return n
+    version = 0
+    5.times do |n|
+      if File.exist?(EXE_NAME + "." + list[n])
+        version = n
       end
     end
-    return 0
+    return version
   end
 
   def self.process_ini
@@ -131,19 +132,24 @@ module Game
       icon_name = ""
     end
     const_set("ICON", icon_name)
-    projects = [".rhproj", ".rxproj", ".rvproj", ".rvproj2"]
-    encrypt_ext = [".rhc", ".rgssad", ".rgss2a", ".rgss3a"]
-    makers = ["HiddenChest", "XP", "VX", "VX Ace"]
+    project_ext = ["rhproj", "rxproj", "rvproj", "rvproj2"]
+    encrypt_ext = ["rhc", "rgssad", "rgss2a", "rgss3a"]
+    last_proj = DATA.delete("ProjectFileExt") || "rxvproj"
+    last_encr = DATA.delete("CompressedFileExt") || "rgss4a"
+    project_ext << last_proj
+    encrypt_ext << last_encr
+    makers = ["HiddenChest", "XP", "VX", "VX ACE", "XP ACE"]
     n = self.process_exe_name(encrypt_ext)
     encrypted = n > 0
     unless encrypted
-      n = self.process_exe_name(projects)
+      n = self.process_exe_name(project_ext)
     end
     Font.default_shadow = n == 2
     Font.default_outline = n == 3
     debug = (!encrypted && DATA["Debug"][/true/i] != nil)
+    exe_name = EXE_NAME + "." + encrypt_ext[n]
     const_set("DEBUG", debug)
-    const_set("ENCRYPTED_NAME", EXE_NAME + encrypt_ext[n])
+    const_set("ENCRYPTED_NAME", exe_name)
     const_set("MAKER", makers[n])
     const_set("RGSS_VERSION", n)
     w = DATA.delete("Width").to_i

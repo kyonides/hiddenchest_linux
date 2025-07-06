@@ -151,7 +151,7 @@ BDescVec genDefaultBindings(const Config &conf)
 	for (size_t i = 0; i < defaultKbBindingsN; ++i)
 		defaultKbBindings[i].add(d);
 
-	if (conf.rgssVersion == 1)
+	if (conf.rgssVersion == 1 || conf.rgssVersion == 4)
 		for (size_t i = 0; i < defaultKbBindings1N; ++i)
 			defaultKbBindings1[i].add(d);
 	else

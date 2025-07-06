@@ -33,12 +33,18 @@ template<class C>
 static VALUE disposableDispose(VALUE self)
 {
   C *d = getPrivateData<C>(self);
-  if (!d) return Qnil;
-  if (d->isDisposed()) return Qnil;
-  if (rgssVer < 2) disposableDisposeChildren(self);
-  if (d->getContents()) d->getContents()->dispose();
-  if (d->getCloseIcon()) d->getCloseIcon()->dispose();
-  if (d->getBarBitmap()) d->getBarBitmap()->dispose();
+  if (!d)
+    return Qnil;
+  if (d->isDisposed())
+    return Qnil;
+  if (rgssVer < 2)
+    disposableDisposeChildren(self);
+  if (d->getContents())
+    d->getContents()->dispose();
+  if (d->getCloseIcon())
+    d->getCloseIcon()->dispose();
+  if (d->getBarBitmap())
+    d->getBarBitmap()->dispose();
   d->dispose();
   return Qnil;
 }

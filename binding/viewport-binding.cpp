@@ -33,7 +33,7 @@ DEF_TYPE(Viewport);
 RB_METHOD(viewportInitialize)
 {
   Viewport *v;
-  if (argc == 0 && rgssVer == 3) {
+  if (argc == 0 && rgssVer >= 3) {
     v = new Viewport();
   } else if (argc == 1) { // The rect arg is only used to init the viewport,
     //and does NOT replace its 'rect' property
@@ -42,7 +42,7 @@ RB_METHOD(viewportInitialize)
     rb_get_args(argc, argv, "o", &rectObj RB_ARG_END);
     rect = getPrivateDataCheck<Rect>(rectObj, RectType);
     v = new Viewport(rect);
-  } else if (rgssVer == 1 && argc == 4) {
+  } else if ((rgssVer == 1 || rgssVer == 4) && argc == 4) {
     int x = RB_FIX2INT(argv[0]), y = RB_FIX2INT(argv[1]);
     int width = RB_FIX2INT(argv[2]), height = RB_FIX2INT(argv[3]);
     v = new Viewport(x, y, width, height);
