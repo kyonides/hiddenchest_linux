@@ -212,12 +212,13 @@ static VALUE game_screensaver_enable_set(VALUE self, VALUE state)
   return rb_iv_set(self, "screensaver_enable", state == Qtrue ? Qtrue : Qfalse);
 }
 
-void init_game()
+void init_game(const char *raw_exe_name)
 {
   VALUE game = rb_define_module("Game");
   rb_iv_set(game, "resizable", Qtrue);
   rb_iv_set(game, "borders", Qtrue);
   rb_iv_set(game, "screensaver_enable", Qfalse);
+  rb_const_set(game, rb_intern("RAW_EXE_NAME"), rstr(raw_exe_name));
   rb_const_set(game, rb_intern("START_WIDTH"), RB_INT2FIX(START_WIDTH));
   rb_const_set(game, rb_intern("START_HEIGHT"), RB_INT2FIX(START_HEIGHT));
   module_func(game, "icon=", game_set_icon, 1);

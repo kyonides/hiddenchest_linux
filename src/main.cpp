@@ -147,7 +147,8 @@ static void setupWindowIcon(const Config &conf, SDL_Window *win)
   else
     iconSrc = SDL_RWFromFile(conf.iconPath.c_str(), "rb");
   SDL_Surface *iconImg = IMG_Load_RW(iconSrc, SDL_TRUE);
-  if (!iconImg) return;
+  if (!iconImg)
+    return;
   SDL_SetWindowIcon(win, iconImg);
   SDL_FreeSurface(iconImg);
 }

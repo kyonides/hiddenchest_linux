@@ -59,7 +59,7 @@ extern "C" {
 void init_zlib();
 }
 void init_mouse();
-void init_game();
+void init_game(ch raw_exe_name);
 void init_scripts();
 void init_system();
 void init_backdrop();
@@ -606,7 +606,7 @@ static void mriBindingExecute()
   init_backdrop();
   init_scripts();
   init_system();
-  init_game();
+  init_game(shState->rtData().argv0);
   rb_eval_string(module_rpg_audio);
   int state = rb_check_rgss_version();
   if (state) {

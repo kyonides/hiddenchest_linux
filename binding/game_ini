@@ -21,14 +21,13 @@ end
 module Game
   SCENE_SCRIPT = "Data/Splash"
   SCENE_SCRIPT_EXT = ".rhc"
-  INI_FILENAME = (Dir["*.ini"][0] || ".ini")
   DATA = {}
   DATA.default = ""
   RTP = []
   SOUNDFONT_REGEX = "/*.sf{2,3}"
   extend self
   attr_reader(:shot_formats, :shot_format, :shot_dir)
-  attr_reader(:shot_filename, :save_filenamem, :show_splash)
+  attr_reader(:shot_filename, :save_filename, :show_splash)
   attr_reader(:soundfont, :soundfonts)
   attr_accessor(:save_dir, :save_filename, :setup_screen)
   def self.clear
@@ -63,13 +62,20 @@ module Game
   def self.process_exe_name(list)
     version = 0
     5.times do |n|
-      if File.exist?(EXE_NAME + "." + list[n])
+      if File.exist?(EXE_BASE_NAME + "." + list[n])
         version = n
       end
     end
     return version
   end
 
+  def self.set_exe_ini_names
+    exe_name = RAW_EXE_NAME.gsub(/\.\//, "")
+    const_set("EXE_NAME", exe_name)
+    const_set("EXE_BASE_NAME", exe_name.sub(/\.*/i, ""))
+    const_set("INI_FILENAME", EXE_BASE_NAME + ".ini")
+  end
+    
   def self.process_ini
     begin
       lines = File.readlines(INI_FILENAME)
@@ -125,7 +131,6 @@ module Game
     const_set("TITLE", DATA.delete("Title").to_s)
     const_set("VERSION", DATA.delete("Version").to_s)
     const_set("AUTHOR", DATA.delete("Author").to_s)
-    const_set("EXE_NAME", INI_FILENAME.split('.')[0].to_s)
     icon_name = DATA.delete("Icon").to_s
     icon_name = Dir[icon_name + "*"][0]
     unless FileInt.exist?(icon_name)
@@ -147,7 +152,7 @@ module Game
     Font.default_shadow = n == 2
     Font.default_outline = n == 3
     debug = (!encrypted && DATA["Debug"][/true/i] != nil)
-    exe_name = EXE_NAME + "." + encrypt_ext[n]
+    exe_name = EXE_BASE_NAME + "." + encrypt_ext[n]
     const_set("DEBUG", debug)
     const_set("ENCRYPTED_NAME", exe_name)
     const_set("MAKER", makers[n])
@@ -191,6 +196,7 @@ module Game
 
   def self.setup
     auto_create_dir
+    set_exe_ini_names
     process_ini
     set_basic_values
     set_internal_values
@@ -253,4 +259,5 @@ begin
 rescue => e
   puts e.class, e.message, e.backtrace
   Game.setup
+  Graphics.show_window
 end
