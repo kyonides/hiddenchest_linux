@@ -16,6 +16,8 @@ h800 or h800.exe
 h*anyotherwidth or h*anyotherwidth*.exe
   Possible resolutions 800*608, 960*736, 1088*608, 1280*768, 1680*1050 and 1920*1080
   Includes extra buttons not found in vanilla RGSS games
+Now the executable's filename lets the engine determine which INI file it should
+open to setup all of the basic values it needs to run properly.
 ClickableWidget.rb
 ClickableSprite.rb
 ClickableWindow.rb
