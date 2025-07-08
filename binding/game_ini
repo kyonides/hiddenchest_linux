@@ -27,7 +27,7 @@ module Game
   SOUNDFONT_REGEX = "/*.sf{2,3}"
   extend self
   attr_reader(:shot_formats, :shot_format, :shot_dir)
-  attr_reader(:shot_filename, :save_filename, :show_splash)
+  attr_reader(:shot_filename, :show_splash)
   attr_reader(:soundfont, :soundfonts)
   attr_accessor(:save_dir, :save_filename, :setup_screen)
   def self.clear
@@ -76,19 +76,19 @@ module Game
     const_set("INI_FILENAME", EXE_BASE_NAME + ".ini")
   end
     
-  def self.process_ini
+  def self.process_main_ini
     begin
       lines = File.readlines(INI_FILENAME)
     rescue => e
       puts e.class, e.message, e.backtrace
       return
     end
-    lines.size.times do
+    lines.size.times do |n|
       key, value = lines.shift.split(/[\s]{0,}=[\s]{0,}/i)
-      unless key and value
+      if !key
         next
       end
-      value = value.chomp
+      value = !value ? "" : value.chomp
       if key[/RTP/i] != nil
         if value.size > 1
           RTP << value
@@ -105,12 +105,12 @@ module Game
 
   def self.set_basic_values
     if System.windows?
-      default = DATA.delete("SoundFontWin").to_s
-      sf_dir = DATA.delete("SoundFontPathWin").to_s
+      default = DATA["SoundFontWin"].to_s
+      sf_dir = DATA["SoundFontPathWin"].to_s
       sf_dir = sf_dir.gsub(/[\\]/, "/")
     elsif System.linux?
-      default = DATA.delete("SoundFontLnx").to_s
-      sf_dir = DATA.delete("SoundFontPathLnx").to_s
+      default = DATA["SoundFontLnx"].to_s
+      sf_dir = DATA["SoundFontPathLnx"].to_s
     end
     System.const_set("SOUNDFONT_DIR", sf_dir)
     System.const_set("SOUNDFONT", default)
@@ -127,11 +127,11 @@ module Game
       @soundfonts.unshift(@soundfont)
     end
     DATA["Scripts"].sub!("\\", "/")
-    const_set("SCRIPTS", DATA.delete("Scripts").to_s)
-    const_set("TITLE", DATA.delete("Title").to_s)
-    const_set("VERSION", DATA.delete("Version").to_s)
-    const_set("AUTHOR", DATA.delete("Author").to_s)
-    icon_name = DATA.delete("Icon").to_s
+    const_set("SCRIPTS", DATA["Scripts"].to_s)
+    const_set("TITLE", DATA["Title"].to_s)
+    const_set("VERSION", DATA["Version"].to_s)
+    const_set("AUTHOR", DATA["Author"].to_s)
+    icon_name = DATA["Icon"].to_s
     icon_name = Dir[icon_name + "*"][0]
     unless FileInt.exist?(icon_name)
       icon_name = ""
@@ -139,8 +139,8 @@ module Game
     const_set("ICON", icon_name)
     project_ext = ["rhproj", "rxproj", "rvproj", "rvproj2"]
     encrypt_ext = ["rhc", "rgssad", "rgss2a", "rgss3a"]
-    last_proj = DATA.delete("ProjectFileExt") || "rxvproj"
-    last_encr = DATA.delete("CompressedFileExt") || "rgss4a"
+    last_proj = DATA["ProjectFileExt"] ||= "rxvproj"
+    last_encr = DATA["CompressedFileExt"] ||= "rgss4a"
     project_ext << last_proj
     encrypt_ext << last_encr
     makers = ["HiddenChest", "XP", "VX", "VX ACE", "XP ACE"]
@@ -152,13 +152,13 @@ module Game
     Font.default_shadow = n == 2
     Font.default_outline = n == 3
     debug = (!encrypted && DATA["Debug"][/true/i] != nil)
-    exe_name = EXE_BASE_NAME + "." + encrypt_ext[n]
+    enc_name = EXE_BASE_NAME + "." + encrypt_ext[n]
     const_set("DEBUG", debug)
-    const_set("ENCRYPTED_NAME", exe_name)
+    const_set("ENCRYPTED_NAME", enc_name)
     const_set("MAKER", makers[n])
     const_set("RGSS_VERSION", n)
-    w = DATA.delete("Width").to_i
-    h = DATA.delete("Height").to_i
+    w = DATA["Width"].to_i
+    h = DATA["Height"].to_i
     w = (w == 0 ? START_WIDTH : w)
     h = (h == 0 ? START_HEIGHT : h)
     const_set("WIDTH", w)
@@ -166,14 +166,14 @@ module Game
     state = DATA["Fullscreen"][/true/i] != nil
     const_set("FULLSCREEN", state)
     state = DATA["SubImageFix"][/true/i] != nil
-    const_set("SUB_IMAGE_FIX", state)
+    const_set("SUBIMAGEFIX", state)
     puts "Ruby Version:       #{RUBY_VERSION}"
     puts "RGSS Version:       #{n} (#{MAKER})"
     puts "Game Screen Size:   #{WIDTH}x#{HEIGHT}"
     puts "Enable Debug:       #{DEBUG}"
     puts "Trigger Fullscreen: #{FULLSCREEN}"
-    puts "SubImage Fix:       #{SUB_IMAGE_FIX}"
-    Font.solid_fonts = DATA.delete("SolidFonts").to_s[/true/i] != nil
+    puts "SubImage Fix:       #{SUBIMAGEFIX}"
+    Font.solid_fonts = DATA["SolidFonts"].to_s[/true/i] != nil
   end
 
   def self.soundfont_index
@@ -197,7 +197,7 @@ module Game
   def self.setup
     auto_create_dir
     set_exe_ini_names
-    process_ini
+    process_main_ini
     set_basic_values
     set_internal_values
     if System.linux?

@@ -49,8 +49,8 @@ extern const char module_rpg2[];
 extern const char module_rpg3[];
 extern const char win32api_fake[];
 extern const char module_hc[];
+extern const char file_ini[];
 extern const char game_ini[];
-extern const char setup_ini[];
 static void mriBindingExecute();
 static void mriBindingTerminate();
 static void mriBindingReset();
@@ -374,6 +374,9 @@ static bool file_exist(VALUE name, const char* ext)
 static int rb_check_rgss_version()
 {
   int state;
+  rb_eval_string_protect(file_ini, &state);
+  if (state)
+    return state;
   rb_eval_string_protect(game_ini, &state);
   return state;
 }

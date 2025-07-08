@@ -79,7 +79,7 @@ static VALUE game_set_internal_values(VALUE self)
   scr = rb_const_get(self, rb_intern("SCRIPTS"));
   enc = rb_const_get(self, rb_intern("ENCRYPTED_NAME"));
   rtp_ary = rb_const_get(self, rb_intern("RTP"));
-  subimg = rb_const_get(self, rb_intern("SUB_IMAGE_FIX"));
+  subimg = rb_const_get(self, rb_intern("SUBIMAGEFIX"));
   sfont = rb_iv_get(self, "@soundfont");
   int rgss, w, h, rtp_len;
   rgss = RB_FIX2INT(rversion);
