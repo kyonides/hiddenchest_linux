@@ -72,7 +72,7 @@ module Game
   def self.set_exe_ini_names
     exe_name = RAW_EXE_NAME.gsub(/\.\//, "")
     const_set("EXE_NAME", exe_name)
-    const_set("EXE_BASE_NAME", exe_name.sub(/\.*/i, ""))
+    const_set("EXE_BASE_NAME", exe_name.sub(/\.\w*/i, ""))
     const_set("INI_FILENAME", EXE_BASE_NAME + ".ini")
   end
     
@@ -126,7 +126,7 @@ module Game
       @soundfonts.delete(@soundfont)
       @soundfonts.unshift(@soundfont)
     end
-    DATA["Scripts"].sub!("\\", "/")
+    DATA["Scripts"].sub!(/[\\]/, "/")
     const_set("SCRIPTS", DATA["Scripts"].to_s)
     const_set("TITLE", DATA["Title"].to_s)
     const_set("VERSION", DATA["Version"].to_s)

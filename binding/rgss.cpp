@@ -410,22 +410,27 @@ static void runRGSSscripts(BacktraceData &btData)
     return;
   }
   const Config &conf = shState->rtData().config;
-  std::string scriptPack = conf.game.scripts;
-  if (scriptPack.empty()) {
-    ch error = "No game scripts specified (missing Game.ini?)";
+  VALUE game = rb_define_module("Game");
+  VALUE rb_path = rb_const_get(game, rb_intern("SCRIPTS"));
+  if (!RSTRING_LEN(rb_path)) {
+    ch error = "No game scripts specified (missing main INI file?)";
     Debug() << error;
     showMsg(error);
     return;
   }
-  if (!shState->fileSystem().exists(scriptPack.c_str())) {
-    std::string error = "Unable to open '" + scriptPack + "'";
+  const char *scripts = RSTRING_PTR(rb_path);
+  if (!shState->fileSystem().exists(scripts)) {
+    VALUE rb_error = rstr("Unable to open '");
+    rb_error = rb_str_plus(rb_error, rb_path);
+    rb_error = rb_str_plus(rb_error, rstr("'."));
+    ch error = RSTRING_PTR(rb_error);
     Debug() << "Errno::ENOENT" << error;
-    hc_c_splash(error.c_str(), 2, "Errno::ENOENT");
+    hc_c_splash(error, 2, "Errno::ENOENT");
     return;
   }
   // We checked if Scripts.rxdata exists, but something might still go wrong
   try {
-    script_ary = kernelLoadDataInt(scriptPack.c_str(), false);
+    script_ary = kernelLoadDataInt(scripts, false);
   } catch (const Exception &e) {
     std::string error = "Failed to read script data: " + e.msg;
     hc_c_splash(error.c_str(), 2, "IOError");
