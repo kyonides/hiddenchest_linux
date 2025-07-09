@@ -1,6 +1,6 @@
 # HiddenChest
 
-HiddenChest is a project based upon mkxp developed by Ancurio. It should let you play RGSS based games on a 800 * 608 resolution or higher by default, but you might change it before compiling it if deemed necessary. In my case I have set it at 1920 * 1080, but I have only tested it at 1680 * 1050 at most. The results were quite decent indeed.
+HiddenChest is a project based upon mkxp developed by Ancurio. It should let you play RGSS based games on a 800 * 608 resolution or higher by default, but you might change it before compiling it if deemed necessary. In my case I have set it at 1920 * 1080. The results were quite decent indeed.
 
 After you have finished compiling the binary executable, you should also open the MapCustomResFixes0 (for RMXP or RMVX games) text file with a text editor like Notepad++ or change its file extension to txt if you plan to use Windows Notepad application. On Linux distributions you can use your favorite text editor, for KDE GUI based systems Kate or KWrite should be fine. Once you have opened it copy its contents and paste them in the script editor below Scene_Debug and before Main scripts.
 
@@ -17,15 +17,13 @@ mkxp Documentation is still valid so do not forget to check it out!
 It is licensed under the GNU General Public License v2+.
 
 ## mkxp 640px Wide Prebuilt Binaries
-[**Linux (32bit/64bit)**](http://ancurio.bplaced.net/mkxp/generic/)
-[**OSX**](https://app.box.com/mkxpmacbuilds) by Ali
-[**Windows (mingw-w64 32bit)**](http://ancurio.bplaced.net/mkxp/mingw32/)
 
-If you are planning to sport 640 pixel wide games, you should go for mkxp instead.
+They no longer exist. The original mkxp repository manager stopped distributing them.
 
-## HiddenChest +800px Wide Prebuilt Binaries
-[**Ubuntu or Fedora 64bit**](https://app.box.com/s/8956vvm2spfx5sdmeo2jrrtanawsoj1j)
-[**Windows 64bit**](https://app.box.com/s/65lwn59sk7lm25hqrlws2lq5r5ye4yod)
+## HiddenChest Prebuilt Binaries
+- [**Ubuntu 64bit**](https://www.mediafire.com/folder/160t7lw249dwj)
+- **Fedora 64bit** - discontinued
+- [**Windows 64bit**](https://www.mediafire.com/folder/8hx8h847sk479)
 
 ## Bindings
 Bindings provide the glue code for an interpreted language environment to run game scripts in. Currently there are three bindings:
@@ -263,6 +261,7 @@ Well, they indirectly do it... You got to set the `@area` array with every singl
     - `press_all?` and `trigger_buttons?` to save you the effort of typing many conditional statements in a row.
          - You can pass them one argument after another or pass an array.
     - `trigger_up_down?` and `trigger_left_right?` are very self evident.
+    - `trigger_double?` lets you check if a single button has been triggered twice in a row.
     - `press_any?` and `trigger_any?` treats any non zero value as a valid button trigger.
     - `left_click?`, `middle_click?` and `right_click?`
     - `double_click?(button)`, `double_left_click?` and `double_right_click?` depend on `default_timer` alias `base_timer` in order to define how long they will be waiting for the second click.
@@ -295,15 +294,21 @@ Well, they indirectly do it... You got to set the `@area` array with every singl
 * It includes the following constants:
     - `TITLE`
     - `VERSION`
+    - `AUTHOR`
     - `SCRIPTS`
     - `ICON`
     - `DEBUG`
     - `FULLSCREEN`
     - `WIDTH`
     - `HEIGHT`
-    - `SUB_IMAGE_FIX`
+    - `SUBIMAGEFIX`
+    - `RAW_EXE_NAME`
+    - `EXE_NAME`
+    - `EXE_BASE_NAME`
+    - `ENCRYPTED_NAME`
+    - `INI_FILENAME`
 
-  They are automatically extracted from the Game.ini file.
+  They are automatically extracted from the corresponding game's INI file.
 
 ## List of Bug Fixes for HiddenChest
 

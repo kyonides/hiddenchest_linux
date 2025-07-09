@@ -1,6 +1,6 @@
 # HiddenChest
 
-HiddenChest es un proyecto basado en mkxp desarrollado por Ancurio. Les permite jugar videojuegos basados en RGSS con una resolución de al menos 800 * 608 o superior por defecto, pero pueden cambiarlo antes de compilarlo de ser necesario. En mi caso yo definí la máxima en 1920 * 1080, aunque solo lo he llegado a probar a 1680 * 1050 a lo sumo. Los resultados fueron bastantes decentes.
+HiddenChest es un proyecto basado en mkxp desarrollado por Ancurio. Les permite jugar videojuegos basados en RGSS con una resolución de al menos 800 * 608 o superior por defecto, pero pueden cambiarlo antes de compilarlo de ser necesario. En mi caso yo definí la máxima en 1920 * 1080. Los resultados fueron bastantes decentes.
 
 Después de que hayan finalizado la compilación del ejecutable binario, deberían de abrir el archivo de texto MapCustomResFixes (para juegos de RMXP o RMVX) con un editor como Notepad++ o cambiar su extensión a txt si buscan usar la aplicación de Windows llamada Notepad. En distribuciones de Linux pueden utilizar su editor de texto favorito, para un GUI de KDE Kate o KWrite estarían bien. Una vez que lo hayan abierto, copien su contenido y péguenlo en el editor de scripts debajo de Scene_Debug y sobre Main.
 
@@ -17,15 +17,13 @@ La documentación de mkxp aún es válida en buena medida por lo que podrían re
 Está bajo la licencia GNU General Public License v2+.
 
 ## mkxp: Binarios Precompilados con 640px de Ancho
-[**Linux (32bit/64bit)**](http://ancurio.bplaced.net/mkxp/generic/)
-[**OSX**](https://app.box.com/mkxpmacbuilds) por Ali
-[**Windows (mingw-w64 32bit)**](http://ancurio.bplaced.net/mkxp/mingw32/)
 
-## HiddenChest: Binarios Precompilados con +800px de Ancho
-[**Ubuntu or Fedora 64bit**](https://app.box.com/s/8956vvm2spfx5sdmeo2jrrtanawsoj1j)
-[**Windows 64bit**](https://app.box.com/s/65lwn59sk7lm25hqrlws2lq5r5ye4yod)
+Ya no existen. El administrador del repositorio mkxp original dejó de distribuirlos.
 
-Si planeas depender de juegos con un ancho de 640 píxeles wide games, deberían de ir tras mkxp.
+## HiddenChest: Binarios Precompilados
+- [**Ubuntu 64bit**](https://www.mediafire.com/folder/160t7lw249dwj)
+- **Fedora 64bit** - descontinuado
+- [**Windows 64bit**](https://www.mediafire.com/folder/8hx8h847sk479)
 
 ## Bindings
 Bindings les proveen de código para unir un lenguaje interpretado como Ruby con un ambiente capaz de correr scripts de juegos. Actualmente hay tres bindings:
@@ -213,8 +211,7 @@ Bueno lo hacen indirectamente... Necesitarán usar el arreglo `@area` con cada R
     - `sepia_bitmap` - Versión en Sepia de su mapa
     - `blur_bitmap` - Versión Borrosa de su mapa
     - `color_bitmap` - Escojan un color para teñir su mapa.
-         - Opciones:  :red, :green, :blue, :yellow, :sepia y :gray
-           (rojo, verde, azul, amarillo, sepia y gris)
+         - Opciones:  :red, :green, :blue, :yellow, :sepia y :gray (rojo, verde, azul, amarillo, sepia y gris)
 * `Sprite` ahora soporta versiones en gris y tono sepia de sus bitmaps! Usen un booleano (true o false) para activar o desactivarlos efectos de color.
     - `gray_out = booleano` - gris
     - `turn_sepia = booleano` - sepia
@@ -264,6 +261,7 @@ Bueno lo hacen indirectamente... Necesitarán usar el arreglo `@area` con cada R
     - `press_all?` y `trigger_buttons?` para evitarles el uso de varias condicionales en fila.
          - Pueden pasar un argumento tras otro o pasar un Array alias arreglo.
     - `trigger_up_down?` y `trigger_left_right?` para las direcciones opuestas.
+    - `trigger_double?` permite verificar que un botón sea soltado 2 veces seguidas.
     - `press_any?` y `trigger_any?` se ejecuta cuando un botón envía un valor distinto a cero.
     - `left_click?`, `middle_click?` y `right_click?`
     - `double_click?(button)`, `double_left_click?` y `double_right_click?` dependen de `default_timer` alias `base_timer` para definir cuánto tiempo de espera habrá entre clicks.
@@ -296,15 +294,21 @@ Bueno lo hacen indirectamente... Necesitarán usar el arreglo `@area` con cada R
 * Módulo `Game` incluye las siguientes constantes:
     - `TITLE`
     - `VERSION`
+    - `AUTHOR`
     - `SCRIPTS`
     - `ICON`
     - `DEBUG`
     - `FULLSCREEN`
     - `WIDTH`
     - `HEIGHT`
-    - `SUB_IMAGE_FIX`
+    - `SUBIMAGEFIX`
+    - `RAW_EXE_NAME`
+    - `EXE_NAME`
+    - `EXE_BASE_NAME`
+    - `ENCRYPTED_NAME`
+    - `INI_FILENAME`
  
- Estas son extraídas del archivo Game.ini de forma automática.
+ Estas son extraídas del archivo INI correspondiente de forma automática.
 
 ## Lista de Arreglos de Errores en HiddenChest
 
