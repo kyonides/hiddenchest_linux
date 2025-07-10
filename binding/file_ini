@@ -75,7 +75,7 @@ class FileIni
     write_all_entries
   end
 
-  def comment_out(section, key)
+  def comment_out(section_name, key)
     section = find_section(section_name)
     keys = section.keys
     n = find_key_index(section.keys, key, true)
