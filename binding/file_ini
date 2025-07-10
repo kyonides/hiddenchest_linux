@@ -1,90 +1,114 @@
-module FileIni
-  class IniData
+class FileIni
+  class Section
     def initialize(name)
-      @filename = name
+      @name = name
+      @keys = []
+      @values = []
       @lines = []
-      @sections = []
-      @indexes = {}
-      @keys = {}
     end
-    attr_accessor :filename, :lines, :sections, :indexes, :keys
+    attr_reader :name, :keys, :values, :lines
   end
 
-  def self.open(filename)
-    @ini_data = IniData.new(filename)
+  @@last = nil
+  attr_reader :filename, :section_names
+  def initialize(filename)
+    @filename = filename
+    @section_names = []
+    @sections = []
     begin
-      @ini_data.lines = lines = File.readlines(filename)
+      lines = File.readlines(filename)
     rescue => e
       puts e.class, e.message, e.backtrace
-      return @ini_data = nil
+      return
     end
-    ini_sections = @ini_data.sections
-    ini_pos = @ini_data.indexes
-    ini_keys = @ini_data.keys
+    section = nil
     lines.size.times do |n|
       line = lines[n]
       key, value = line.split(/[\s]{0,}=[\s]{0,}/i)
-      if !key
-        ini_sections << section = line.chomp
-        ini_pos[section] = n
+      if !value and !line[/=/]
+        name = key.gsub(/\[|\]/, "").chomp
+        @section_names << name
+        @sections << section = Section.new(name)
         next
       end
-      ini_keys[key] = !value ? "" : value.chomp
-      ini_pos[key] = n
+      section.keys << key
+      section.values << (value ? value.chomp : "")
+      section.lines << line
     end
+    @@last = self
   end
 
-  def self.current
-    unless @ini_data
+  def self.open(filename)
+    new(filename)
+  end
+
+  def self.last
+    unless @@last
       raise "Failed to load INI data!\n" +
             "Did you forget to open that file first?"
       return
     end
-    @ini_data.filename
+    @@last.filename
   end
 
-  def self.close
-    unless @ini_data
-      raise "Failed to close INI file!\n" +
-            "Did you forget to open that file first?"
-      return
+  def entry_not_found(key)
+    "Could not find INI entry #{key} in #{@filename}!"
+  end
+
+  def read(section_name, key, default)
+    n = @section_names.index(section_name)
+    section = @sections[n]
+    n = section.keys.index(key)
+    value = section.values[n]
+    value&.empty? ? default : value
+  rescue
+    default
+  end
+
+  def write(section_name, key, value)
+    section = find_section(section_name)
+    keys = section.keys
+    n = find_key_index(section.keys, key, false)
+    section.keys[n] = key
+    section.values[n] = value.to_s
+    section.lines[n] = key + "=#{value}\r\n"
+    write_all_entries
+  end
+
+  def comment_out(section, key)
+    section = find_section(section_name)
+    keys = section.keys
+    n = find_key_index(section.keys, key, true)
+    section.keys[n] = ";" + key
+    section.values[n] = value.to_s
+    section.lines[n] = ";#{key}=#{value}\r\n"
+    write_all_entries
+  end
+  private
+  def find_section(section_name)
+    n = @section_names.index(section_name)
+    section = @sections[n]
+    unless section
+      section = Section.new(section_name)
+      @sections << section
     end
-    @ini_data = nil
+    section
   end
 
-  def self.entry_not_found(key)
-    "Could not find INI entry #{key} in #{@ini_data.filename}!"
+  def find_key_index(keys, key, commented)
+    this_key = commented ? ";" + key : key
+    keys.index(this_key)
+  rescue
+    this_key = commented ? key : ";" + key
+    keys.index(this_key)
   end
 
-  def self.read(key)
-    @ini_data.keys[key] || entry_not_found(key)
-  end
-
-  def self.write(key, value)
-    value = value.to_s
-    n = @ini_data.indexes[key]
-    unless n
-      comment_key = ";" + key
-      n = @ini_data.indexes[comment_key] || @ini_data.lines.size
-      @ini_data.indexes[key] = n
-      @ini_data.keys.delete(comment_key)
-    end
-    @ini_data.keys[key] = value
-    @ini_data.lines[n] = key + "=" + value + "\r\n"
-    File.open(@ini_data.filename, "w") {|f| f.puts @ini_data.lines }
-  end
-
-  def self.comment_out(key)
-    if @ini_data.keys.has_key?(key)
-      value = @ini_data.keys.delete(key)
-      n = @ini_data.indexes[key]
-      key = ";" + key
-      @ini_data.keys[key] = value
-      @ini_data.lines[n] = key + "=" + value + "\r\n"
-      File.open(@ini_data.filename, "w") {|f| f.puts @ini_data.lines }
-    else
-      puts entry_not_found(key)
-      puts "Has the entry been commented out already?"
+  def write_all_entries
+    File.open(@filename, "w") do |f|
+      @sections.each do |section|
+        f.puts "[#{section.name}]"
+        f.puts section.lines
+      end
     end
   end
 end
