@@ -97,10 +97,12 @@ class FileIni
 
   def find_key_index(keys, key, commented)
     this_key = commented ? ";" + key : key
-    keys.index(this_key)
-  rescue
-    this_key = commented ? key : ";" + key
-    keys.index(this_key)
+    n = keys.index(this_key)
+    unless n
+      this_key = commented ? key : ";" + key
+      n = keys.index(this_key) || keys.size
+    end
+    n
   end
 
   def write_all_entries
