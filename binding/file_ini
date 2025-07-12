@@ -1,4 +1,20 @@
 class FileIni
+  class NoError
+    def initialize
+      @message = "Everything is working fine."
+      @backtrace = []
+    end
+    attr_accessor :message
+    attr_reader :backtrace
+  end
+
+  class NoFileError < NoError
+    def set_message(filename)
+      @message = filename + " file could not be found!\n" +
+                 "A new INI file will be created!"
+    end
+  end
+
   class Section
     def initialize(name)
       @name = name
@@ -10,15 +26,25 @@ class FileIni
   end
 
   @@last = nil
+  @@last_error = NoError.new
   attr_reader :filename, :section_names
   def initialize(filename)
     @filename = filename
     @section_names = []
     @sections = []
-    begin
+    @@last = self
+    if File.exist?(filename)
       lines = File.readlines(filename)
-    rescue => e
-      puts e.class, e.message, e.backtrace
+    else
+      @@last_error = NoFileError.new
+      @@last_error.set_message(filename)
+      version = Game::RGSS_VERSION
+      if version == 3
+        msgbox error
+      else
+        print error
+      end
+      File.open(filename, "w") {}
       return
     end
     section = nil
@@ -35,11 +61,10 @@ class FileIni
       section.values << (value ? value.chomp : "")
       section.lines << line
     end
-    @@last = self
   end
 
   def self.open(filename)
-    new(filename)
+    FileIni.new(filename)
   end
 
   def self.last
@@ -51,8 +76,14 @@ class FileIni
     @@last.filename
   end
 
-  def entry_not_found(key)
-    "Could not find INI entry #{key} in #{@filename}!"
+  def self.get_last_error
+    print @@last_error.class, "\n",
+          @@last_error.message + "\n",
+          @@last_error.backtrace
+  end
+
+  def self.flush_error
+    @@last_error = NoError.new
   end
 
   def read(section_name, key, default)
@@ -73,16 +104,23 @@ class FileIni
     section.values[n] = value.to_s
     section.lines[n] = key + "=#{value}\r\n"
     write_all_entries
+    return value.size
+  rescue => @@last_error
+    return 0
   end
 
-  def comment_out(section_name, key)
+  def comment_out(section_name, key, default)
     section = find_section(section_name)
     keys = section.keys
     n = find_key_index(section.keys, key, true)
     section.keys[n] = ";" + key
-    section.values[n] = value.to_s
+    value = section.values[n] || default
+    section.values[n] = value
     section.lines[n] = ";#{key}=#{value}\r\n"
     write_all_entries
+    return value.size
+  rescue => @@last_error
+    return 0
   end
   private
   def find_section(section_name)
