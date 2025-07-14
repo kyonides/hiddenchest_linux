@@ -69,7 +69,7 @@ static VALUE game_set_icon(VALUE self, VALUE icon_name)
 static VALUE game_set_internal_values(VALUE self)
 {
   VALUE sys, sfonts, rversion, width, height, ttl, ver;
-  VALUE scr, enc, path, rtp_ary, icon, sfont, subimg;
+  VALUE scr, path, enc_ary, rtp_ary, icon, sfont, subimg;
   sys = rb_define_module("System");
   sfonts = rb_const_get(sys, rb_intern("SOUNDFONT_DIR"));
   rversion = rb_const_get(self, rb_intern("RGSS_VERSION"));
@@ -77,22 +77,30 @@ static VALUE game_set_internal_values(VALUE self)
   height = rb_const_get(self, rb_intern("HEIGHT"));
   ver = rb_const_get(self, rb_intern("VERSION"));
   scr = rb_const_get(self, rb_intern("SCRIPTS"));
-  enc = rb_const_get(self, rb_intern("ENCRYPTED_NAME"));
+  enc_ary = rb_const_get(self, rb_intern("ENCRYPTED_NAMES"));
   rtp_ary = rb_const_get(self, rb_intern("RTP"));
   subimg = rb_const_get(self, rb_intern("SUBIMAGEFIX"));
   sfont = rb_iv_get(self, "@soundfont");
-  int rgss, w, h, rtp_len;
+  int rgss, w, h, rtp_len, enc_len;
   rgss = RB_FIX2INT(rversion);
   w = RB_FIX2INT(width);
   h = RB_FIX2INT(height);
   rtp_len = RARRAY_LEN(rtp_ary);
+  enc_len = RARRAY_LEN(enc_ary);
   const char *sf_dir = RSTRING_PTR(sfonts);
   const char *version = RSTRING_PTR(ver);
   const char *scripts = RSTRING_PTR(scr);
-  const char *enc_name = RSTRING_PTR(enc);
   const char *sf = RSTRING_PTR(sfont);
   std::vector<std::string> c_rtp;
+  std::vector<std::string> enc_names;
   std::string str;
+  print_out(1, "Encrypted Game Files:");
+  for (int n = 0; n < enc_len; n++) {
+    path = rb_ary_entry(enc_ary, n);
+    rb_print(1, path);
+    str = RSTRING_PTR(path);
+    enc_names.push_back(str);
+  }
   print_out(1, "RTP List:");
   for (int n = 0; n < rtp_len; n++) {
     path = rb_ary_entry(rtp_ary, n);
@@ -102,7 +110,7 @@ static VALUE game_set_internal_values(VALUE self)
   }
   shState->init_size(w, h);
   shState->reset_config(rgss, version, scripts, c_rtp);
-  shState->check_encrypted_game_file(enc_name);
+  shState->check_encrypted_game_files(enc_names);
   shState->check_soundfont_dir(sf_dir);
   shState->config().subImageFix = subimg == Qtrue;
   if (RSTRING_LEN(sfont) > 4)

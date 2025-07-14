@@ -138,18 +138,20 @@ struct SharedStatePrivate
   }
 };
 
-void SharedState::check_encrypted_game_file(const char *game_fn)
+void SharedState::check_encrypted_game_files(std::vector<std::string> &game_fn)
 {
-  std::string archPath = game_fn;
-  Debug() << "Searching for encrypted game file...";
-  // Check if a game archive exists
-  FILE *tmp = fopen(archPath.c_str(), "rb");
-  if (tmp) {
-    Debug() << "Found game file:" << archPath;
-    p->fileSystem.addPath(archPath.c_str());
-    fclose(tmp);
-  } else {
-    Debug() << "Could not find any encrypted game file:" << game_fn;
+  Debug() << "Searching for encrypted game files...";
+  std::string arch_path;
+  for (size_t i = 0; i < game_fn.size(); i++) {
+    arch_path = game_fn[i];
+    FILE *tmp = fopen(arch_path.c_str(), "rb");
+    if (tmp) {
+      Debug() << "Found game file:" << arch_path;
+      p->fileSystem.addPath(arch_path.c_str());
+      fclose(tmp);
+    } else {
+      Debug() << "Could not find any encrypted game file:" << arch_path;
+    }
   }
   for (size_t i = 0; i < p->config.rtps.size(); ++i)
     p->fileSystem.addPath(p->config.rtps[i].c_str());

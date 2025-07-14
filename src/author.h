@@ -1,6 +1,6 @@
 #define HIDDENAUTHOR "Kyonides Arkanthes"
-#define HIDDENVERSION "1.1.90"
-#define HIDDENDATE "2025-07-09"
+#define HIDDENVERSION "1.1.91"
+#define HIDDENDATE "2025-07-14"
 #define CODENAME "TriggerHappy"
 #define SYSTEM_STRING "linux"
 #define SYSTEM_REAL_STRING "Linux"

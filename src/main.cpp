@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
   winFlags |= SDL_WINDOW_BORDERLESS;
   win = SDL_CreateWindow("",
                          SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_CENTERED,
-                         480, 320, winFlags);
+                         START_WIDTH, START_HEIGHT, winFlags);
   if (!win) {
     showInitError(std::string("Error creating window: ") + SDL_GetError());
     return 0;

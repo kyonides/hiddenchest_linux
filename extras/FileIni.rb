@@ -137,10 +137,10 @@ module Game
       icon_name = ""
     end
     const_set("ICON", icon_name)
-    project_ext = ["rhproj", "rxproj", "rvproj", "rvproj2", "rxvproj"]
-    encrypt_ext = ["rhc", "rgssad", "rgss2a", "rgss3a", "rgss4a"]
-    last_proj = DATA["ProjectFileExt"] ||= project_ext[n]
-    last_encr = DATA["CompressedFileExt"] ||= encrypt_ext[n]
+    project_ext = ["rhproj", "rxproj", "rvproj", "rvproj2"]
+    encrypt_ext = ["rhc", "rgssad", "rgss2a", "rgss3a"]
+    last_proj = DATA["ProjectFileExt"] ||= "rxvproj"
+    last_encr = DATA["CompressedFileExt"] ||= "rgss4a"
     project_ext << last_proj
     encrypt_ext << last_encr
     makers = ["HiddenChest", "XP", "VX", "VX ACE", "XP ACE"]
@@ -150,14 +150,13 @@ module Game
       n = self.process_exe_name(project_ext)
     end
     Font.default_shadow = n == 2
-    Font.default_outline = n >= 3
+    Font.default_outline = n == 3
     debug = (!encrypted && DATA["Debug"][/true/i] != nil)
-    enc_ext = encrypt_ext[n]
-    filenames = Dir[EXE_BASE_NAME + "*." + enc_ext]
+    enc_name = EXE_BASE_NAME + "." + encrypt_ext[n]
     const_set("DEBUG", debug)
+    const_set("ENCRYPTED_NAME", enc_name)
     const_set("MAKER", makers[n])
     const_set("RGSS_VERSION", n)
-    const_set("ENCRYPTED_NAMES", filenames)
     w = DATA["Width"].to_i
     h = DATA["Height"].to_i
     w = (w == 0 ? START_WIDTH : w)
