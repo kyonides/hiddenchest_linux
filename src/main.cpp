@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
     }
   }
   printHCVersion();
-  int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
+  int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG | IMG_INIT_TIF | IMG_INIT_WEBP;
   if (IMG_Init(imgFlags) != imgFlags) {
     showInitError(std::string("Error initializing SDL_image: ") + SDL_GetError());
     SDL_Quit();

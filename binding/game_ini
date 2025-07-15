@@ -69,6 +69,10 @@ module Game
     return version
   end
 
+  def self.find_encrypted_ext(ext)
+    File.exist?(EXE_BASE_NAME + "." + ext)? 4 : 0
+  end
+
   def self.set_exe_ini_names
     exe_name = RAW_EXE_NAME.gsub(/\.\//, "")
     const_set("EXE_NAME", exe_name)
@@ -116,8 +120,8 @@ module Game
     System.const_set("SOUNDFONT", default)
     @soundfonts = []
     @soundfont = default
-    self.add_soundfonts(sf_dir)
-    self.add_soundfonts(Dir.pwd + "/Audio/SF2")
+    add_soundfonts(sf_dir)
+    add_soundfonts(Dir.pwd + "/Audio/SF2")
     if @soundfont.empty?
       if @soundfonts.size > 0
         @soundfont = @soundfonts[0]
@@ -139,16 +143,20 @@ module Game
     const_set("ICON", icon_name)
     project_ext = ["rhproj", "rxproj", "rvproj", "rvproj2", "rxvproj"]
     encrypt_ext = ["rhc", "rgssad", "rgss2a", "rgss3a", "rgss4a"]
-    last_proj = DATA["ProjectFileExt"] ||= project_ext[n]
-    last_encr = DATA["CompressedFileExt"] ||= encrypt_ext[n]
-    project_ext << last_proj
-    encrypt_ext << last_encr
     makers = ["HiddenChest", "XP", "VX", "VX ACE", "XP ACE"]
-    n = self.process_exe_name(encrypt_ext)
+    n = process_exe_name(encrypt_ext)
     encrypted = n > 0
     unless encrypted
-      n = self.process_exe_name(project_ext)
+      n = find_encrypted_ext(DATA["CompressedFileExt"])
+      if n == 0
+        n = process_exe_name(project_ext)
+        if n == 0 and !DATA["ProjectFileExt"]&.empty?
+          n = 4
+        end
+      end
     end
+    last_proj = DATA["ProjectFileExt"] ||= project_ext[n]
+    last_encr = DATA["CompressedFileExt"] ||= encrypt_ext[n]
     Font.default_shadow = n == 2
     Font.default_outline = n >= 3
     debug = (!encrypted && DATA["Debug"][/true/i] != nil)
