@@ -1,263 +1,163 @@
-module System
-  LOGO = "app_logo"
-  DESCRIPTION = "An RGSS-based engine"
-  def self.user_language
-    @user_language
+# * FileIni Class - HC Version * #
+#   Scripter : Kyonides
+#   2025-07-14
+
+# This scripting tool lets you open, cache and write contents to INI files.
+
+class FileIni
+  class NoError
+    def initialize
+      @message = "Everything is working fine."
+      @backtrace = []
+    end
+    attr_accessor :message
+    attr_reader :backtrace
   end
 
-  def self.platform
-    NAME
-  end
-
-  def self.linux?
-    FAMILY_NAME[/linux/i] != nil
-  end
-
-  def self.windows?
-    FAMILY_NAME[/windows/i] != nil
-  end
-end
-
-module Game
-  SCENE_SCRIPT = "Data/Splash"
-  SCENE_SCRIPT_EXT = ".rhc"
-  DATA = {}
-  DATA.default = ""
-  RTP = []
-  SOUNDFONT_REGEX = "/*.sf{2,3}"
-  extend self
-  attr_reader(:shot_formats, :shot_format, :shot_dir)
-  attr_reader(:shot_filename, :show_splash)
-  attr_reader(:soundfont, :soundfonts)
-  attr_accessor(:save_dir, :save_filename, :setup_screen)
-  def self.clear
-    @shot_formats = ["jpg", "png"]
-    @shot_format = "jpg"
-    @shot_dir = "Screenshots"
-    @shot_filename = "screenshot"
-    @save_dir = "Saves"
-    @save_filename = "Save"
-    @soundfont = ""
-    @show_splash = false
-  end
-
-  def self.auto_create_dir
-    unless Dir.exist?(@shot_dir)
-      Dir.mkdir(@shot_dir)
+  class NoFileError < NoError
+    def set_message(filename)
+      @message = filename + " file could not be found!\n" +
+                 "A new INI file will be created!"
     end
   end
 
-  def self.init_size
-    [WIDTH, HEIGHT]
+  class Section
+    def initialize(name)
+      @name = name
+      @keys = []
+      @values = []
+      @lines = []
+    end
+    attr_reader :name, :keys, :values, :lines
   end
 
-  def self.normal_size?
-    (WIDTH >= 320 && HEIGHT >= 240)
-  end
-
-  def self.change_size?
-    (WIDTH != START_WIDTH || HEIGHT != START_HEIGHT)
-  end
-
-  def self.process_exe_name(list)
-    version = 0
-    5.times do |n|
-      if File.exist?(EXE_BASE_NAME + "." + list[n])
-        version = n
+  @@last = nil
+  @@last_error = NoError.new
+  attr_reader :filename, :section_names
+  def initialize(filename)
+    @filename = filename
+    @section_names = []
+    @sections = []
+    @@last = self
+    if File.exist?(filename)
+      lines = File.readlines(filename)
+    else
+      @@last_error = NoFileError.new
+      @@last_error.set_message(filename)
+      version = Game::RGSS_VERSION
+      if version == 3
+        error_msg = @@last_error.class.to_s + "\n"
+        error_msg += @@last_error.message + "\n"
+        error_msg += @@last_error.backtrace.join("\n")
+        msgbox error_msg
+      else
+        FileIni.get_last_error
       end
-    end
-    return version
-  end
-
-  def self.set_exe_ini_names
-    exe_name = RAW_EXE_NAME.gsub(/\.\//, "")
-    const_set("EXE_NAME", exe_name)
-    const_set("EXE_BASE_NAME", exe_name.sub(/\.\w*/i, ""))
-    const_set("INI_FILENAME", EXE_BASE_NAME + ".ini")
-  end
-    
-  def self.process_main_ini
-    begin
-      lines = File.readlines(INI_FILENAME)
-    rescue => e
-      puts e.class, e.message, e.backtrace
+      File.open(filename, "w") {}
       return
     end
+    section = nil
     lines.size.times do |n|
-      key, value = lines.shift.split(/[\s]{0,}=[\s]{0,}/i)
-      if !key
+      line = lines[n]
+      key, value = line.split(/[\s]{0,}=[\s]{0,}/i)
+      if !value and !line[/=/]
+        name = key.gsub(/\[|\]/, "").chomp
+        @section_names << name
+        @sections << section = Section.new(name)
         next
       end
-      value = !value ? "" : value.chomp
-      if key[/RTP/i] != nil
-        if value.size > 1
-          RTP << value
-        end
-      else
-        DATA[key] = value
+      section.keys << key
+      section.values << (value ? value.chomp : "")
+      section.lines << line
+    end
+  end
+
+  def self.open(filename)
+    FileIni.new(filename)
+  end
+
+  def self.last
+    unless @@last
+      raise "Failed to load INI data!\n" +
+            "Did you forget to open that file first?"
+      return
+    end
+    @@last.filename
+  end
+
+  def self.get_last_error
+    print @@last_error.class, "\n",
+          @@last_error.message + "\n",
+          @@last_error.backtrace
+  end
+
+  def self.flush_error
+    @@last_error = NoError.new
+  end
+
+  def read(section_name, key, default)
+    n = @section_names.index(section_name)
+    section = @sections[n]
+    n = section.keys.index(key)
+    value = section.values[n]
+    value&.empty? ? default : value
+  rescue
+    default
+  end
+
+  def write(section_name, key, value)
+    section = find_section(section_name)
+    keys = section.keys
+    n = find_key_index(section.keys, key, false)
+    section.keys[n] = key
+    section.values[n] = value.to_s
+    section.lines[n] = key + "=#{value}\r\n"
+    write_all_entries
+    return value.size
+  rescue => @@last_error
+    return 0
+  end
+
+  def comment_out(section_name, key, default)
+    section = find_section(section_name)
+    keys = section.keys
+    n = find_key_index(section.keys, key, true)
+    section.keys[n] = ";" + key
+    value = section.values[n] || default
+    section.values[n] = value
+    section.lines[n] = ";#{key}=#{value}\r\n"
+    write_all_entries
+    return value.size
+  rescue => @@last_error
+    return 0
+  end
+  private
+  def find_section(section_name)
+    n = @section_names.index(section_name)
+    section = @sections[n]
+    unless section
+      section = Section.new(section_name)
+      @sections << section
+    end
+    section
+  end
+
+  def find_key_index(keys, key, commented)
+    this_key = commented ? ";" + key : key
+    n = keys.index(this_key)
+    unless n
+      this_key = commented ? key : ";" + key
+      n = keys.index(this_key) || keys.size
+    end
+    n
+  end
+
+  def write_all_entries
+    File.open(@filename, "w") do |f|
+      @sections.each do |section|
+        f.puts "[#{section.name}]"
+        f.puts section.lines
       end
     end
   end
-
-  def self.add_soundfonts(dir)
-    @soundfonts += Dir[dir + SOUNDFONT_REGEX].sort
-  end
-
-  def self.set_basic_values
-    if System.windows?
-      default = DATA["SoundFontWin"].to_s
-      sf_dir = DATA["SoundFontPathWin"].to_s
-      sf_dir = sf_dir.gsub(/[\\]/, "/")
-    elsif System.linux?
-      default = DATA["SoundFontLnx"].to_s
-      sf_dir = DATA["SoundFontPathLnx"].to_s
-    end
-    System.const_set("SOUNDFONT_DIR", sf_dir)
-    System.const_set("SOUNDFONT", default)
-    @soundfonts = []
-    @soundfont = default
-    self.add_soundfonts(sf_dir)
-    self.add_soundfonts(Dir.pwd + "/Audio/SF2")
-    if @soundfont.empty?
-      if @soundfonts.size > 0
-        @soundfont = @soundfonts[0]
-      end
-    else
-      @soundfonts.delete(@soundfont)
-      @soundfonts.unshift(@soundfont)
-    end
-    DATA["Scripts"].sub!(/[\\]/, "/")
-    const_set("SCRIPTS", DATA["Scripts"].to_s)
-    const_set("TITLE", DATA["Title"].to_s)
-    const_set("VERSION", DATA["Version"].to_s)
-    const_set("AUTHOR", DATA["Author"].to_s)
-    icon_name = DATA["Icon"].to_s
-    icon_name = Dir[icon_name + "*"][0]
-    unless FileInt.exist?(icon_name)
-      icon_name = ""
-    end
-    const_set("ICON", icon_name)
-    project_ext = ["rhproj", "rxproj", "rvproj", "rvproj2"]
-    encrypt_ext = ["rhc", "rgssad", "rgss2a", "rgss3a"]
-    last_proj = DATA["ProjectFileExt"] ||= "rxvproj"
-    last_encr = DATA["CompressedFileExt"] ||= "rgss4a"
-    project_ext << last_proj
-    encrypt_ext << last_encr
-    makers = ["HiddenChest", "XP", "VX", "VX ACE", "XP ACE"]
-    n = self.process_exe_name(encrypt_ext)
-    encrypted = n > 0
-    unless encrypted
-      n = self.process_exe_name(project_ext)
-    end
-    Font.default_shadow = n == 2
-    Font.default_outline = n == 3
-    debug = (!encrypted && DATA["Debug"][/true/i] != nil)
-    enc_name = EXE_BASE_NAME + "." + encrypt_ext[n]
-    const_set("DEBUG", debug)
-    const_set("ENCRYPTED_NAME", enc_name)
-    const_set("MAKER", makers[n])
-    const_set("RGSS_VERSION", n)
-    w = DATA["Width"].to_i
-    h = DATA["Height"].to_i
-    w = (w == 0 ? START_WIDTH : w)
-    h = (h == 0 ? START_HEIGHT : h)
-    const_set("WIDTH", w)
-    const_set("HEIGHT", h)
-    state = DATA["Fullscreen"][/true/i] != nil
-    const_set("FULLSCREEN", state)
-    state = DATA["SubImageFix"][/true/i] != nil
-    const_set("SUBIMAGEFIX", state)
-    puts "Ruby Version:       #{RUBY_VERSION}"
-    puts "RGSS Version:       #{n} (#{MAKER})"
-    puts "Game Screen Size:   #{WIDTH}x#{HEIGHT}"
-    puts "Enable Debug:       #{DEBUG}"
-    puts "Trigger Fullscreen: #{FULLSCREEN}"
-    puts "SubImage Fix:       #{SUBIMAGEFIX}"
-    Font.solid_fonts = DATA["SolidFonts"].to_s[/true/i] != nil
-  end
-
-  def self.soundfont_index
-    @soundfonts.index(@soundfont)
-  end
-
-  def self.custom_scene_file
-    SCENE_SCRIPT + SCENE_SCRIPT_EXT
-  end
-
-  def self.setup_custom_scene
-    @show_splash = DATA.delete("ShowSplash").to_s[/true/i] != nil
-    if FileInt.exist?(SCENE_SCRIPT + ".rb")
-      lines = File.binread(SCENE_SCRIPT + ".rb")
-      lines = Zlib::Deflate.deflate(lines)
-      save_data(lines, custom_scene_file)
-      return true
-    end
-  end
-
-  def self.setup
-    auto_create_dir
-    set_exe_ini_names
-    process_main_ini
-    set_basic_values
-    set_internal_values
-    if System.linux?
-      Graphics.wait(60)
-    end
-    $scene = nil
-  end
-
-class SplashScene
-  def main
-    Graphics.freeze
-    start
-    Graphics.transition
-    Game.setup
-    Graphics.freeze
-    terminate
-  end
-
-  def start
-  end
-
-  def terminate
-  end
-end
-
-end
-
-begin
-  $LOAD_PATH << Dir.pwd
-  Game.clear
-  Game.setup_custom_scene
-  if FileInt.exist?(Game.custom_scene_file)
-    lines = load_data(Game.custom_scene_file)
-    lines = Zlib::Inflate.inflate(lines)
-    eval lines
-  end
-  Graphics.hide_window
-  if Game.show_splash
-    Graphics.hide_window
-    $scene = Game::SplashScene.new
-      while $scene
-      $scene.main
-    end
-    Graphics.hide_window
-  else
-    Game.setup
-  end
-  puts "Completed setup successfully."
-  Game.window_show_borders = true
-  Graphics.resize(Game::WIDTH, Game::HEIGHT)
-  Game.icon = Game::ICON
-  Game.title = Game::TITLE
-  if System.windows?
-    Graphics.wait(4)
-    Graphics.transition(1)
-    Graphics.freeze
-  end
-  Graphics.show_window
-rescue => e
-  puts e.class, e.message, e.backtrace
-  Game.setup
-  Graphics.show_window
 end
