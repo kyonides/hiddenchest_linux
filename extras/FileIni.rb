@@ -18,10 +18,11 @@ class FileIni
     def set(filename)
       @message = filename + " file could not be found!\n" +
                  "A new INI file will be created!"
-      @backtrace.clear
-      @backtrace << "Backtrace:"
-      @backtrace << "FileIni:41:in 'initialize'"
-      @backtrace << "FileIni:46:in 'exist?'"
+      if @backtrace.empty?
+        @backtrace << "Backtrace:"
+        @backtrace << "FileIni:in 'initialize'"
+        @backtrace << "FileIni:in 'exist?'"
+      end
     end
   end
 
