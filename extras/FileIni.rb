@@ -1,6 +1,6 @@
 # * FileIni Class - HC Version * #
 #   Scripter : Kyonides
-#   2025-07-14
+#   2025-07-15
 
 # This scripting tool lets you open, cache and write contents to INI files.
 
@@ -15,9 +15,13 @@ class FileIni
   end
 
   class NoFileError < NoError
-    def set_message(filename)
+    def set(filename)
       @message = filename + " file could not be found!\n" +
                  "A new INI file will be created!"
+      @backtrace.clear
+      @backtrace << "Backtrace:"
+      @backtrace << "FileIni:41:in 'initialize'"
+      @backtrace << "FileIni:46:in 'exist?'"
     end
   end
 
@@ -43,13 +47,10 @@ class FileIni
       lines = File.readlines(filename)
     else
       @@last_error = NoFileError.new
-      @@last_error.set_message(filename)
+      @@last_error.set(filename)
       version = Game::RGSS_VERSION
       if version == 3
-        error_msg = @@last_error.class.to_s + "\n"
-        error_msg += @@last_error.message + "\n"
-        error_msg += @@last_error.backtrace.join("\n")
-        msgbox error_msg
+        msgbox set_vx_ace_error_str
       else
         FileIni.get_last_error
       end
@@ -86,9 +87,9 @@ class FileIni
   end
 
   def self.get_last_error
-    print @@last_error.class, "\n",
-          @@last_error.message + "\n",
-          @@last_error.backtrace
+    msg = "#{@@last_error.class}\n#{@@last_error.message}\n"
+    msg += @@last_error.backtrace.join("\n")
+    print msg
   end
 
   def self.flush_error
@@ -123,7 +124,7 @@ class FileIni
     keys = section.keys
     n = find_key_index(section.keys, key, true)
     section.keys[n] = ";" + key
-    value = section.values[n] || default
+    value = section.values[n] || default.to_s
     section.values[n] = value
     section.lines[n] = ";#{key}=#{value}\r\n"
     write_all_entries
@@ -132,6 +133,13 @@ class FileIni
     return 0
   end
   private
+  def set_vx_ace_error_str
+    msg = @@last_error.class.to_s + "\n"
+    msg += @@last_error.message + "\n"
+    @@last_error.backtrace.each {|ln| msg += ln.gsub(/\[|\]/) + "\n" }
+    msg
+  end
+
   def find_section(section_name)
     n = @section_names.index(section_name)
     section = @sections[n]
