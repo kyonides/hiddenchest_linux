@@ -52,7 +52,7 @@ class FileIni
       if version == 3
         msgbox set_error_str
       else
-        FileIni.get_last_error
+        print set_error_str
       end
       File.open(filename, "w") {}
       return
@@ -87,7 +87,7 @@ class FileIni
   end
 
   def self.get_last_error
-    print set_error_str
+    set_error_str
   end
 
   def self.flush_error
