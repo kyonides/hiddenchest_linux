@@ -50,7 +50,7 @@ class FileIni
       @@last_error.set(filename)
       version = Game::RGSS_VERSION
       if version == 3
-        msgbox set_vx_ace_error_str
+        msgbox set_error_str
       else
         FileIni.get_last_error
       end
@@ -87,9 +87,7 @@ class FileIni
   end
 
   def self.get_last_error
-    msg = "#{@@last_error.class}\n#{@@last_error.message}\n"
-    msg += @@last_error.backtrace.join("\n")
-    print msg
+    print set_error_str
   end
 
   def self.flush_error
@@ -133,10 +131,9 @@ class FileIni
     return 0
   end
   private
-  def set_vx_ace_error_str
-    msg = @@last_error.class.to_s + "\n"
-    msg += @@last_error.message + "\n"
-    @@last_error.backtrace.each {|ln| msg += ln.gsub(/\[|\]/) + "\n" }
+  def set_error_str
+    msg = "#{@@last_error.class}\n#{@@last_error.message}\n"
+    msg += @@last_error.backtrace.join("\n")
     msg
   end
 
