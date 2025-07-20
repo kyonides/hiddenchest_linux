@@ -358,6 +358,7 @@ if (BINDING STREQUAL "MRI")
     binding/backdrop.cpp
     binding/scripts.cpp
     binding/system.cpp
+    binding/hiddenchest.cpp
     binding/zlib.c
   )
 else()

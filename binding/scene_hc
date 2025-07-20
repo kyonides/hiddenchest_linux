@@ -1,6 +1,4 @@
 module HiddenChest
-  extend self
-  attr_accessor :show_backdrop, :error_msg, :error_type
 
 class Scene
   BITMAPS = %w{app_logo_s01 app_logo_s02 app_logo_s03 app_logo}

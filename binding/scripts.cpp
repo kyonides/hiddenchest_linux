@@ -15,7 +15,7 @@
 
 #define CRMF(func) ((int (*)(ANYARGS))(func))
 
-static VALUE hidden, scripts;
+static VALUE scripts;
 
 static int get_keys(VALUE key, VALUE value, VALUE ary)
 {
@@ -28,26 +28,6 @@ static VALUE rb_hash_keys(VALUE hash)
   VALUE keys = rb_ary_new();
   rb_hash_foreach(hash, CRMF(get_keys), keys);
   return keys;
-}
-
-static VALUE hidden_show_backdrop_get(VALUE self)
-{
-  return rb_iv_get(self, "@show_backdrop");
-}
-
-static VALUE hidden_show_backdrop_set(VALUE self, VALUE boolean)
-{
-  return rb_iv_set(self, "@show_backdrop", boolean);
-}
-
-static VALUE hidden_error_type_set(VALUE self, VALUE boolean)
-{
-  return rb_iv_set(self, "@error_type", boolean);
-}
-
-static VALUE hidden_error_msg_set(VALUE self, VALUE boolean)
-{
-  return rb_iv_set(self, "@error_msg", boolean);
 }
 
 static VALUE scripts_sections(VALUE self)
@@ -123,7 +103,7 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
   rb_iv_set(mod, "@show_backdrop", Qtrue);
   rb_iv_set(mod, "@error_type", klass);
   rb_iv_set(mod, "@error_msg", msg);
-  VALUE names, fn, file, writable;
+  VALUE names, fn, file, writable, hidden;
   names = rb_gv_get("$RGSS_SCRIPTS");
   try {
     file = rb_file_open("error.log", "w");
@@ -132,8 +112,9 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
     Debug() << "Is the filesystem in read-only mode?";
     return;
   }
-  if ( RARRAY_LEN(bt) > 0 ) rb_ary_pop(bt);
+  //if ( RARRAY_LEN(bt) > 0 ) rb_ary_pop(bt);
   int max = RARRAY_LEN(bt);
+  hidden = rb_define_module("HiddenChest");
   fn = rb_iv_get(hidden, "@filename");
   if (fn != Qnil)
     Debug() << "Unable to open file " << RSTRING_PTR(fn) << ".";
@@ -218,17 +199,12 @@ static VALUE scripts_error_handling_rb(VALUE self)
 
 void init_scripts()
 {
-  hidden = rb_define_module("HiddenChest");
   scripts = rb_define_module("Scripts");
   rb_iv_set(scripts, "@sections", rb_ary_new());
   rb_iv_set(scripts, "@list", rb_ary_new());
   rb_iv_set(scripts, "@pack", rb_hash_new());
   rb_iv_set(scripts, "@main_name", rstr("Main"));
   rb_iv_set(scripts, "@main_index", RB_INT2FIX(0));
-  module_func(hidden, "show_backdrop", hidden_show_backdrop_get, 0);
-  module_func(hidden, "show_backdrop=", hidden_show_backdrop_set, 1);
-  module_func(hidden, "error_type=", hidden_error_type_set, 1);
-  module_func(hidden, "error_msg=", hidden_error_msg_set, 1);
   module_func(scripts, "sections", scripts_sections, 0);
   module_func(scripts, "list", scripts_list, 0);
   module_func(scripts, "names", scripts_names, 0);
@@ -242,5 +218,5 @@ void init_scripts()
   module_func(scripts, "main_name=", scripts_main_name_set, 1);
   module_func(scripts, "scene", scripts_scene_get, 0);
   module_func(scripts, "scene=", scripts_scene_set, 1);
-  module_func(scripts, "open_log", scripts_error_handling_rb, 0);
+  module_func(scripts, "error_handling", scripts_error_handling_rb, 0);
 }

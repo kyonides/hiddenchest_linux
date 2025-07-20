@@ -48,6 +48,7 @@ extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
 extern const char win32api_fake[];
+extern const char scene_hc[];
 extern const char module_hc[];
 extern const char game_ini[];
 extern const char scripts[];
@@ -62,6 +63,7 @@ void init_mouse();
 void init_game(ch raw_exe_name);
 void init_scripts();
 void init_system();
+void init_hiddenchest();
 void init_backdrop();
 int system_is_really_linux();
 static VALUE hidden, script_ary;
@@ -608,10 +610,10 @@ static void mriBindingExecute()
   inputBindingInit();
   init_mouse();
   init_backdrop();
-  init_scripts();
+  init_hiddenchest();
   init_system();
+  init_scripts();
   init_game(shState->rtData().argv0);
-  rb_eval_string(scripts);
   rb_eval_string(module_rpg_audio);
   int state = rb_check_rgss_version();
   if (state) {
@@ -620,6 +622,7 @@ static void mriBindingExecute()
     shState->rtData().rqTermAck.set();
     return;
   }
+  rb_eval_string(scripts);
   set_rgss_default_names();
   sprite_setup_bush_opacity();
   BacktraceData btData;
