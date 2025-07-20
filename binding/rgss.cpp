@@ -50,6 +50,7 @@ extern const char module_rpg3[];
 extern const char win32api_fake[];
 extern const char module_hc[];
 extern const char game_ini[];
+extern const char scripts[];
 static void mriBindingExecute();
 static void mriBindingTerminate();
 static void mriBindingReset();
@@ -63,7 +64,6 @@ void init_scripts();
 void init_system();
 void init_backdrop();
 int system_is_really_linux();
-const char *scripts;
 static VALUE hidden, script_ary;
 
 ScriptBinding scriptBindingImpl =
@@ -414,8 +414,8 @@ static void runRGSSscripts(BacktraceData &btData)
     showMsg(error);
     return;
   }
-  const char *scripts = RSTRING_PTR(rb_path);
-  if (!shState->fileSystem().exists(scripts)) {
+  const char *rb_scripts = RSTRING_PTR(rb_path);
+  if (!shState->fileSystem().exists(rb_scripts)) {
     VALUE rb_error = rstr("Unable to open '");
     rb_error = rb_str_plus(rb_error, rb_path);
     rb_error = rb_str_plus(rb_error, rstr("'."));
@@ -426,7 +426,7 @@ static void runRGSSscripts(BacktraceData &btData)
   }
   // We checked if Scripts.rxdata exists, but something might still go wrong
   try {
-    script_ary = kernelLoadDataInt(scripts, false);
+    script_ary = kernelLoadDataInt(rb_scripts, false);
   } catch (const Exception &e) {
     std::string error = "Failed to read script data: " + e.msg;
     hc_c_splash(error.c_str(), 2, "IOError");
@@ -611,6 +611,7 @@ static void mriBindingExecute()
   init_scripts();
   init_system();
   init_game(shState->rtData().argv0);
+  rb_eval_string(scripts);
   rb_eval_string(module_rpg_audio);
   int state = rb_check_rgss_version();
   if (state) {

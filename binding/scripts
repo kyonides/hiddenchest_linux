@@ -1,0 +1,57 @@
+module Scripts
+  def self.open_log(klass, message, backtrace)
+    fn = "error.log"
+    first = backtrace[0]
+    if first&[/eval\:/i]
+      backtrace.pop
+    end
+    total = backtrace.size
+    fn = HiddenChest.filename
+    unless fn
+      puts "Unable to open file #{fn}."
+    end
+    puts "Backtrace Lines: #{total}"
+    header = "Error Type: #{klass}"
+    puts header, message
+    file.puts header, message
+    unless backtrace
+      if @sections
+        name = HiddenChest.script_name || "None"
+        file.puts "Script " + name
+        puts name
+      end
+      file.close
+      return
+    end
+    if total < 2
+      file.puts "Backtrace was empty!"
+    elsif !@sections
+      puts HiddenChest.script_name
+      total.times {|n| file.puts "in " + backtrace[n] }
+    else
+      digit = /\d+/
+      total.times do |n|
+        line = backtrace[n]
+        pos = line.scan(digit)[0].to_i
+        script = @sections[pos]
+        file.puts sprintf("[%04d]%s:in %d+", pos, script, line)
+      end
+    end
+    file.close
+    puts backtrace
+  end
+
+  def self.setup_error_scene
+    HiddenChest.show_backdrop = $! != nil
+    HiddenChest.error_type = $!&.class || "No Class"
+    HiddenChest.error_msg = $!&.message || "No error found!"
+  end
+
+  def self.log
+    setup_error_scene
+    if HiddenChest.show_backdrop
+      open_log($!.class, $!&.message, $!&.backtrace)
+      error_handling
+    end
+  end
+end

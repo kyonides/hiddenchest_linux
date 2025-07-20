@@ -1,3 +1,4 @@
+#include "scripts.xxd"
 #include "module_hc.xxd"
 #include "scene_hc.xxd"
 #include "module_rpg_audio.xxd"

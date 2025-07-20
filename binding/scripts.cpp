@@ -30,6 +30,26 @@ static VALUE rb_hash_keys(VALUE hash)
   return keys;
 }
 
+static VALUE hidden_show_backdrop_get(VALUE self)
+{
+  return rb_iv_get(self, "@show_backdrop");
+}
+
+static VALUE hidden_show_backdrop_set(VALUE self, VALUE boolean)
+{
+  return rb_iv_set(self, "@show_backdrop", boolean);
+}
+
+static VALUE hidden_error_type_set(VALUE self, VALUE boolean)
+{
+  return rb_iv_set(self, "@error_type", boolean);
+}
+
+static VALUE hidden_error_msg_set(VALUE self, VALUE boolean)
+{
+  return rb_iv_set(self, "@error_msg", boolean);
+}
+
 static VALUE scripts_sections(VALUE self)
 {
   return rb_iv_get(self, "@sections");
@@ -100,14 +120,21 @@ static VALUE scripts_main_name_set(VALUE self, VALUE name)
 
 void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
 {
-  VALUE names = rb_gv_get("$RGSS_SCRIPTS");
   rb_iv_set(mod, "@show_backdrop", Qtrue);
   rb_iv_set(mod, "@error_type", klass);
   rb_iv_set(mod, "@error_msg", msg);
-  VALUE file = rb_file_open("error.log", "w");
+  VALUE names, fn, file, writable;
+  names = rb_gv_get("$RGSS_SCRIPTS");
+  try {
+    file = rb_file_open("error.log", "w");
+  } catch (...) {
+    Debug() << "Unable to open file error.log";
+    Debug() << "Is the filesystem in read-only mode?";
+    return;
+  }
   if ( RARRAY_LEN(bt) > 0 ) rb_ary_pop(bt);
   int max = RARRAY_LEN(bt);
-  VALUE fn = rb_iv_get(hidden, "@filename");
+  fn = rb_iv_get(hidden, "@filename");
   if (fn != Qnil)
     Debug() << "Unable to open file " << RSTRING_PTR(fn) << ".";
   Debug() << "Backtrace Lines:" << max;
@@ -181,15 +208,11 @@ void scripts_error_handling()
     shState->rtData().rqReset.clear();
 }
 
-static VALUE scripts_log(VALUE self)
+static VALUE scripts_error_handling_rb(VALUE self)
 {
-  VALUE exception, klass, message, backtrace;
-  exception = rb_gv_get("$!");
-  klass = rb_obj_as_string(rb_obj_class(exception));
-  message = rb_funcall(exception, rb_intern("message"), 0);
-  backtrace = rb_funcall(exception, rb_intern("backtrace"), 0);
-  scripts_open_log(hidden, klass, message, backtrace);
-  scripts_error_handling();
+  VALUE rb_error = rb_gv_get("$!");
+  if (rb_obj_class(rb_error) == getRbData()->exc[Reset])
+    shState->rtData().rqReset.clear();
   return Qnil;
 }
 
@@ -202,6 +225,10 @@ void init_scripts()
   rb_iv_set(scripts, "@pack", rb_hash_new());
   rb_iv_set(scripts, "@main_name", rstr("Main"));
   rb_iv_set(scripts, "@main_index", RB_INT2FIX(0));
+  module_func(hidden, "show_backdrop", hidden_show_backdrop_get, 0);
+  module_func(hidden, "show_backdrop=", hidden_show_backdrop_set, 1);
+  module_func(hidden, "error_type=", hidden_error_type_set, 1);
+  module_func(hidden, "error_msg=", hidden_error_msg_set, 1);
   module_func(scripts, "sections", scripts_sections, 0);
   module_func(scripts, "list", scripts_list, 0);
   module_func(scripts, "names", scripts_names, 0);
@@ -215,5 +242,5 @@ void init_scripts()
   module_func(scripts, "main_name=", scripts_main_name_set, 1);
   module_func(scripts, "scene", scripts_scene_get, 0);
   module_func(scripts, "scene=", scripts_scene_set, 1);
-  module_func(scripts, "log", scripts_log, 0);
+  module_func(scripts, "open_log", scripts_error_handling_rb, 0);
 }
