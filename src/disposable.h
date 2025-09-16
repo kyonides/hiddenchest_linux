@@ -77,8 +77,7 @@ template<class C>
 inline bool
 nullOrDisposed(const C *d)
 {
-  if (!d || d->isDisposed()) return true;
-  return false;
+  return (!d || d->isDisposed());
 }
 
 #endif // DISPOSABLE_H

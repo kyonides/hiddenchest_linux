@@ -72,6 +72,7 @@ public:
   int width() const;
   int height() const;
   void resizeScreen(int width=0, int height=0, bool center=true);
+  void window_size_factor(int res_factor, bool center=true);
   void center_window(int width=0, int height=0);
   void playMovie(const char *filename);
   void reset();

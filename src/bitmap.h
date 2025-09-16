@@ -98,6 +98,7 @@ public:
   void bindTex(ShaderBase &shader);
   // Adds 'rect' to tainted area
   void taintArea(const IntRect &rect);
+  static int maxSize();
   sigc::signal<void> modified;
 
 private:

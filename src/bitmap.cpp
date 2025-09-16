@@ -273,7 +273,8 @@ Bitmap::Bitmap(const char *filename, int none)
   IntBitmap ib;
   for (int n = 0; n < 4; n++) {
     ib = assets[n];
-    if (!strcmp(ib.name, filename)) break;
+    if (!strcmp(ib.name, filename))
+      break;
   }
   SDL_RWops *src = SDL_RWFromConstMem(ib.mem, ib.size);
   if (!src)
@@ -311,8 +312,11 @@ Bitmap::Bitmap(int none)
 
 Bitmap::Bitmap(int width, int height)
 {
-  if (width < 1 || height < 1)
+  if (width < 1 || height < 1) {
+    Debug() << "RGSSError:" << "Failed to create the bitmap!";
+    Debug() << "Dimensions:" << width << "x" << height;
     throw Exception(Exception::RGSSError, "failed to create bitmap");
+  }
   TEXFBO tex = shState->texPool().request(width, height);
   p = new BitmapPrivate(this);
   p->gl = tex;
@@ -1155,6 +1159,10 @@ void Bitmap::bindTex(ShaderBase &shader)
 void Bitmap::taintArea(const IntRect &rect)
 {
   p->addTaintedArea(rect);
+}
+
+int Bitmap::maxSize(){
+  return glState.caps.maxTexSize;
 }
 
 bool Bitmap::write(const char *fn, const char *ext) const

@@ -690,8 +690,9 @@ bool WindowVX::is_mouse_inside(int x, int y, int w, int h) const
 }
 
 void WindowVX::update()
-{
-  guardDisposed();
+{ //guardDisposed();
+  if (isDisposed())
+    return;
   p->stepAnimations();
   p->updatePauseQuad();
   p->updateCursorAlpha();

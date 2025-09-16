@@ -333,6 +333,11 @@ RB_METHOD(bitmapTextHeight)
   return RB_INT2FIX(value);
 }
 
+static VALUE bitmapGetMaxSize(VALUE self)
+{
+  return RB_INT2FIX(Bitmap::maxSize());
+}
+
 static VALUE bitmapGetFont(VALUE self)
 {
   checkDisposed<Bitmap>(self);
@@ -510,4 +515,6 @@ void bitmapBindingInit()
   rb_define_method(klass, "font", RMF(bitmapGetFont), 0);
   rb_define_method(klass, "font=", RMF(bitmapSetFont), 1);
   rb_define_method(klass, "write", RMF(bitmap_write), -1);
+  rb_define_method(klass, "to_file", RMF(bitmap_write), -1);
+  rb_define_singleton_method(klass, "max_size", RMF(bitmapGetMaxSize), 0);
 }

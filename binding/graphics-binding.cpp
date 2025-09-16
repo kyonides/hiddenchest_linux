@@ -186,6 +186,13 @@ static VALUE graphics_resize_screen(int n, VALUE *args, VALUE self)
   return Qnil;
 }
 
+static VALUE graphics_window_size_factor(VALUE self, VALUE factor, VALUE state)
+{
+  int n = RB_FIX2INT(factor);
+  shState->graphics().window_size_factor(n, state == Qtrue);
+  return Qnil;
+}
+
 static VALUE graphicsReset(VALUE self)
 {
   shState->graphics().reset();
@@ -352,6 +359,7 @@ void graphicsBindingInit()
   module_func(graph, "snapshot", graphics_save_screenshot, 0);
   module_func(graph, "resize_screen", graphics_resize_screen, -1);
   module_func(graph, "resize", graphics_resize_screen, -1);
+  module_func(graph, "window_size_factor", graphics_window_size_factor, 2);
   module_func(graph, "brightness", graphicsGetBrightness, 0);
   module_func(graph, "brightness=", graphicsSetBrightness, 1);
   module_func(graph, "play_movie", graphicsPlayMovie, 1);

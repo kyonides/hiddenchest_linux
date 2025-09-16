@@ -49,7 +49,7 @@
 #include "resolution.h"
 #define DEF_FRAMERATE 60
 #define RATE_MIN 10
-#define RATE_MAX 140
+#define RATE_MAX 160
 
 struct PingPong
 {
@@ -516,6 +516,7 @@ struct GraphicsPrivate
   int frameRate;
   int frameCount;
   int brightness;
+  int size_factor;
   FPSLimiter fpsLimiter;
   bool block_fullscreen;
   bool block_ftwelve;
@@ -538,6 +539,7 @@ struct GraphicsPrivate
     frameRate(DEF_FRAMERATE),
     frameCount(0),
     brightness(255),
+    size_factor(1),
     fpsLimiter(frameRate),
     frozen(false),
     last_update(0),
@@ -1109,6 +1111,19 @@ void Graphics::resizeScreen(int w, int h, bool center)
   TEXFBO::allocEmpty(p->frozenScene, w, h);
   FloatRect screenRect(0, 0, w, h);
   p->screenQuad.setTexPosRect(screenRect, screenRect);
+  shState->eThread().requestWindowResize(w, h);
+  if (center)
+    center_window(w, h);
+}
+
+void Graphics::window_size_factor(int size_factor, bool center)
+{
+  size_factor = clamp(size_factor, 1, 4);
+  if (p->size_factor == size_factor)
+    return;
+  p->size_factor = size_factor;
+  int w = p->scRes.x * size_factor;
+  int h = p->scRes.y * size_factor;
   shState->eThread().requestWindowResize(w, h);
   if (center)
     center_window(w, h);
