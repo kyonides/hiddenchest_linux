@@ -357,8 +357,9 @@ void graphicsBindingInit()
   module_func(graph, "save_screenshot", graphics_save_screenshot, 0);
   module_func(graph, "screenshot", graphics_save_screenshot, 0);
   module_func(graph, "snapshot", graphics_save_screenshot, 0);
-  module_func(graph, "resize_screen", graphics_resize_screen, -1);
   module_func(graph, "resize", graphics_resize_screen, -1);
+  module_func(graph, "resize_screen", graphics_resize_screen, -1);
+  module_func(graph, "resize_window", graphics_window_size_factor, 2);
   module_func(graph, "window_size_factor", graphics_window_size_factor, 2);
   module_func(graph, "brightness", graphicsGetBrightness, 0);
   module_func(graph, "brightness=", graphicsSetBrightness, 1);

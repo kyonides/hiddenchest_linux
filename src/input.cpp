@@ -89,7 +89,10 @@ struct KbBinding : public Binding
     return (source >= SDL_SCANCODE_A     && source <= SDL_SCANCODE_0)    ||
            (source >= SDL_SCANCODE_RIGHT && source <= SDL_SCANCODE_UP)   ||
            (source >= SDL_SCANCODE_F1    && source <= SDL_SCANCODE_F12)  ||
-           (source == Input::X);
+           (source == Input::X || source == Input::LeftAlt ||
+            source == Input::LeftCtrl || source == Input::LeftShift ||
+            source == Input::RightAlt || source == Input::RightCtrl ||
+            source == Input::RightShift);
   }
   SDL_Scancode source;
 };
@@ -609,17 +612,10 @@ struct InputPrivate
         clear_unused_clicks();
       }
     }
-    // Unbound keys don't create or break repeat
-    if (repeat_btn != Input::None)
-      return;
-    if (repeating != btn && !oldState.pressed) {
-      if (b.sourceRepeatable())
-        repeat_btn = btn;
-      else /* Unrepeatable keys still break current repeat */
-        repeating = Input::None;
-    }
+    if (repeating != btn && !oldState.pressed)
+      repeat_btn = btn;
   }
-  
+
   void set_click(Input::ButtonCode button)
   {
     click_timer = click_base_timer;
@@ -697,16 +693,22 @@ struct InputPrivate
   {
     getState(Input::Alt).pressed = getState(Input::LeftAlt).pressed ||
       getState(Input::RightAlt).pressed;
-    getState(Input::Ctrl).pressed = getState(Input::LeftCtrl).pressed ||
-      getState(Input::RightCtrl).pressed;
-    getState(Input::Shift).pressed = getState(Input::LeftShift).pressed ||
-      getState(Input::RightShift).pressed;
     getState(Input::Alt).triggered = getState(Input::LeftAlt).triggered ||
       getState(Input::RightAlt).triggered;
+    getState(Input::Alt).repeated = getState(Input::LeftAlt).repeated ||
+      getState(Input::RightAlt).repeated;
+    getState(Input::Ctrl).pressed = getState(Input::LeftCtrl).pressed ||
+      getState(Input::RightCtrl).pressed;
     getState(Input::Ctrl).triggered = getState(Input::LeftCtrl).triggered ||
       getState(Input::RightCtrl).triggered;
+    getState(Input::Ctrl).repeated = getState(Input::LeftCtrl).repeated ||
+      getState(Input::RightCtrl).repeated;
+    getState(Input::Shift).pressed = getState(Input::LeftShift).pressed ||
+      getState(Input::RightShift).pressed;
     getState(Input::Shift).triggered = getState(Input::LeftShift).triggered ||
       getState(Input::RightShift).triggered;
+    getState(Input::Shift).repeated = getState(Input::LeftShift).repeated ||
+      getState(Input::RightShift).repeated;
   }
 
   bool is_same_trigger(int button)
