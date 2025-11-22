@@ -125,8 +125,12 @@ void EventThread::process(RGSSThreadData &rtData)
   bool windowFocused = true;
   bool terminate = false;
   SDL_Joystick *js = 0;
-  if (SDL_NumJoysticks() > 0)
+  if (SDL_NumJoysticks() > 0) {
     js = SDL_JoystickOpen(0);
+    rtData.joystick_change = 2;
+  } else {
+    rtData.joystick_change = 0;
+  }
   char buffer[128];
   char pendingTitle[128];
   bool havePendingTitle = false;
@@ -292,9 +296,11 @@ void EventThread::process(RGSSThreadData &rtData)
       if (event.jdevice.which > 0)
         break;
       js = SDL_JoystickOpen(0);
+      rtData.joystick_change = 2;
       break;
     case SDL_JOYDEVICEREMOVED :
       resetInputStates();
+      rtData.joystick_change = 1;
       break;
     case SDL_MOUSEBUTTONDOWN :
       mouseState.buttons[event.button.button] = true;

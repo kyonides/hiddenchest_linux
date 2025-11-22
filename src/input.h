@@ -110,6 +110,9 @@ public:
   void mouse_set_ox(int n);
   void mouse_set_oy(int n);
   bool mouse_is_inside(int index, Rect *rect);
+  bool has_joystick();
+  int joystick_change();
+  void reset_joystick_change();
   bool is_any_char();
   char* string();
   void enableMode(bool state);

@@ -31,9 +31,23 @@
 
 #define ZERO RB_INT2FIX(0)
 
+static void joystick_state_change(VALUE input)
+{
+  int state = shState->input().joystick_change();
+  if (state == 0)
+    return;
+  VALUE ary = rb_iv_get(input, "joystick_updates");
+  if (state == 2)
+    rb_ary_push(ary, rstr("add"));
+  else
+    rb_ary_push(ary, rstr("remove"));
+  shState->input().reset_joystick_change();
+}
+
 static VALUE inputUpdate(VALUE self)
 {
   shState->input().update();
+  joystick_state_change(self);
   return Qnil;
 }
 
@@ -225,6 +239,22 @@ static VALUE input_double_right_click(VALUE self)
   return shState->input().is_double_right_click() ? Qtrue : Qfalse; 
 }
 
+static VALUE input_has_joystick(VALUE self)
+{
+  return shState->input().has_joystick() ? Qtrue : Qfalse;
+}
+
+static VALUE input_joystick_update(VALUE self)
+{
+  VALUE state = rb_iv_get(self, "joystick_updates");
+  return rb_ary_pop(state);
+}
+
+static VALUE input_joystick_updates(VALUE self)
+{
+  return rb_iv_get(self, "joystick_updates");
+}
+
 static VALUE input_is_any_char(VALUE self)
 {
   return shState->input().is_any_char() ? Qtrue : Qfalse;
@@ -410,6 +440,7 @@ void inputBindingInit()
 {
   VALUE input = rb_define_module("Input");
   rb_iv_set(input, "default_trigger_timer", RB_INT2FIX(TRIGGER_TIMER));
+  rb_iv_set(input, "joystick_updates", rb_ary_new());
   module_func(input, "trigger_timer", input_trigger_timer, 0);
   module_func(input, "base_trigger_timer", input_default_trigger_timer, 0);
   module_func(input, "base_trigger_timer=", input_default_trigger_timer_set, 1);
@@ -438,6 +469,12 @@ void inputBindingInit()
   module_func(input, "repeat?", inputRepeat, 1);
   module_func(input, "repeat_left_click?", input_repeat_left_click, 0);
   module_func(input, "repeat_right_click?", input_repeat_right_click, 0);
+  module_func(input, "gamepad?", input_has_joystick, 0);
+  module_func(input, "joystick?", input_has_joystick, 0);
+  module_func(input, "gamepad_update", input_joystick_update, 0);
+  module_func(input, "joystick_update", input_joystick_update, 0);
+  module_func(input, "gamepad_updates", input_joystick_updates, 0);
+  module_func(input, "joystick_updates", input_joystick_updates, 0);
   module_func(input, "dir4", inputDir4, 0);
   module_func(input, "dir8", inputDir8, 0);
   module_func(input, "dir4?", input_is_dir4, 0);

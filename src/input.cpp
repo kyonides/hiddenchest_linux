@@ -1029,6 +1029,21 @@ bool Input::mouse_is_inside(int index, Rect *rect)
   }
 }
 
+bool Input::has_joystick()
+{
+  return SDL_NumJoysticks() > 0;
+}
+
+int Input::joystick_change()
+{
+  return shState->rtData().joystick_change;
+}
+
+void Input::reset_joystick_change()
+{
+  shState->rtData().joystick_change = 0;
+}
+
 bool Input::is_any_char()
 {
   return shState->rtData().any_char_found;
