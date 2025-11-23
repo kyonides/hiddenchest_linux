@@ -37,10 +37,11 @@ static void joystick_state_change(VALUE input)
   if (state == 0)
     return;
   VALUE ary = rb_iv_get(input, "joystick_updates");
+  rb_ary_pop(ary);
   if (state == 2)
-    rb_ary_push(ary, rstr("add"));
+    rb_ary_push(ary, hc_sym("add"));
   else
-    rb_ary_push(ary, rstr("remove"));
+    rb_ary_push(ary, hc_sym("remove"));
   shState->input().reset_joystick_change();
 }
 
