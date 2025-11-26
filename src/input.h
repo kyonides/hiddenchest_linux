@@ -111,6 +111,12 @@ public:
   void mouse_set_oy(int n);
   bool mouse_is_inside(int index, Rect *rect);
   bool has_joystick();
+  const char* joystick_name();
+  int joystick_vendor();
+  int joystick_kind();
+  int joystick_power();
+  bool joystick_has_rumble();
+  int joystick_set_rumble(int lfr, int rfr, int ms);
   int joystick_change();
   void reset_joystick_change();
   bool is_any_char();

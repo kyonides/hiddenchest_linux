@@ -31,6 +31,37 @@
 
 #define ZERO RB_INT2FIX(0)
 
+static VALUE joystick;
+
+static VALUE input_gamepad_new(VALUE input)
+{
+  VALUE types, stype, gamepad, name;
+  types = rb_iv_get(input, "@gamepad_types");
+  stype = rb_ary_entry(types, 0);
+  gamepad = rb_class_new_instance(0, 0, joystick);
+  name = rb_const_get(joystick, rb_intern("DEFAULT_NAME"));
+  rb_iv_set(gamepad, "@name", name);
+  name = rb_const_get(joystick, rb_intern("DEFAULT_VENDOR"));
+  rb_iv_set(gamepad, "@vendor", name);
+  rb_iv_set(gamepad, "@type", stype);
+  rb_iv_set(gamepad, "@type_number", ZERO);
+  rb_iv_set(gamepad, "@power", ZERO);
+  rb_iv_set(gamepad, "@rumble", Qfalse);
+  rb_iv_set(gamepad, "@last_rumble", Qnil);
+  return rb_iv_set(input, "gamepad", gamepad);
+}
+
+static VALUE input_gamepad_set_rumble(VALUE self, VALUE lint, VALUE rint, VALUE ms)
+{
+  if (rb_iv_get(self, "@rumble") == Qfalse)
+    return rb_iv_set(self, "@last_rumble", Qfalse);
+  int lfreq = RB_FIX2INT(lint);
+  int rfreq = RB_FIX2INT(rint);
+  int milli = RB_FIX2INT(ms);
+  int result = shState->input().joystick_set_rumble(lfreq, rfreq, milli);
+  return rb_iv_set(self, "@last_rumble", !result ? Qtrue : Qfalse);
+}
+
 static void joystick_state_change(VALUE input)
 {
   int state = shState->input().joystick_change();
@@ -38,10 +69,30 @@ static void joystick_state_change(VALUE input)
     return;
   VALUE ary = rb_iv_get(input, "joystick_updates");
   rb_ary_pop(ary);
-  if (state == 2)
+  if (state == 2) {
+    const char *name = shState->input().joystick_name();
+    int vendor = shState->input().joystick_vendor();
+    int kind = shState->input().joystick_kind();
+    int power = shState->input().joystick_power();
+    bool rumble = shState->input().joystick_has_rumble();
+    VALUE types, gamepad, gkind;
+    types = rb_iv_get(input, "@gamepad_types");
+    gkind = rb_ary_entry(types, kind);
+    gamepad = rb_iv_get(input, "gamepad");
+    rb_iv_set(gamepad, "@name", rstr(name));
+    rb_iv_set(gamepad, "@vendor", RB_INT2FIX(vendor));
+    rb_iv_set(gamepad, "@type", gkind);
+    rb_iv_set(gamepad, "@power", RB_INT2FIX(power));
+    rb_iv_set(gamepad, "@rumble", rumble ? Qtrue : Qfalse);
     rb_ary_push(ary, hc_sym("add"));
-  else
+    (void)name;
+    (void)vendor;
+    (void)kind;
+    (void)power;
+  } else {
     rb_ary_push(ary, hc_sym("remove"));
+    ary = input_gamepad_new(input);
+  }
   shState->input().reset_joystick_change();
 }
 
@@ -240,6 +291,11 @@ static VALUE input_double_right_click(VALUE self)
   return shState->input().is_double_right_click() ? Qtrue : Qfalse; 
 }
 
+static VALUE input_joystick(VALUE self)
+{
+  return rb_iv_get(self, "gamepad");
+}
+
 static VALUE input_has_joystick(VALUE self)
 {
   return shState->input().has_joystick() ? Qtrue : Qfalse;
@@ -292,6 +348,22 @@ static VALUE input_default_trigger_timer_set(VALUE self, VALUE val)
     return rb_iv_get(self, "default_trigger_timer");
   shState->input().set_trigger_base_timer(n);
   return rb_iv_set(self, "default_trigger_timer", val);
+}
+
+void input_create_gamepad_types(VALUE input)
+{
+  VALUE types = rb_ary_new();
+  rb_ary_push(types, rstr("Unknown"));
+  rb_ary_push(types, rstr("Controller"));
+  rb_ary_push(types, rstr("Wheel"));
+  rb_ary_push(types, rstr("Arcade Stick"));
+  rb_ary_push(types, rstr("Flight Stick"));
+  rb_ary_push(types, rstr("Dance Pad"));
+  rb_ary_push(types, rstr("Guitar"));
+  rb_ary_push(types, rstr("Drum Kit"));
+  rb_ary_push(types, rstr("Arcade Pad"));
+  rb_ary_push(types, rstr("Throttle"));
+  rb_iv_set(input, "@gamepad_types", types);
 }
 
 struct
@@ -439,7 +511,21 @@ static elementsN(buttonCodes);
 
 void inputBindingInit()
 {
-  VALUE input = rb_define_module("Input");
+  VALUE input, gamepad;
+  input = rb_define_module("Input");
+  joystick = rb_define_class_under(input, "Gamepad", rb_cObject);
+  rb_const_set(joystick, rb_intern("DEFAULT_NAME"), rstr("None"));
+  rb_const_set(joystick, rb_intern("DEFAULT_VENDOR"), rstr("None"));
+  rb_define_attr(joystick, "name", 1, 0);
+  rb_define_attr(joystick, "vendor", 1, 0);
+  rb_define_attr(joystick, "type", 1, 0);
+  rb_define_attr(joystick, "type_number", 1, 0);
+  rb_define_attr(joystick, "power", 1, 0);
+  rb_define_attr(joystick, "rumble", 1, 0);
+  rb_define_attr(joystick, "last_rumble", 1, 0);
+  rb_define_method(joystick, "set_rumble", RMF(input_gamepad_set_rumble), 3);
+  input_create_gamepad_types(input);
+  gamepad = input_gamepad_new(input);
   rb_iv_set(input, "default_trigger_timer", RB_INT2FIX(TRIGGER_TIMER));
   rb_iv_set(input, "joystick_updates", rb_ary_new());
   module_func(input, "trigger_timer", input_trigger_timer, 0);
@@ -470,6 +556,8 @@ void inputBindingInit()
   module_func(input, "repeat?", inputRepeat, 1);
   module_func(input, "repeat_left_click?", input_repeat_left_click, 0);
   module_func(input, "repeat_right_click?", input_repeat_right_click, 0);
+  module_func(input, "gamepad", input_joystick, 0);
+  module_func(input, "joystick", input_joystick, 0);
   module_func(input, "gamepad?", input_has_joystick, 0);
   module_func(input, "joystick?", input_has_joystick, 0);
   module_func(input, "gamepad_update", input_joystick_update, 0);

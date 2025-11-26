@@ -127,6 +127,7 @@ void EventThread::process(RGSSThreadData &rtData)
   SDL_Joystick *js = 0;
   if (SDL_NumJoysticks() > 0) {
     js = SDL_JoystickOpen(0);
+    rtData.joystick = js;
     rtData.joystick_change = 2;
   } else {
     rtData.joystick_change = 0;
@@ -296,11 +297,13 @@ void EventThread::process(RGSSThreadData &rtData)
       if (event.jdevice.which > 0)
         break;
       js = SDL_JoystickOpen(0);
+      rtData.joystick = js;
       rtData.joystick_change = 2;
       break;
     case SDL_JOYDEVICEREMOVED :
       resetInputStates();
       rtData.joystick_change = 1;
+      rtData.joystick = 0;
       break;
     case SDL_MOUSEBUTTONDOWN :
       mouseState.buttons[event.button.button] = true;

@@ -212,6 +212,7 @@ struct RGSSThreadData
   Vec2i screenOffset;
   const int refreshRate;
   int joystick_change;
+  SDL_Joystick *joystick;
   Config config;
   bool mouse_moved;
   bool start_sdl_input;
@@ -231,6 +232,7 @@ struct RGSSThreadData
     sizeResoRatio(1, 1),
     refreshRate(refreshRate),
     joystick_change(0),
+    joystick(0),
     config(newconf),
     start_sdl_input(false),
     any_char_found(false)

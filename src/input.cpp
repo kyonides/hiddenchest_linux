@@ -1034,6 +1034,40 @@ bool Input::has_joystick()
   return SDL_NumJoysticks() > 0;
 }
 
+const char* Input::joystick_name()
+{
+  //if (!shState->rtData().joystick) //  return ""; //else
+  return SDL_JoystickName(shState->rtData().joystick);
+}
+
+int Input::joystick_vendor()
+{
+  //if (!shState->rtData().joystick) //  return 0; //else
+  return SDL_JoystickGetVendor(shState->rtData().joystick);
+}
+
+int Input::joystick_kind()
+{
+  //if (!shState->rtData().joystick) //  return 0; //else
+  return SDL_JoystickGetType(shState->rtData().joystick);
+}
+
+int Input::joystick_power()
+{
+  //if (!shState->rtData().joystick) //  return 0; //else
+  return SDL_JoystickCurrentPowerLevel(shState->rtData().joystick);
+}
+
+bool Input::joystick_has_rumble()
+{
+  return SDL_JoystickHasRumble(shState->rtData().joystick);
+}
+
+int Input::joystick_set_rumble(int lfr, int rfr, int ms)
+{
+  return SDL_JoystickRumble(shState->rtData().joystick, lfr, rfr, ms);
+}
+
 int Input::joystick_change()
 {
   return shState->rtData().joystick_change;
