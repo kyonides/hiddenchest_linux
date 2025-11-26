@@ -30,24 +30,34 @@
 #include "hcextras.h"
 
 #define ZERO RB_INT2FIX(0)
+#define SUBZERO RB_INT2FIX(-1)
 
 static VALUE joystick;
 
+static void input_gamepad_init(VALUE pad, VALUE nm, VALUE vndr, int kind, int lvl, VALUE b1)
+{
+  VALUE type, level;
+  type = rb_cvar_get(joystick, rb_intern("types"));
+  type = rb_ary_entry(type, kind);
+  level = rb_cvar_get(joystick, rb_intern("levels"));
+  level = rb_hash_aref(level, lvl);
+  rb_iv_set(pad, "@name", nm);
+  rb_iv_set(pad, "@vendor", vndr);
+  rb_iv_set(pad, "@type", type);
+  rb_iv_set(pad, "@type_number", RB_INT2FIX(kind));
+  rb_iv_set(pad, "@power", level);
+  rb_iv_set(pad, "@power_level", RB_INT2FIX(lvl));
+  rb_iv_set(pad, "@rumble", b1);
+  rb_iv_set(pad, "@last_rumble", Qnil);
+}
+
 static VALUE input_gamepad_new(VALUE input)
 {
-  VALUE types, stype, gamepad, name;
-  types = rb_iv_get(input, "@gamepad_types");
-  stype = rb_ary_entry(types, 0);
+  VALUE gamepad, name, vendor;
   gamepad = rb_class_new_instance(0, 0, joystick);
   name = rb_const_get(joystick, rb_intern("DEFAULT_NAME"));
-  rb_iv_set(gamepad, "@name", name);
-  name = rb_const_get(joystick, rb_intern("DEFAULT_VENDOR"));
-  rb_iv_set(gamepad, "@vendor", name);
-  rb_iv_set(gamepad, "@type", stype);
-  rb_iv_set(gamepad, "@type_number", ZERO);
-  rb_iv_set(gamepad, "@power", ZERO);
-  rb_iv_set(gamepad, "@rumble", Qfalse);
-  rb_iv_set(gamepad, "@last_rumble", Qnil);
+  vendor = rb_const_get(joystick, rb_intern("DEFAULT_VENDOR"));
+  input_gamepad_init(gamepad, name, vendor, 0, -1, Qfalse);
   return rb_iv_set(input, "gamepad", gamepad);
 }
 
@@ -74,21 +84,11 @@ static void joystick_state_change(VALUE input)
     int vendor = shState->input().joystick_vendor();
     int kind = shState->input().joystick_kind();
     int power = shState->input().joystick_power();
-    bool rumble = shState->input().joystick_has_rumble();
-    VALUE types, gamepad, gkind;
-    types = rb_iv_get(input, "@gamepad_types");
-    gkind = rb_ary_entry(types, kind);
+    VALUE gamepad, rumble;
     gamepad = rb_iv_get(input, "gamepad");
-    rb_iv_set(gamepad, "@name", rstr(name));
-    rb_iv_set(gamepad, "@vendor", RB_INT2FIX(vendor));
-    rb_iv_set(gamepad, "@type", gkind);
-    rb_iv_set(gamepad, "@power", RB_INT2FIX(power));
-    rb_iv_set(gamepad, "@rumble", rumble ? Qtrue : Qfalse);
+    rumble = shState->input().joystick_has_rumble() ? Qtrue : Qfalse;
+    input_gamepad_init(gamepad, rstr(name), RB_INT2FIX(vendor), kind, power, rumble);
     rb_ary_push(ary, hc_sym("add"));
-    (void)name;
-    (void)vendor;
-    (void)kind;
-    (void)power;
   } else {
     rb_ary_push(ary, hc_sym("remove"));
     ary = input_gamepad_new(input);
@@ -350,9 +350,10 @@ static VALUE input_default_trigger_timer_set(VALUE self, VALUE val)
   return rb_iv_set(self, "default_trigger_timer", val);
 }
 
-void input_create_gamepad_types(VALUE input)
+void input_create_gamepad_types(VALUE pad)
 {
-  VALUE types = rb_ary_new();
+  VALUE types, levels;
+  types = rb_ary_new();
   rb_ary_push(types, rstr("Unknown"));
   rb_ary_push(types, rstr("Controller"));
   rb_ary_push(types, rstr("Wheel"));
@@ -363,7 +364,16 @@ void input_create_gamepad_types(VALUE input)
   rb_ary_push(types, rstr("Drum Kit"));
   rb_ary_push(types, rstr("Arcade Pad"));
   rb_ary_push(types, rstr("Throttle"));
-  rb_iv_set(input, "@gamepad_types", types);
+  levels = rb_hash_new();
+  rb_hash_aset(levels, SUBZERO, rstr("Unknown"));
+  rb_hash_aset(levels, ZERO, rstr("Empty"));
+  rb_hash_aset(levels, RB_INT2FIX(1), rstr("Low"));
+  rb_hash_aset(levels, RB_INT2FIX(2), rstr("Medium"));
+  rb_hash_aset(levels, RB_INT2FIX(3), rstr("Full"));
+  rb_hash_aset(levels, RB_INT2FIX(4), rstr("Wired"));
+  rb_hash_aset(levels, RB_INT2FIX(5), rstr("Maximum"));
+  rb_cvar_set(pad, rb_intern("types"), types);
+  rb_cvar_set(pad, rb_intern("levels"), levels);
 }
 
 struct
@@ -521,10 +531,11 @@ void inputBindingInit()
   rb_define_attr(joystick, "type", 1, 0);
   rb_define_attr(joystick, "type_number", 1, 0);
   rb_define_attr(joystick, "power", 1, 0);
+  rb_define_attr(joystick, "power_level", 1, 0);
   rb_define_attr(joystick, "rumble", 1, 0);
   rb_define_attr(joystick, "last_rumble", 1, 0);
   rb_define_method(joystick, "set_rumble", RMF(input_gamepad_set_rumble), 3);
-  input_create_gamepad_types(input);
+  input_create_gamepad_types(joystick);
   gamepad = input_gamepad_new(input);
   rb_iv_set(input, "default_trigger_timer", RB_INT2FIX(TRIGGER_TIMER));
   rb_iv_set(input, "joystick_updates", rb_ary_new());
