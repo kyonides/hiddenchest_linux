@@ -50,6 +50,7 @@ extern const char module_rpg3[];
 extern const char win32api_fake[];
 extern const char scene_hc[];
 extern const char module_hc[];
+extern const char fileutils[];
 extern const char game_ini[];
 extern const char scripts[];
 static void mriBindingExecute();
@@ -372,6 +373,13 @@ static bool file_exist(VALUE name, const char* ext)
   return shState->fileSystem().exists(fn);
 }
 
+static int rb_check_fileutils()
+{
+  int state;
+  rb_eval_string_protect(fileutils, &state);
+  return state;
+}
+
 static int rb_check_rgss_version()
 {
   int state;
@@ -578,7 +586,7 @@ static void mriBindingExecute()
 {/* Normally only a ruby executable would do a sysinit,
  * but not doing it will lead to crashes due to closed
  * stdio streams on some platforms (eg. Windows) */
-  int argc = 0;
+  int argc = 0, state = 0;
   char **argv = 0;
   ruby_sysinit(&argc, &argv);
   ruby_init();
@@ -615,7 +623,9 @@ static void mriBindingExecute()
   init_scripts();
   init_game(shState->rtData().argv0);
   rb_eval_string(module_rpg_audio);
-  int state = rb_check_rgss_version();
+  state = rb_check_fileutils();
+  if (!state)
+    state = rb_check_rgss_version();
   if (state) {
     rb_p(rb_errinfo());
     ruby_cleanup(0);

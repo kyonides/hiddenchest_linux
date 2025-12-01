@@ -127,7 +127,10 @@ static VALUE game_shot_fmt_set(VALUE self, VALUE fmt)
 
 static VALUE game_shot_dir_set(VALUE self, VALUE sdir)
 {
-  char* dir = StringValueCStr(sdir);
+  VALUE path = rb_iv_get(self, "@shot_path");
+  path = rb_str_plus(path, rstr("/"));
+  path = rb_str_plus(path, sdir);
+  char* dir = StringValueCStr(path);
   shState->graphics().set_screenshot_dir(dir);
   return rb_iv_set(self, "@shot_dir", sdir);
 }

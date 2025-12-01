@@ -1,0 +1,1327 @@
+begin
+  require 'rbconfig'
+rescue LoadError
+end
+
+module FileUtils
+  VERSION = "1.4.1"
+
+  def self.private_module_function(name)
+    module_function name
+    private_class_method name
+  end
+
+  def pwd
+    Dir.pwd
+  end
+  module_function :pwd
+
+  alias getwd pwd
+  module_function :getwd
+
+  def cd(dir, verbose: nil, &block)
+    fu_output_message "cd #{dir}" if verbose
+    result = Dir.chdir(dir, &block)
+    fu_output_message 'cd -' if verbose and block
+    result
+  end
+  module_function :cd
+
+  alias chdir cd
+  module_function :chdir
+
+  def uptodate?(new, old_list)
+    return false unless File.exist?(new)
+    new_time = File.mtime(new)
+    old_list.each do |old|
+      if File.exist?(old)
+        return false unless new_time > File.mtime(old)
+      end
+    end
+    true
+  end
+  module_function :uptodate?
+
+  def remove_trailing_slash(dir)
+    dir == '/' ? dir : dir.chomp(?/)
+  end
+  private_module_function :remove_trailing_slash
+
+  def mkdir(list, mode: nil, noop: nil, verbose: nil)
+    list = fu_list(list)
+    fu_output_message "mkdir #{mode ? ('-m %03o ' % mode) : ''}#{list.join ' '}" if verbose
+    return if noop
+
+    list.each do |dir|
+      fu_mkdir dir, mode
+    end
+  end
+  module_function :mkdir
+
+  #
+  # Creates a directory and all its parent directories.
+  # For example,
+  #
+  #   FileUtils.mkdir_p '/usr/local/lib/ruby'
+  #
+  # causes to make following directories, if they do not exist.
+  #
+  # * /usr
+  # * /usr/local
+  # * /usr/local/lib
+  # * /usr/local/lib/ruby
+  #
+  # You can pass several directories at a time in a list.
+  #
+  def mkdir_p(list, mode: nil, noop: nil, verbose: nil)
+    list = fu_list(list)
+    fu_output_message "mkdir -p #{mode ? ('-m %03o ' % mode) : ''}#{list.join ' '}" if verbose
+    return *list if noop
+
+    list.map {|path| remove_trailing_slash(path)}.each do |path|
+      # optimize for the most common case
+      begin
+        fu_mkdir path, mode
+        next
+      rescue SystemCallError
+        next if File.directory?(path)
+      end
+
+      stack = []
+      until path == stack.last   # dirname("/")=="/", dirname("C:/")=="C:/"
+        stack.push path
+        path = File.dirname(path)
+      end
+      stack.pop                 # root directory should exist
+      stack.reverse_each do |dir|
+        begin
+          fu_mkdir dir, mode
+        rescue SystemCallError
+          raise unless File.directory?(dir)
+        end
+      end
+    end
+
+    return *list
+  end
+  module_function :mkdir_p
+
+  alias mkpath    mkdir_p
+  alias makedirs  mkdir_p
+  module_function :mkpath
+  module_function :makedirs
+
+  def fu_mkdir(path, mode)
+    path = remove_trailing_slash(path)
+    if mode
+      Dir.mkdir path, mode
+      File.chmod mode, path
+    else
+      Dir.mkdir path
+    end
+  end
+  private_module_function :fu_mkdir
+
+  def rmdir(list, parents: nil, noop: nil, verbose: nil)
+    list = fu_list(list)
+    fu_output_message "rmdir #{parents ? '-p ' : ''}#{list.join ' '}" if verbose
+    return if noop
+    list.each do |dir|
+      Dir.rmdir(dir = remove_trailing_slash(dir))
+      if parents
+        begin
+          until (parent = File.dirname(dir)) == '.' or parent == dir
+            dir = parent
+            Dir.rmdir(dir)
+          end
+        rescue Errno::ENOTEMPTY, Errno::EEXIST, Errno::ENOENT
+        end
+      end
+    end
+  end
+  module_function :rmdir
+
+  def ln(src, dest, force: nil, noop: nil, verbose: nil)
+    fu_output_message "ln#{force ? ' -f' : ''} #{[src,dest].flatten.join ' '}" if verbose
+    return if noop
+    fu_each_src_dest0(src, dest) do |s,d|
+      remove_file d, true if force
+      File.link s, d
+    end
+  end
+  module_function :ln
+
+  alias link ln
+  module_function :link
+
+  def cp_lr(src, dest, noop: nil, verbose: nil,
+            dereference_root: true, remove_destination: false)
+    fu_output_message "cp -lr#{remove_destination ? ' --remove-destination' : ''} #{[src,dest].flatten.join ' '}" if verbose
+    return if noop
+    fu_each_src_dest(src, dest) do |s, d|
+      link_entry s, d, dereference_root, remove_destination
+    end
+  end
+  module_function :cp_lr
+
+  def ln_s(src, dest, force: nil, noop: nil, verbose: nil)
+    fu_output_message "ln -s#{force ? 'f' : ''} #{[src,dest].flatten.join ' '}" if verbose
+    return if noop
+    fu_each_src_dest0(src, dest) do |s,d|
+      remove_file d, true if force
+      File.symlink s, d
+    end
+  end
+  module_function :ln_s
+
+  alias symlink ln_s
+  module_function :symlink
+
+  def ln_sf(src, dest, noop: nil, verbose: nil)
+    ln_s src, dest, force: true, noop: noop, verbose: verbose
+  end
+  module_function :ln_sf
+
+  def link_entry(src, dest, dereference_root = false, remove_destination = false)
+    Entry_.new(src, nil, dereference_root).traverse do |ent|
+      destent = Entry_.new(dest, ent.rel, false)
+      File.unlink destent.path if remove_destination && File.file?(destent.path)
+      ent.link destent.path
+    end
+  end
+  module_function :link_entry
+
+  def cp(src, dest, preserve: nil, noop: nil, verbose: nil)
+    fu_output_message "cp#{preserve ? ' -p' : ''} #{[src,dest].flatten.join ' '}" if verbose
+    return if noop
+    fu_each_src_dest(src, dest) do |s, d|
+      copy_file s, d, preserve
+    end
+  end
+  module_function :cp
+
+  alias copy cp
+  module_function :copy
+
+  def cp_r(src, dest, preserve: nil, noop: nil, verbose: nil,
+           dereference_root: true, remove_destination: nil)
+    fu_output_message "cp -r#{preserve ? 'p' : ''}#{remove_destination ? ' --remove-destination' : ''} #{[src,dest].flatten.join ' '}" if verbose
+    return if noop
+    fu_each_src_dest(src, dest) do |s, d|
+      copy_entry s, d, preserve, dereference_root, remove_destination
+    end
+  end
+  module_function :cp_r
+
+  def copy_entry(src, dest, preserve = false, dereference_root = false, remove_destination = false)
+    if dereference_root
+      src = File.realpath(src)
+    end
+
+    Entry_.new(src, nil, false).wrap_traverse(proc do |ent|
+      destent = Entry_.new(dest, ent.rel, false)
+      File.unlink destent.path if remove_destination && (File.file?(destent.path) || File.symlink?(destent.path))
+      ent.copy destent.path
+    end, proc do |ent|
+      destent = Entry_.new(dest, ent.rel, false)
+      ent.copy_metadata destent.path if preserve
+    end)
+  end
+  module_function :copy_entry
+
+  def copy_file(src, dest, preserve = false, dereference = true)
+    ent = Entry_.new(src, nil, dereference)
+    ent.copy_file dest
+    ent.copy_metadata dest if preserve
+  end
+  module_function :copy_file
+
+  def copy_stream(src, dest)
+    IO.copy_stream(src, dest)
+  end
+  module_function :copy_stream
+
+  def mv(src, dest, force: nil, noop: nil, verbose: nil, secure: nil)
+    fu_output_message "mv#{force ? ' -f' : ''} #{[src,dest].flatten.join ' '}" if verbose
+    return if noop
+    fu_each_src_dest(src, dest) do |s, d|
+      destent = Entry_.new(d, nil, true)
+      begin
+        if destent.exist?
+          if destent.directory?
+            raise Errno::EEXIST, d
+          end
+        end
+        begin
+          File.rename s, d
+        rescue Errno::EXDEV,
+               Errno::EPERM # move from unencrypted to encrypted dir (ext4)
+          copy_entry s, d, true
+          if secure
+            remove_entry_secure s, force
+          else
+            remove_entry s, force
+          end
+        end
+      rescue SystemCallError
+        raise unless force
+      end
+    end
+  end
+  module_function :mv
+
+  alias move mv
+  module_function :move
+
+  def rm(list, force: nil, noop: nil, verbose: nil)
+    list = fu_list(list)
+    fu_output_message "rm#{force ? ' -f' : ''} #{list.join ' '}" if verbose
+    return if noop
+
+    list.each do |path|
+      remove_file path, force
+    end
+  end
+  module_function :rm
+
+  alias remove rm
+  module_function :remove
+
+  def rm_f(list, noop: nil, verbose: nil)
+    rm list, force: true, noop: noop, verbose: verbose
+  end
+  module_function :rm_f
+
+  alias safe_unlink rm_f
+  module_function :safe_unlink
+
+  def rm_r(list, force: nil, noop: nil, verbose: nil, secure: nil)
+    list = fu_list(list)
+    if verbose
+      fu_output_message "rm -r#{force ? 'f' : ''} #{list.join ' '}"
+    end
+    if noop
+      return
+    end
+    list.each do |path|
+      if secure
+        remove_entry_secure path, force
+      else
+        remove_entry path, force
+      end
+    end
+  end
+  module_function :rm_r
+
+  def rm_rf(list, noop: nil, verbose: nil, secure: nil)
+    rm_r list, force: true, noop: noop, verbose: verbose, secure: secure
+  end
+  module_function :rm_rf
+
+  alias rmtree rm_rf
+  module_function :rmtree
+
+  def remove_entry_secure(path, force = false)
+    unless fu_have_symlink?
+      remove_entry path, force
+      return
+    end
+    fullpath = File.expand_path(path)
+    st = File.lstat(fullpath)
+    unless st.directory?
+      File.unlink fullpath
+      return
+    end
+    parent_st = File.stat(File.dirname(fullpath))
+    unless parent_st.world_writable?
+      remove_entry path, force
+      return
+    end
+    unless parent_st.sticky?
+      raise ArgumentError, "parent directory is world writable, FileUtils#remove_entry_secure does not work; abort: #{path.inspect} (parent directory mode #{'%o' % parent_st.mode})"
+    end
+
+    euid = Process.euid
+    dot_file = fullpath + "/."
+    begin
+      File.open(dot_file) {|f|
+        unless fu_stat_identical_entry?(st, f.stat)
+          # symlink (TOC-to-TOU attack?)
+          File.unlink fullpath
+          return
+        end
+        f.chown euid, -1
+        f.chmod 0700
+      }
+    rescue Errno::EISDIR
+      File.lstat(dot_file).tap {|fstat|
+        unless fu_stat_identical_entry?(st, fstat)
+          File.unlink fullpath
+          return
+        end
+        File.chown euid, -1, dot_file
+        File.chmod 0700, dot_file
+      }
+    end
+
+    unless fu_stat_identical_entry?(st, File.lstat(fullpath))
+      File.unlink fullpath
+      return
+    end
+
+    root = Entry_.new(path)
+    root.preorder_traverse do |ent|
+      if ent.directory?
+        ent.chown euid, -1
+        ent.chmod 0700
+      end
+    end
+    root.postorder_traverse do |ent|
+      begin
+        ent.remove
+      rescue
+        raise unless force
+      end
+    end
+  rescue
+    raise unless force
+  end
+  module_function :remove_entry_secure
+
+  def fu_have_symlink?
+    File.symlink nil, nil
+  rescue NotImplementedError
+    return false
+  rescue TypeError
+    return true
+  end
+  private_module_function :fu_have_symlink?
+
+  def fu_stat_identical_entry?(a, b)
+    a.dev == b.dev and a.ino == b.ino
+  end
+  private_module_function :fu_stat_identical_entry?
+
+  def remove_entry(path, force = false)
+    Entry_.new(path).postorder_traverse do |ent|
+      begin
+        ent.remove
+      rescue
+        raise unless force
+      end
+    end
+  rescue
+    raise unless force
+  end
+  module_function :remove_entry
+
+  def remove_file(path, force = false)
+    Entry_.new(path).remove_file
+  rescue
+    raise unless force
+  end
+  module_function :remove_file
+
+  def remove_dir(path, force = false)
+    remove_entry(path, force)
+  end
+  module_function :remove_dir
+
+  def compare_file(a, b)
+    return false unless File.size(a) == File.size(b)
+    File.open(a, 'rb') {|fa|
+      File.open(b, 'rb') {|fb|
+        return compare_stream(fa, fb)
+      }
+    }
+  end
+  module_function :compare_file
+
+  alias identical? compare_file
+  alias cmp compare_file
+  module_function :identical?
+  module_function :cmp
+
+  def compare_stream(a, b)
+    bsize = fu_stream_blksize(a, b)
+
+    if RUBY_VERSION > "2.4"
+      sa = String.new(capacity: bsize)
+      sb = String.new(capacity: bsize)
+    else
+      sa = String.new
+      sb = String.new
+    end
+
+    begin
+      a.read(bsize, sa)
+      b.read(bsize, sb)
+      if sa.empty? && sb.empty?
+        return true
+      end
+    end while sa == sb
+    false
+  end
+  module_function :compare_stream
+
+  def install(src, dest, mode: nil, owner: nil, group: nil, preserve: nil,
+              noop: nil, verbose: nil)
+    if verbose
+      msg = +"install -c"
+      msg << ' -p' if preserve
+      msg << ' -m ' << mode_to_s(mode) if mode
+      msg << " -o #{owner}" if owner
+      msg << " -g #{group}" if group
+      msg << ' ' << [src,dest].flatten.join(' ')
+      fu_output_message msg
+    end
+    if noop
+      return
+    end
+    uid = fu_get_uid(owner)
+    gid = fu_get_gid(group)
+    fu_each_src_dest(src, dest) do |s, d|
+      st = File.stat(s)
+      unless File.exist?(d) and compare_file(s, d)
+        remove_file d, true
+        copy_file s, d
+        File.utime st.atime, st.mtime, d if preserve
+        File.chmod fu_mode(mode, st), d if mode
+        File.chown uid, gid, d if uid or gid
+      end
+    end
+  end
+  module_function :install
+
+  def user_mask(target)
+    target.each_char.inject(0) do |mask, chr|
+      case chr
+      when "u"
+        mask | 04700
+      when "g"
+        mask | 02070
+      when "o"
+        mask | 01007
+      when "a"
+        mask | 07777
+      else
+        raise ArgumentError, "invalid `who' symbol in file mode: #{chr}"
+      end
+    end
+  end
+  private_module_function :user_mask
+
+  def apply_mask(mode, user_mask, op, mode_mask)
+    case op
+    when '='
+      (mode & ~user_mask) | (user_mask & mode_mask)
+    when '+'
+      mode | (user_mask & mode_mask)
+    when '-'
+      mode & ~(user_mask & mode_mask)
+    end
+  end
+  private_module_function :apply_mask
+
+  def symbolic_modes_to_i(mode_sym, path)
+    mode = if File::Stat === path
+             path.mode
+           else
+             File.stat(path).mode
+           end
+    mode_sym.split(/,/).inject(mode & 07777) do |current_mode, clause|
+      target, *actions = clause.split(/([=+-])/)
+      if actions.empty?
+        raise ArgumentError, "invalid file mode: #{mode_sym}"
+      end
+      target = 'a' if target.empty?
+      user_mask = user_mask(target)
+      actions.each_slice(2) do |op, perm|
+        need_apply = op == '='
+        mode_mask = (perm || '').each_char.inject(0) do |mask, chr|
+          case chr
+          when "r"
+            mask | 0444
+          when "w"
+            mask | 0222
+          when "x"
+            mask | 0111
+          when "X"
+            if FileTest.directory? path
+              mask | 0111
+            else
+              mask
+            end
+          when "s"
+            mask | 06000
+          when "t"
+            mask | 01000
+          when "u", "g", "o"
+            if mask.nonzero?
+              current_mode = apply_mask(current_mode, user_mask, op, mask)
+            end
+            need_apply = false
+            copy_mask = user_mask(chr)
+            (current_mode & copy_mask) / (copy_mask & 0111) * (user_mask & 0111)
+          else
+            raise ArgumentError, "invalid `perm' symbol in file mode: #{chr}"
+          end
+        end
+
+        if mode_mask.nonzero? || need_apply
+          current_mode = apply_mask(current_mode, user_mask, op, mode_mask)
+        end
+      end
+      current_mode
+    end
+  end
+  private_module_function :symbolic_modes_to_i
+
+  def fu_mode(mode, path)
+    mode.is_a?(String) ? symbolic_modes_to_i(mode, path) : mode
+  end
+  private_module_function :fu_mode
+
+  def mode_to_s(mode)
+    mode.is_a?(String) ? mode : "%o" % mode
+  end
+  private_module_function :mode_to_s
+
+  def chmod(mode, list, noop: nil, verbose: nil)
+    list = fu_list(list)
+    if verbose
+      fu_output_message sprintf('chmod %s %s', mode_to_s(mode), list.join(' '))
+    end
+    if noop
+      return
+    end
+    list.each do |path|
+      Entry_.new(path).chmod(fu_mode(mode, path))
+    end
+  end
+  module_function :chmod
+
+  def chmod_R(mode, list, noop: nil, verbose: nil, force: nil)
+    list = fu_list(list)
+    if verbose
+      fu_output_message sprintf('chmod -R%s %s %s',
+                                (force ? 'f' : ''),
+                                mode_to_s(mode), list.join(' '))
+    end
+    if noop
+      return
+    end
+    list.each do |root|
+      Entry_.new(root).traverse do |ent|
+        begin
+          ent.chmod(fu_mode(mode, ent.path))
+        rescue
+          raise unless force
+        end
+      end
+    end
+  end
+  module_function :chmod_R
+
+  def chown(user, group, list, noop: nil, verbose: nil)
+    list = fu_list(list)
+    if verbose
+      fu_output_message sprintf('chown %s %s',
+                                (group ? "#{user}:#{group}" : user || ':'),
+                                list.join(' '))
+    end
+    if noop
+      return
+    end
+    uid = fu_get_uid(user)
+    gid = fu_get_gid(group)
+    list.each do |path|
+      Entry_.new(path).chown uid, gid
+    end
+  end
+  module_function :chown
+
+  def chown_R(user, group, list, noop: nil, verbose: nil, force: nil)
+    list = fu_list(list)
+    if verbose
+      fu_output_message sprintf('chown -R%s %s %s',
+                                (force ? 'f' : ''),
+                                (group ? "#{user}:#{group}" : user || ':'),
+                                list.join(' '))
+    end
+    if noop
+      return
+    end
+    uid = fu_get_uid(user)
+    gid = fu_get_gid(group)
+    list.each do |root|
+      Entry_.new(root).traverse do |ent|
+        begin
+          ent.chown uid, gid
+        rescue
+          unless force
+            raise
+          end
+        end
+      end
+    end
+  end
+  module_function :chown_R
+
+  def fu_get_uid(user)
+    unless user
+      return nil
+    end
+    case user
+    when Integer
+      user
+    when /\A\d+\z/
+      user.to_i
+    else
+      require 'etc'
+      Etc.getpwnam(user) ? Etc.getpwnam(user).uid : nil
+    end
+  end
+  private_module_function :fu_get_uid
+
+  def fu_get_gid(group)
+    unless group
+      return nil
+    end
+    case group
+    when Integer
+      group
+    when /\A\d+\z/
+      group.to_i
+    else
+      require 'etc'
+      Etc.getgrnam(group) ? Etc.getgrnam(group).gid : nil
+    end
+  end
+  private_module_function :fu_get_gid
+
+  def touch(list, noop: nil, verbose: nil, mtime: nil, nocreate: nil)
+    list = fu_list(list)
+    t = mtime
+    if verbose
+      fu_output_message "touch #{nocreate ? '-c ' : ''}#{t ? t.strftime('-t %Y%m%d%H%M.%S ') : ''}#{list.join ' '}"
+    end
+    if noop
+      return
+    end
+    list.each do |path|
+      created = nocreate
+      begin
+        File.utime(t, t, path)
+      rescue Errno::ENOENT
+        if created
+          raise
+        end
+        File.open(path, 'a') {
+          ;
+        }
+        created = true
+        if t
+          retry
+        end
+      end
+    end
+  end
+  module_function :touch
+
+  private
+
+  module StreamUtils_
+    private
+
+    case (defined?(::RbConfig) ? ::RbConfig::CONFIG['host_os'] : ::RUBY_PLATFORM)
+    when /mswin|mingw/
+      def fu_windows?
+        true
+      end
+    else
+      def fu_windows?
+        false
+      end
+    end
+
+    def fu_copy_stream0(src, dest, blksize = nil)
+      IO.copy_stream(src, dest)
+    end
+
+    def fu_stream_blksize(*streams)
+      streams.each do |s|
+        next unless s.respond_to?(:stat)
+        size = fu_blksize(s.stat)
+        if size
+          return size
+        end
+      end
+      fu_default_blksize()
+    end
+
+    def fu_blksize(st)
+      s = st.blksize
+      if !s or s == 0
+        return nil
+      end 
+      s
+    end
+
+    def fu_default_blksize
+      1024
+    end
+  end
+
+  include StreamUtils_
+  extend StreamUtils_
+
+  class Entry_
+    include StreamUtils_
+
+    def initialize(a, b = nil, deref = false)
+      @prefix = @rel = @path = nil
+      if b
+        @prefix = a
+        @rel = b
+      else
+        @path = a
+      end
+      @deref = deref
+      @stat = nil
+      @lstat = nil
+    end
+
+    def inspect
+      "\#<#{self.class} #{path()}>"
+    end
+
+    def path
+      if @path
+        File.path(@path)
+      else
+        join(@prefix, @rel)
+      end
+    end
+
+    def prefix
+      @prefix || @path
+    end
+
+    def rel
+      @rel
+    end
+
+    def dereference?
+      @deref
+    end
+
+    def exist?
+      begin
+        lstat
+        true
+      rescue Errno::ENOENT
+        false
+      end
+    end
+
+    def file?
+      s = lstat!
+      s and s.file?
+    end
+
+    def directory?
+      s = lstat!
+      s and s.directory?
+    end
+
+    def symlink?
+      s = lstat!
+      s and s.symlink?
+    end
+
+    def chardev?
+      s = lstat!
+      s and s.chardev?
+    end
+
+    def blockdev?
+      s = lstat!
+      s and s.blockdev?
+    end
+
+    def socket?
+      s = lstat!
+      s and s.socket?
+    end
+
+    def pipe?
+      s = lstat!
+      s and s.pipe?
+    end
+
+    S_IF_DOOR = 0xD000
+
+    def door?
+      s = lstat!
+      s and (s.mode & 0xF000 == S_IF_DOOR)
+    end
+
+    def entries
+      opts = {}
+      if fu_windows?
+        opts[:encoding] = ::Encoding::UTF_8
+      end
+
+      files = if Dir.respond_to?(:children)
+        Dir.children(path, **opts)
+      else
+        Dir.entries(path(), **opts).reject {|n| n == '.' or n == '..' }
+      end
+
+      untaint = RUBY_VERSION < '2.7'
+      files.map {|n| Entry_.new(prefix(), join(rel(), untaint ? n.untaint : n)) }
+    end
+
+    def stat
+      if @stat
+        return @stat
+      end
+      if lstat() and lstat().symlink?
+        @stat = File.stat(path())
+      else
+        @stat = lstat()
+      end
+      @stat
+    end
+
+    def stat!
+      if @stat
+        return @stat
+      end
+      if lstat! and lstat!.symlink?
+        @stat = File.stat(path())
+      else
+        @stat = lstat!
+      end
+      @stat
+    rescue SystemCallError
+      nil
+    end
+
+    def lstat
+      if dereference?
+        @lstat ||= File.stat(path())
+      else
+        @lstat ||= File.lstat(path())
+      end
+    end
+
+    def lstat!
+      lstat()
+    rescue SystemCallError
+      nil
+    end
+
+    def chmod(mode)
+      if symlink?
+        if have_lchmod?
+          File.lchmod(mode, path())
+        end
+      else
+        File.chmod(mode, path())
+      end
+    rescue Errno::EOPNOTSUPP
+    end
+
+    def chown(uid, gid)
+      if symlink?
+        if have_lchown?
+          File.lchown(uid, gid, path())
+        end
+      else
+        File.chown(uid, gid, path())
+      end
+    end
+
+    def link(dest)
+      case
+      when directory?
+        if !File.exist?(dest) and descendant_directory?(dest, path)
+          raise ArgumentError, "cannot link directory %s to itself %s" % [path, dest]
+        end
+        begin
+          Dir.mkdir dest
+        rescue
+          unless File.directory?(dest)
+            raise
+          end
+        end
+      else
+        File.link(path(), dest)
+      end
+    end
+
+    def copy(dest)
+      lstat
+      case
+      when file?
+        copy_file(dest)
+      when directory?
+        if !File.exist?(dest) and descendant_directory?(dest, path)
+          raise ArgumentError, "cannot copy directory %s to itself %s" % [path, dest]
+        end
+        begin
+          Dir.mkdir(dest)
+        rescue
+          unless File.directory?(dest)
+            raise
+          end
+        end
+      when symlink?
+        File.symlink(File.readlink(path()), dest)
+      when chardev?, blockdev?
+        raise "cannot handle device file"
+      when socket?
+        begin
+          require 'socket'
+        rescue LoadError
+          raise "cannot handle socket"
+        else
+          unless defined?(UNIXServer)
+            raise "cannot handle socket"
+          end
+        end
+        UNIXServer.new(dest).close
+        File.chmod(lstat().mode, dest)
+      when pipe?
+        unless File.respond_to?(:mkfifo)
+          raise "cannot handle FIFO"
+        end
+        File.mkfifo(dest, lstat().mode)
+      when door?
+        raise "cannot handle door: #{path()}"
+      else
+        raise "unknown file type: #{path()}"
+      end
+    end
+
+    def copy_file(dest)
+      File.open(path()) do |s|
+        File.open(dest, 'wb', s.stat.mode) do |f|
+          IO.copy_stream(s, f)
+        end
+      end
+    end
+
+    def copy_metadata(path)
+      st = lstat()
+      if !st.symlink?
+        File.utime st.atime, st.mtime, path
+      end
+      mode = st.mode
+      begin
+        if st.symlink?
+          begin
+            File.lchown st.uid, st.gid, path
+          rescue NotImplementedError
+          end
+        else
+          File.chown st.uid, st.gid, path
+        end
+      rescue Errno::EPERM, Errno::EACCES
+        mode &= 01777
+      end
+      if st.symlink?
+        begin
+          File.lchmod mode, path
+        rescue NotImplementedError, Errno::EOPNOTSUPP
+        end
+      else
+        File.chmod mode, path
+      end
+    end
+
+    def remove
+      if directory?
+        remove_dir1
+      else
+        remove_file
+      end
+    end
+
+    def remove_dir1
+      platform_support {
+        Dir.rmdir path().chomp(?/)
+      }
+    end
+
+    def remove_file
+      platform_support {
+        File.unlink path
+      }
+    end
+
+    def platform_support
+      return yield unless fu_windows?
+      first_time_p = true
+      begin
+        yield
+      rescue Errno::ENOENT
+        raise
+      rescue => err
+        if first_time_p
+          first_time_p = false
+          begin
+            File.chmod(0700, path())
+            retry
+          rescue SystemCallError
+          end
+        end
+        raise err
+      end
+    end
+
+    def preorder_traverse
+      stack = [self]
+      while ent = stack.pop
+        yield ent
+        if ent.directory?
+          stack.concat(ent.entries.reverse)
+        end
+      end
+    end
+
+    alias traverse preorder_traverse
+
+    def postorder_traverse
+      if directory?
+        entries().each do |ent|
+          ent.postorder_traverse do |e|
+            yield e
+          end
+        end
+      end
+    ensure
+      yield self
+    end
+
+    def wrap_traverse(pre, post)
+      pre.call self
+      if directory?
+        entries.each do |ent|
+          ent.wrap_traverse(pre, post)
+        end
+      end
+      post.call self
+    end
+
+    private
+
+    @@fileutils_rb_have_lchmod = nil
+
+    def have_lchmod?
+      # This is not MT-safe, but it does not matter.
+      if @@fileutils_rb_have_lchmod == nil
+        @@fileutils_rb_have_lchmod = check_have_lchmod?
+      end
+      @@fileutils_rb_have_lchmod
+    end
+
+    def check_have_lchmod?
+      unless File.respond_to?(:lchmod)
+        return false
+      end
+      File.lchmod(0)
+      return true
+    rescue NotImplementedError
+      return false
+    end
+
+    @@fileutils_rb_have_lchown = nil
+
+    def have_lchown?
+      if @@fileutils_rb_have_lchown == nil
+        @@fileutils_rb_have_lchown = check_have_lchown?
+      end
+      @@fileutils_rb_have_lchown
+    end
+
+    def check_have_lchown?
+      return false unless File.respond_to?(:lchown)
+      File.lchown(nil, nil)
+      return true
+    rescue NotImplementedError
+      return false
+    end
+
+    def join(dir, base)
+      if !base or base == '.'
+        return File.path(dir)
+      end
+      if !dir or dir == '.'
+        return File.path(base)
+      end
+      File.join(dir, base)
+    end
+
+    if File::ALT_SEPARATOR
+      DIRECTORY_TERM = "(?=[/#{Regexp.quote(File::ALT_SEPARATOR)}]|\\z)"
+    else
+      DIRECTORY_TERM = "(?=/|\\z)"
+    end
+
+    def descendant_directory?(descendant, ascendant)
+      if File::FNM_SYSCASE.nonzero?
+        File.expand_path(File.dirname(descendant)).casecmp(File.expand_path(ascendant)) == 0
+      else
+        File.expand_path(File.dirname(descendant)) == File.expand_path(ascendant)
+      end
+    end
+  end
+
+  def fu_list(arg)
+    [arg].flatten.map {|path| File.path(path) }
+  end
+  private_module_function :fu_list
+
+  def fu_each_src_dest(src, dest)
+    fu_each_src_dest0(src, dest) do |s, d|
+      if fu_same?(s, d)
+        raise ArgumentError, "same file: #{s} and #{d}"
+      end
+      yield s, d
+    end
+  end
+  private_module_function :fu_each_src_dest
+
+  def fu_each_src_dest0(src, dest)
+    if tmp = Array.try_convert(src)
+      tmp.each do |s|
+        s = File.path(s)
+        yield s, File.join(dest, File.basename(s))
+      end
+    else
+      src = File.path(src)
+      if File.directory?(dest)
+        yield src, File.join(dest, File.basename(src))
+      else
+        yield src, File.path(dest)
+      end
+    end
+  end
+  private_module_function :fu_each_src_dest0
+
+  def fu_same?(a, b)
+    File.identical?(a, b)
+  end
+  private_module_function :fu_same?
+
+  def fu_output_message(msg)
+    if defined?(@fileutils_output)
+      output = @fileutils_output
+    end
+    output ||= $stderr
+    if defined?(@fileutils_label)
+      msg = @fileutils_label + msg
+    end
+    output.puts msg
+  end
+  private_module_function :fu_output_message
+
+  OPT_TABLE = {}
+  (private_instance_methods & methods(false)).inject(OPT_TABLE) {|tbl, name|
+    (tbl[name.to_s] = instance_method(name).parameters).map! {|t, n| t == :key ? n : nil }.compact!
+    tbl
+  }
+
+  public
+
+  def self.commands
+    OPT_TABLE.keys
+  end
+
+  def self.options
+    OPT_TABLE.values.flatten.uniq.map {|sym| sym.to_s }
+  end
+
+  def self.have_option?(mid, opt)
+    li = OPT_TABLE[mid.to_s] or raise ArgumentError, "no such method: #{mid}"
+    li.include?(opt)
+  end
+
+  def self.options_of(mid)
+    OPT_TABLE[mid.to_s].map {|sym| sym.to_s }
+  end
+
+  def self.collect_method(opt)
+    OPT_TABLE.keys.select {|m| OPT_TABLE[m].include?(opt) }
+  end
+
+  private
+
+  LOW_METHODS = singleton_methods(false) - collect_method(:noop).map(&:intern)
+  module LowMethods
+    private
+    def _do_nothing(*)
+    end
+    ::FileUtils::LOW_METHODS.map {|name| alias_method name, :_do_nothing}
+  end
+
+  METHODS = singleton_methods() - [:private_module_function,
+      :commands, :options, :have_option?, :options_of, :collect_method]
+
+  module Verbose
+    include FileUtils
+    names = ::FileUtils.collect_method(:verbose)
+    names.each do |name|
+      module_eval(<<-EOS, __FILE__, __LINE__ + 1)
+        def #{name}(*args, **options)
+          super(*args, **options, verbose: true)
+        end
+      EOS
+    end
+    private(*names)
+    extend self
+    class << self
+      public(*::FileUtils::METHODS)
+    end
+  end
+
+  module NoWrite
+    include FileUtils
+    include LowMethods
+    names = ::FileUtils.collect_method(:noop)
+    names.each do |name|
+      module_eval(<<-EOS, __FILE__, __LINE__ + 1)
+        def #{name}(*args, **options)
+          super(*args, **options, noop: true)
+        end
+      EOS
+    end
+    private(*names)
+    extend self
+    class << self
+      public(*::FileUtils::METHODS)
+    end
+  end
+
+  module DryRun
+    include FileUtils
+    include LowMethods
+    names = ::FileUtils.collect_method(:noop)
+    names.each do |name|
+      module_eval(<<-EOS, __FILE__, __LINE__ + 1)
+        def #{name}(*args, **options)
+          super(*args, **options, noop: true, verbose: true)
+        end
+      EOS
+    end
+    private(*names)
+    extend self
+    class << self
+      public(*::FileUtils::METHODS)
+    end
+  end
+
+end
