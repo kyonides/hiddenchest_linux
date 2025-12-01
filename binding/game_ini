@@ -143,9 +143,11 @@ module Game
     end
     company = DATA["Company"]
     title = DATA["Title"]
+    const_set("COMPANY", company)
+    const_set("TITLE", title)
     if System.linux?
-      company = DATA["Company"].sub(" ", "")
-      title = DATA["Title"].sub(" ", "")
+      company = company.gsub(" ", "")
+      title = title.gsub(" ", "")
     end
     if company.empty?
       @user_dir = title
@@ -154,8 +156,6 @@ module Game
     end
     DATA["Scripts"].sub!(/[\\]/, "/")
     const_set("SCRIPTS", DATA["Scripts"].to_s)
-    const_set("COMPANY", company)
-    const_set("TITLE", title)
     const_set("VERSION", DATA["Version"].to_s)
     const_set("AUTHOR", DATA["Author"].to_s)
     icon_name = DATA["Icon"].to_s
@@ -209,7 +209,7 @@ module Game
   end
 
   def self.create_user_dirs
-    company = DATA["Company"]
+    company = DATA["Company"].gsub(" ", "")
     company_dir = make_path(@env_dir, company)
     if !company.empty? and !Dir.exist?(company_dir)
       Dir.mkdir(company_dir)
