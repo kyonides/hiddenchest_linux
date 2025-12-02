@@ -22,6 +22,8 @@
 
 #include "clicks.h"
 #include "input.h"
+#include "input_buttons.h"
+#include "input_vendors.h"
 #include "sharedstate.h"
 #include "exception.h"
 #include "binding-util.h"
@@ -34,15 +36,19 @@
 
 static VALUE joystick;
 
-static void input_gamepad_init(VALUE pad, VALUE nm, VALUE vndr, int kind, int lvl, VALUE b1)
+static void input_gamepad_init(VALUE pad, VALUE nm, int vndr, int kind, int lvl, VALUE b1)
 {
-  VALUE type, level;
+  VALUE type, level, vendor, vendor_id, vendors;
   type = rb_cvar_get(joystick, rb_intern("types"));
   type = rb_ary_entry(type, kind);
   level = rb_cvar_get(joystick, rb_intern("levels"));
   level = rb_hash_aref(level, lvl);
+  vendor_id = RB_INT2FIX(vndr);
+  vendors = rb_cvar_get(joystick, rb_intern("vendors"));
+  vendor = rb_hash_aref(vendors, vendor_id);
   rb_iv_set(pad, "@name", nm);
-  rb_iv_set(pad, "@vendor", vndr);
+  rb_iv_set(pad, "@vendor", vendor);
+  rb_iv_set(pad, "@vendor_id", vendor_id);
   rb_iv_set(pad, "@type", type);
   rb_iv_set(pad, "@type_number", RB_INT2FIX(kind));
   rb_iv_set(pad, "@power", level);
@@ -53,11 +59,10 @@ static void input_gamepad_init(VALUE pad, VALUE nm, VALUE vndr, int kind, int lv
 
 static VALUE input_gamepad_new(VALUE input)
 {
-  VALUE gamepad, name, vendor;
+  VALUE gamepad, name;
   gamepad = rb_class_new_instance(0, 0, joystick);
   name = rb_const_get(joystick, rb_intern("DEFAULT_NAME"));
-  vendor = rb_const_get(joystick, rb_intern("DEFAULT_VENDOR"));
-  input_gamepad_init(gamepad, name, vendor, 0, -1, Qfalse);
+  input_gamepad_init(gamepad, name, 0, 0, -1, Qfalse);
   return rb_iv_set(input, "gamepad", gamepad);
 }
 
@@ -87,7 +92,7 @@ static void joystick_state_change(VALUE input)
     VALUE gamepad, rumble;
     gamepad = rb_iv_get(input, "gamepad");
     rumble = shState->input().joystick_has_rumble() ? Qtrue : Qfalse;
-    input_gamepad_init(gamepad, rstr(name), RB_INT2FIX(vendor), kind, power, rumble);
+    input_gamepad_init(gamepad, rstr(name), vendor, kind, power, rumble);
     rb_ary_push(ary, hc_sym("add"));
   } else {
     rb_ary_push(ary, hc_sym("remove"));
@@ -376,149 +381,6 @@ void input_create_gamepad_types(VALUE pad)
   rb_cvar_set(pad, rb_intern("levels"), levels);
 }
 
-struct
-{
-  const char *str;
-  Input::ButtonCode val;
-}
-static buttonCodes[] =
-{
-  { "DOWN",           Input::Down  },
-  { "LEFT",           Input::Left  },
-  { "RIGHT",          Input::Right },
-  { "UP",             Input::Up    },
-  { "Down",           Input::Down  },
-  { "Left",           Input::Left  },
-  { "Right",          Input::Right },
-  { "Up",             Input::Up    },
-  { "A",              Input::A     },
-  { "B",              Input::B     },
-  { "C",              Input::C     },
-  { "X",              Input::X     },
-  { "Y",              Input::Y     },
-  { "Z",              Input::Z     },
-  { "L",              Input::L     },
-  { "R",              Input::R     },
-  { "SHIFT",          Input::Shift },
-  { "CTRL",           Input::Ctrl  },
-  { "ALT",            Input::Alt   },
-  { "KeyA",           Input::KeyA  },
-  { "KeyB",           Input::KeyB  },
-  { "KeyC",           Input::KeyC  },
-  { "KeyD",           Input::KeyD  },
-  { "KeyE",           Input::KeyE  },
-  { "KeyF",           Input::KeyF  },
-  { "KeyG",           Input::KeyG  },
-  { "KeyH",           Input::KeyH  },
-  { "KeyI",           Input::KeyI  },
-  { "KeyJ",           Input::KeyJ  },
-  { "KeyK",           Input::KeyK  },
-  { "KeyL",           Input::KeyL  },
-  { "KeyM",           Input::KeyM  },
-  { "KeyN",           Input::KeyN  },
-  { "KeyO",           Input::KeyO  },
-  { "KeyP",           Input::KeyP  },
-  { "KeyQ",           Input::KeyQ  },
-  { "KeyR",           Input::KeyR  },
-  { "KeyS",           Input::KeyS  },
-  { "KeyT",           Input::KeyT  },
-  { "KeyU",           Input::KeyU  },
-  { "KeyV",           Input::KeyV  },
-  { "KeyW",           Input::KeyW  },
-  { "KeyX",           Input::KeyX  },
-  { "KeyY",           Input::KeyY  },
-  { "KeyZ",           Input::KeyZ  },
-  { "N1",             Input::N1    },
-  { "N2",             Input::N2    },
-  { "N3",             Input::N3    },
-  { "N4",             Input::N4    },
-  { "N5",             Input::N5    },
-  { "N6",             Input::N6    },
-  { "N7",             Input::N7    },
-  { "N8",             Input::N8    },
-  { "N9",             Input::N9    },
-  { "N0",             Input::N0    },
-  { "Return",         Input::Return         },
-  { "Escape",         Input::Escape         },
-  { "Backspace",      Input::Backspace      },
-  { "Space",          Input::Space          },
-  { "Minus",          Input::Minus          },
-  { "Equals",         Input::Equals         },
-  { "LeftBracket",    Input::LeftBracket    },
-  { "RightBracket",   Input::RightBracket   },
-  { "BackSlash",      Input::BackSlash      },
-  { "Semicolon",      Input::Semicolon      },
-  { "Apostrophe",     Input::Apostrophe     },
-  { "Grave",          Input::Grave          },
-  { "Comma",          Input::Comma          },
-  { "Period",         Input::Period         },
-  { "Slash",          Input::Slash          },
-  { "Tab",            Input::Tab            },
-  { "F1",             Input::F1             },
-  { "F2",             Input::F2             },
-  { "F3",             Input::F3             },
-  { "F4",             Input::F4             },
-  { "F5",             Input::F5             },
-  { "F6",             Input::F6             },
-  { "F7",             Input::F7             },
-  { "F8",             Input::F8             },
-  { "F9",             Input::F9             },
-  { "F10",            Input::F10            },
-  { "F11",            Input::F11            },
-  { "F12",            Input::F12            },
-  { "PrintScreen",    Input::PrintScreen    },
-  { "ScrollLock",     Input::ScrollLock     },
-  { "CapsLock",       Input::CapsLock       },
-  { "Pause",          Input::Pause          },
-  { "Insert",         Input::Insert         },
-  { "Home",           Input::Home           },
-  { "PageUp",         Input::PageUp         },
-  { "Delete",         Input::Delete         },
-  { "End",            Input::End            },
-  { "PageDown",       Input::PageDown       },
-  { "NumPadDivide",   Input::NumPadDivide   },
-  { "NumPadMultiply", Input::NumPadMultiply },
-  { "NumPadMinus",    Input::NumPadMinus    },
-  { "NumPadPlus",     Input::NumPadPlus     },
-  { "Enter",          Input::Enter          },
-  { "NumPad1",        Input::NumPad1        },
-  { "NumPad2",        Input::NumPad2        },
-  { "NumPad3",        Input::NumPad3        },
-  { "NumPad4",        Input::NumPad4        },
-  { "NumPad5",        Input::NumPad5        },
-  { "NumPad6",        Input::NumPad6        },
-  { "NumPad7",        Input::NumPad7        },
-  { "NumPad8",        Input::NumPad8        },
-  { "NumPad9",        Input::NumPad9        },
-  { "NumPad0",        Input::NumPad0        },
-  { "NumPadDot",      Input::NumPadDot      },
-  { "LessOrGreater",  Input::LessOrGreater  },
-  { "Input::APP",     Input::APP            },
-  { "NumPadEquals",   Input::NumPadEquals   },
-  { "LeftCtrl",       Input::LeftCtrl       },
-  { "LeftShift",      Input::LeftShift      },
-  { "LeftAlt",        Input::LeftAlt        },
-  { "LeftMeta",       Input::LeftMeta       },
-  { "RightCtrl",      Input::RightCtrl      },
-  { "RightShift",     Input::RightShift     },
-  { "RightAlt",       Input::RightAlt       },
-  { "RightMeta",      Input::RightMeta      },
-  { "Web",            Input::Web            },
-  { "Mail",           Input::Mail           },
-  { "Calculator",     Input::Calculator     },
-  { "Computer",       Input::Computer       },
-  { "APP1",           Input::APP1           },
-  { "APP2",           Input::APP2           },
-  { "MOUSELEFT",      Input::MouseLeft      },
-  { "MOUSEMIDDLE",    Input::MouseMiddle    },
-  { "MOUSERIGHT",     Input::MouseRight     },
-  { "MouseLeft",      Input::MouseLeft      },
-  { "MouseMiddle",    Input::MouseMiddle    },
-  { "MouseRight",     Input::MouseRight     }
-};
-
-static elementsN(buttonCodes);
-
 void inputBindingInit()
 {
   VALUE input, gamepad;
@@ -536,7 +398,6 @@ void inputBindingInit()
   rb_define_attr(joystick, "last_rumble", 1, 0);
   rb_define_method(joystick, "set_rumble", RMF(input_gamepad_set_rumble), 3);
   input_create_gamepad_types(joystick);
-  gamepad = input_gamepad_new(input);
   rb_iv_set(input, "default_trigger_timer", RB_INT2FIX(TRIGGER_TIMER));
   rb_iv_set(input, "joystick_updates", rb_ary_new());
   module_func(input, "trigger_timer", input_trigger_timer, 0);
@@ -582,15 +443,24 @@ void inputBindingInit()
   module_func(input, "any_char?", input_is_any_char, 0);
   module_func(input, "string", input_string, 0);
   module_func(input, "enable_edit=", input_enable_edit, 1);
-  VALUE sym_hash = rb_hash_new();
-  rb_hash_set_ifnone(sym_hash, ZERO);
+  VALUE key, val, hash = rb_hash_new();
   /* In RGSS3 all Input::XYZ constants are equal to :XYZ symbols,
    * to be compatible with the previous convention */
   for (size_t i = 0; i < buttonCodesN; ++i) {
     ID sym = rb_intern(buttonCodes[i].str);
-    VALUE val = RB_INT2FIX(buttonCodes[i].val);
+    val = RB_INT2FIX(buttonCodes[i].val);
     rb_const_set(input, sym, val);
-    rb_hash_aset(sym_hash, rb_id2sym(sym), val);
+    rb_hash_aset(hash, rb_id2sym(sym), val);
   }
-  getRbData()->buttoncodeHash = sym_hash;
+  getRbData()->buttoncodeHash = hash;
+  rb_hash_set_ifnone(hash, ZERO);
+  hash = rb_hash_new();
+  for (size_t i = 0; i < vendorsN; ++i) {
+    key = RB_INT2FIX(vendors[i].id);
+    val = rstr(vendors[i].name);
+    rb_hash_aset(hash, key, val);
+  }
+  rb_hash_set_ifnone(hash, rb_const_get(joystick,rb_intern("DEFAULT_VENDOR")));
+  rb_cvar_set(joystick, rb_intern("vendors"), hash);
+  gamepad = input_gamepad_new(input);
 }

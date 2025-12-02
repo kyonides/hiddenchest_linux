@@ -3,7 +3,7 @@
 **
 ** This file is part of HiddenChest
 **
-** Copyright (C) 2018-2024 Kyonides-Arkanthes
+** Copyright (C) 2018-2025 Kyonides-Arkanthes
 */
 
 #include "resolution.h"
