@@ -3,7 +3,7 @@
 **
 ** This file is part of HiddenChest
 **
-** Copyright (C) 2018-2025 Kyonides-Arkanthes
+** Copyright (C) 2018-2024 Kyonides-Arkanthes
 */
 
 #include "resolution.h"
@@ -68,7 +68,7 @@ static VALUE game_set_icon(VALUE self, VALUE icon_name)
 
 static VALUE game_set_internal_values(VALUE self)
 {
-  VALUE sys, sfonts, rversion, width, height, ttl, ver;
+  VALUE sys, sfonts, rversion, width, height, ver, user_path;
   VALUE scr, path, enc_ary, rtp_ary, icon, sfont, subimg;
   sys = rb_define_module("System");
   sfonts = rb_const_get(sys, rb_intern("SOUNDFONT_DIR"));
@@ -81,6 +81,8 @@ static VALUE game_set_internal_values(VALUE self)
   rtp_ary = rb_const_get(self, rb_intern("RTP"));
   subimg = rb_const_get(self, rb_intern("SUBIMAGEFIX"));
   sfont = rb_iv_get(self, "@soundfont");
+  user_path = rb_iv_get(self, "@user_path");
+  user_path = rb_str_plus(user_path, rstr("/"));
   int rgss, w, h, rtp_len, enc_len;
   rgss = RB_FIX2INT(rversion);
   w = RB_FIX2INT(width);
@@ -113,6 +115,8 @@ static VALUE game_set_internal_values(VALUE self)
   shState->check_encrypted_game_files(enc_names);
   shState->check_soundfont_dir(sf_dir);
   shState->config().subImageFix = subimg == Qtrue;
+  shState->config().customDataPath = RSTRING_PTR(user_path);
+  shState->reset_keybindings_path();
   if (RSTRING_LEN(sfont) > 4)
     shState->midiState().set_default_soundfont(sf);
   return Qnil;

@@ -186,7 +186,7 @@ struct Header
 static void buildPath(const std::string &dir, uint32_t rgssVersion,
                       char *out, size_t outSize)
 {
-	snprintf(out, outSize, "%skeybindings.mkxp%u", dir.c_str(), rgssVersion);
+	snprintf(out, outSize, "%skeybindings.hc%u", dir.c_str(), rgssVersion);
 }
 
 static bool writeBindings(const BDescVec &d, const std::string &dir,
@@ -194,42 +194,32 @@ static bool writeBindings(const BDescVec &d, const std::string &dir,
 {
 	if (dir.empty())
 		return false;
-
 	char path[1024];
 	buildPath(dir, rgssVersion, path, sizeof(path));
-
 	FILE *f = fopen(path, "wb");
-
 	if (!f)
 		return false;
-
 	Header hd;
 	hd.formVer = FORMAT_VER;
 	hd.rgssVer = rgssVersion;
 	hd.count = d.size();
-
-	if (fwrite(&hd, sizeof(hd), 1, f) < 1)
-	{
+	if (fwrite(&hd, sizeof(hd), 1, f) < 1) {
 		fclose(f);
 		return false;
 	}
-
-	if (fwrite(&d[0], sizeof(d[0]), hd.count, f) < hd.count)
-	{
+	if (fwrite(&d[0], sizeof(d[0]), hd.count, f) < hd.count) {
 		fclose(f);
 		return false;
 	}
-
 	fclose(f);
 	return true;
 }
 
 void storeBindings(const BDescVec &d, const Config &conf)
 {
-	if (writeBindings(d, conf.customDataPath, conf.rgssVersion))
-		return;
-
-	writeBindings(d, conf.commonDataPath, conf.rgssVersion);
+  if (writeBindings(d, conf.customDataPath, conf.rgssVersion))
+    return;
+  writeBindings(d, conf.commonDataPath, conf.rgssVersion);
 }
 
 #define READ(ptr, size, n, f) if (fread(ptr, size, n, f) < n) return false
@@ -283,22 +273,16 @@ static bool readBindings(BDescVec &out, const std::string &dir,
 {
 	if (dir.empty())
 		return false;
-
 	char path[1024];
 	buildPath(dir, rgssVersion, path, sizeof(path));
-
 	FILE *f = fopen(path, "rb");
-
 	if (!f)
 		return false;
-
 	Header hd;
-	if (fread(&hd, sizeof(hd), 1, f) < 1)
-	{
+	if (fread(&hd, sizeof(hd), 1, f) < 1)	{
 		fclose(f);
 		return false;
 	}
-
 	if (hd.formVer != FORMAT_VER)
 		return false;
 	if (hd.rgssVer != rgssVersion)
@@ -306,30 +290,28 @@ static bool readBindings(BDescVec &out, const std::string &dir,
 	/* Arbitrary max value */
 	if (hd.count > 1024)
 		return false;
-
 	out.resize(hd.count);
-	if (fread(&out[0], sizeof(out[0]), hd.count, f) < hd.count)
-	{
+	if (fread(&out[0], sizeof(out[0]), hd.count, f) < hd.count) {
 		fclose(f);
 		return false;
 	}
-
 	for (size_t i = 0; i < hd.count; ++i)
 		if (!verifyDesc(out[i]))
 			return false;
-
 	return true;
 }
 
 BDescVec loadBindings(const Config &conf)
 {
 	BDescVec d;
-
 	if (readBindings(d, conf.customDataPath, conf.rgssVersion))
 		return d;
-
 	if (readBindings(d, conf.commonDataPath, conf.rgssVersion))
 		return d;
+	return genDefaultBindings(conf);
+}
 
+BDescVec load_generic_bindings(const Config &conf)
+{
 	return genDefaultBindings(conf);
 }

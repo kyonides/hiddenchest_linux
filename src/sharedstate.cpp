@@ -164,6 +164,11 @@ void SharedState::check_soundfont_dir(const char *sf_dir)
   p->fileSystem.addPath(sf_dir);
 }
 
+void SharedState::reset_keybindings_path()
+{
+  p->rtData.bindingUpdateMsg.post(loadBindings(p->config));
+}
+
 void SharedState::initInstance(RGSSThreadData *threadData)
 {
   /* This section is tricky because of dependencies:

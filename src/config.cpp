@@ -151,6 +151,8 @@ Config::Config()
 	allowSymlinks = false;
 	dataPathOrg = "";
 	dataPathApp = "";
+	customDataPath = ".";
+	commonDataPath = ".";
 	iconPath = "";
 	execName = "Game";
 	titleLanguage = "";
@@ -184,10 +186,10 @@ void Config::read(int argc, char *argv[])
     }
   }
   rgssVersion = clamp(rgssVersion, 0, 4);
-  SE.sourceCount = clamp(SE.sourceCount, 12, 64);
-  if (!dataPathOrg.empty() && !dataPathApp.empty())
-    customDataPath = prefPath(dataPathOrg.c_str(), dataPathApp.c_str());
-  commonDataPath = prefPath(".", "hiddenchest");
+  SE.sourceCount = clamp(SE.sourceCount, 6, 64);
+  //if (!dataPathOrg.empty() && !dataPathApp.empty())
+  //  customDataPath = prefPath(dataPathOrg.c_str(), dataPathApp.c_str());
+  //commonDataPath = prefPath(".", "hiddenchest");
 }
 
 static std::string baseName(const std::string &path)

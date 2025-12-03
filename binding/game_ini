@@ -252,8 +252,8 @@ module Game
     set_exe_ini_names
     process_main_ini
     set_basic_values
-    set_internal_values
     create_user_dirs
+    set_internal_values
     if System.linux?
       Graphics.wait(60)
     end

@@ -58,6 +58,7 @@ struct SharedState
 {
 	void check_encrypted_game_files(std::vector<std::string> &game_fn);
 	void check_soundfont_dir(const char *sf_dir);
+	void reset_keybindings_path();
 	void *bindingData() const;
 	void setBindingData(void *data);
 
