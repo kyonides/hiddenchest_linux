@@ -316,7 +316,7 @@ static VALUE input_last_char(VALUE self)
   if (n == Qnil)
     return Qnil;
   if (SDL_GetModState() & 0x2000)
-    return rb_funcall(n, rb_intern("upcase"), 0);
+    return n;
   else
     return rb_funcall(n, rb_intern("downcase"), 0);
 }
@@ -325,6 +325,11 @@ static VALUE input_last_key_clear(VALUE self)
 {
   shState->input().last_key_clear();
   return ZERO;
+}
+
+static VALUE input_capslock_state(VALUE self)
+{
+  return SDL_GetModState() & 0x2000 ? Qtrue : Qfalse;
 }
 
 static VALUE input_text_input(VALUE self)
@@ -463,6 +468,7 @@ void inputBindingInit()
   module_func(input, "last_key?", input_is_last_key, 0);
   module_func(input, "last_key", input_last_key, 0);
   module_func(input, "last_char", input_last_char, 0);
+  module_func(input, "capslock_state", input_capslock_state, 0);
   module_func(input, "text_input", input_text_input, 0);
   module_func(input, "text_input=", input_text_input_set, 1);
   module_func(input, "clear_last_key", input_last_key_clear, 0);

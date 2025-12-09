@@ -65,16 +65,17 @@ class KEnterText
     elsif Input.trigger?(Input::Enter) or Input.trigger?(Input::Return)
       Graphics.screenshot
       return
-    elsif Input.trigger?(Input::Backspace)
+    elsif Input.repeat?(Input::Backspace)
       Sound.play_buzzer
       @chars.pop
       refresh_text
       return
-    elsif Input.trigger?(Input::LeftShift) or Input.trigger?(Input::RightShift)
-      return
-    elsif Input.last_key?
+    elsif Input.trigger_any? and Input.last_key?
       Sound.play_equip
       char = Input.last_char
+      if Input.press?(Input::SHIFT)
+        char = Input.capslock_state ? char.downcase : char.upcase
+      end
       @chars << char
       @chars.compact!
       refresh_text

@@ -65,16 +65,17 @@ class KEnterText
     elsif Input.trigger?(Input::Enter) or Input.trigger?(Input::Return)
       Graphics.screenshot
       return
-    elsif Input.trigger?(Input::Backspace)
+    elsif Input.repeat?(Input::Backspace)
       $game_system.se_play($data_system.buzzer_se)
       @chars.pop
       refresh_text
       return
-    elsif Input.trigger?(Input::LeftShift) or Input.trigger?(Input::RightShift)
-      return
-    elsif Input.last_key?
+    elsif Input.trigger_any? and Input.last_key?
       $game_system.se_play($data_system.equip_se)
       char = Input.last_char
+      if Input.press?(Input::SHIFT)
+        char = Input.capslock_state ? char.downcase : char.upcase
+      end
       @chars << char
       @chars.compact!
       refresh_text

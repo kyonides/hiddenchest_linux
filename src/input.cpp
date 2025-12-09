@@ -722,8 +722,7 @@ struct InputPrivate
   {
     for (size_t i = 0; i < bindings.size(); ++i)
       pollBindingPriv(*bindings[i], repeat_btn);
-    poll_alt_ctrl();
-    poll_shift();
+    poll_alt_ctrl_shift_main();
     updateDir4();
     updateDir8();
   }
@@ -770,7 +769,7 @@ struct InputPrivate
   {
     for (size_t i = 0; i < char_kb_bindingsN; ++i)
       poll_binding_text_priv(*text_bindings[i], repeat_btn);
-    poll_shift();
+    //poll_shift();
   }
 
   void poll_binding_text_priv(const Binding &b, Input::ButtonCode &repeat_btn)
@@ -789,6 +788,7 @@ struct InputPrivate
       state.triggered = true;
       trigger_any = true;
       trigger_old = trigger_new;
+      trigger_new = btn;
       trigger_now = btn;
       if (trigger_old == btn && trigger_timer == 0)
         trigger_old = Input::None;
@@ -884,7 +884,7 @@ struct InputPrivate
     }
   }
 
-  void poll_alt_ctrl()
+  void poll_alt_ctrl_shift_main()
   {
     getState(Input::Alt).pressed = getState(Input::LeftAlt).pressed ||
       getState(Input::RightAlt).pressed;
@@ -898,16 +898,22 @@ struct InputPrivate
       getState(Input::RightCtrl).triggered;
     getState(Input::Ctrl).repeated = getState(Input::LeftCtrl).repeated ||
       getState(Input::RightCtrl).repeated;
-  }
-
-  void poll_shift()
-  {
     getState(Input::Shift).pressed = getState(Input::LeftShift).pressed ||
       getState(Input::RightShift).pressed;
     getState(Input::Shift).triggered = getState(Input::LeftShift).triggered ||
       getState(Input::RightShift).triggered;
     getState(Input::Shift).repeated = getState(Input::LeftShift).repeated ||
       getState(Input::RightShift).repeated;
+  }
+
+  void poll_shift()
+  {
+    get_text_state(Input::Shift).pressed = get_text_state(Input::LeftShift).pressed ||
+      get_text_state(Input::RightShift).pressed;
+    get_text_state(Input::Shift).triggered = get_text_state(Input::LeftShift).triggered ||
+      get_text_state(Input::RightShift).triggered;
+    get_text_state(Input::Shift).repeated = get_text_state(Input::LeftShift).repeated ||
+      get_text_state(Input::RightShift).repeated;
   }
 
   bool is_same_trigger(int button)
@@ -973,15 +979,15 @@ void Input::text_update()
   if (repeat_btn != None && repeat_btn != p->repeating) {
     p->repeating = repeat_btn;
     p->repeatCount = 0;
-    p->getState(repeat_btn).repeated = true;
+    p->get_text_state(repeat_btn).repeated = true;
     return;
   }
   // Check if repeating key is still pressed
-  if (p->getState(p->repeating).pressed) {
+  if (p->get_text_state(p->repeating).pressed) {
     p->repeatCount++;
     bool repeated;
     repeated = p->repeatCount >= 23 && ((p->repeatCount+1) % 6) == 0;
-    p->getState(p->repeating).repeated |= repeated;
+    p->get_text_state(p->repeating).repeated |= repeated;
     return;
   }
   p->repeating = None;
@@ -1128,8 +1134,7 @@ bool Input::is_mouse_scroll_y(bool go_up)
 
 bool Input::isPressed(int button)
 {
-  ButtonState state;
-  state = p->get_current_state_check(button);
+  ButtonState state = p->get_current_state_check(button);
   if (button == MouseLeft || button == MouseRight)
     if (state.triggered)
       return false;
@@ -1139,7 +1144,7 @@ bool Input::isPressed(int button)
 bool Input::isTriggered(int button)
 {
   if (button == MouseLeft || button == MouseRight) {
-    bool trig = p->getStateCheck(button).triggered;
+    bool trig = p->get_current_state_check(button).triggered;
     p->get_current_state_check(button).triggered = false;
     return trig;
   }
@@ -1171,8 +1176,7 @@ bool Input::is_last_key()
   int k = p->trigger_now;
   if (!k)
     return false;
-  return k != Backspace && k != Delete && k != Enter && k != Return &&
-         k != LeftShift && k != RightShift;
+  return k != Backspace && k != Delete && k != Enter && k != Return && k != Shift;
 }
 
 bool Input::text_input()
@@ -1187,9 +1191,7 @@ void Input::set_text_input(bool state)
 
 int Input::last_key()
 {
-  int key = p->trigger_now;
-  p->trigger_now = 0;
-  return key;
+  return p->trigger_now;
 }
 
 void Input::last_key_clear()
