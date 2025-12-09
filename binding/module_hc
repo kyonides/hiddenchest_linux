@@ -62,7 +62,7 @@ class Scene
 
   def terminate
     Graphics.freeze
-    @sprites.each{|sprite| sprite.dispose }
+    @sprites.each {|sprite| sprite.dispose }
   end
 end
 

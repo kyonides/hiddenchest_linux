@@ -28,8 +28,8 @@
 #include "exception.h"
 #include "binding-util.h"
 #include "util.h"
-#include "etc.h"
 #include "hcextras.h"
+#include <SDL_keyboard.h>
 
 #define ZERO RB_INT2FIX(0)
 #define SUBZERO RB_INT2FIX(-1)
@@ -101,7 +101,7 @@ static void joystick_state_change(VALUE input)
   shState->input().reset_joystick_change();
 }
 
-static VALUE inputUpdate(VALUE self)
+static VALUE input_update(VALUE self)
 {
   shState->input().update();
   joystick_state_change(self);
@@ -156,13 +156,13 @@ static VALUE input_trigger_double(VALUE self, VALUE number)
 
 static VALUE input_trigger_last(VALUE self)
 {
-  int num = shState->input().is_triggered_last();
+  int num = shState->input().triggered_last();
   return RB_INT2FIX(num);
 }
 
 static VALUE input_trigger_old(VALUE self)
 {
-  int num = shState->input().is_triggered_old();
+  int num = shState->input().triggered_old();
   return RB_INT2FIX(num);
 }
 
@@ -296,6 +296,54 @@ static VALUE input_double_right_click(VALUE self)
   return shState->input().is_double_right_click() ? Qtrue : Qfalse; 
 }
 
+static VALUE input_is_last_key(VALUE self)
+{
+  return shState->input().is_last_key() ? Qtrue : Qfalse;
+}
+
+static VALUE input_last_key(VALUE self)
+{
+  int key = shState->input().last_key();
+  return RB_INT2FIX(key);
+}
+
+static VALUE input_last_char(VALUE self)
+{
+  VALUE n, hash;
+  n = input_last_key(self);
+  hash = rb_const_get(self, rb_intern("KEY2CHAR"));
+  n = rb_hash_aref(hash, n);
+  if (n == Qnil)
+    return Qnil;
+  if (SDL_GetModState() & 0x2000)
+    return rb_funcall(n, rb_intern("upcase"), 0);
+  else
+    return rb_funcall(n, rb_intern("downcase"), 0);
+}
+
+static VALUE input_last_key_clear(VALUE self)
+{
+  shState->input().last_key_clear();
+  return ZERO;
+}
+
+static VALUE input_text_input(VALUE self)
+{
+  return rb_iv_get(self, "text_input");
+}
+
+static VALUE input_text_input_set(VALUE self, VALUE state)
+{
+  shState->input().set_text_input(state == Qtrue);
+  return rb_iv_set(self, "text_input", state);
+}
+
+static VALUE input_text_input_clear(VALUE self)
+{
+  input_last_key_clear(self);
+  return input_text_input_set(self, Qfalse);
+}
+
 static VALUE input_joystick(VALUE self)
 {
   return rb_iv_get(self, "gamepad");
@@ -315,23 +363,6 @@ static VALUE input_joystick_update(VALUE self)
 static VALUE input_joystick_updates(VALUE self)
 {
   return rb_iv_get(self, "joystick_updates");
-}
-
-static VALUE input_is_any_char(VALUE self)
-{
-  return shState->input().is_any_char() ? Qtrue : Qfalse;
-}
-
-static VALUE input_string(VALUE self)
-{
-  VALUE str = rb_utf8_str_new_cstr(shState->input().string());
-  return rb_funcall(str, rb_intern("strip"), 0);
-}//return rb_funcall(str, rb_intern("gsub"), 2, rb_str_new_cstr("\x00"), rb_str_new_cstr(""));
-
-static VALUE input_enable_edit(VALUE self, VALUE boolean)
-{
-  shState->input().enableMode(boolean == Qtrue);
-  return boolean;
 }
 
 static VALUE input_trigger_timer(VALUE self)
@@ -398,6 +429,7 @@ void inputBindingInit()
   rb_define_attr(joystick, "last_rumble", 1, 0);
   rb_define_method(joystick, "set_rumble", RMF(input_gamepad_set_rumble), 3);
   input_create_gamepad_types(joystick);
+  rb_iv_set(input, "text_input", Qfalse);
   rb_iv_set(input, "default_trigger_timer", RB_INT2FIX(TRIGGER_TIMER));
   rb_iv_set(input, "joystick_updates", rb_ary_new());
   module_func(input, "trigger_timer", input_trigger_timer, 0);
@@ -405,7 +437,7 @@ void inputBindingInit()
   module_func(input, "base_trigger_timer=", input_default_trigger_timer_set, 1);
   module_func(input, "default_trigger_timer", input_default_trigger_timer, 0);
   module_func(input, "default_trigger_timer=", input_default_trigger_timer_set, 1);
-  module_func(input, "update", inputUpdate, 0);
+  module_func(input, "update", input_update, 0);
   module_func(input, "left_click?", input_left_click, 0);
   module_func(input, "middle_click?", input_middle_click, 0);
   module_func(input, "right_click?", input_right_click, 0);
@@ -428,6 +460,13 @@ void inputBindingInit()
   module_func(input, "repeat?", inputRepeat, 1);
   module_func(input, "repeat_left_click?", input_repeat_left_click, 0);
   module_func(input, "repeat_right_click?", input_repeat_right_click, 0);
+  module_func(input, "last_key?", input_is_last_key, 0);
+  module_func(input, "last_key", input_last_key, 0);
+  module_func(input, "last_char", input_last_char, 0);
+  module_func(input, "text_input", input_text_input, 0);
+  module_func(input, "text_input=", input_text_input_set, 1);
+  module_func(input, "clear_last_key", input_last_key_clear, 0);
+  module_func(input, "clear_text_input", input_text_input_clear, 0);
   module_func(input, "gamepad", input_joystick, 0);
   module_func(input, "joystick", input_joystick, 0);
   module_func(input, "gamepad?", input_has_joystick, 0);
@@ -440,9 +479,6 @@ void inputBindingInit()
   module_func(input, "dir8", inputDir8, 0);
   module_func(input, "dir4?", input_is_dir4, 0);
   module_func(input, "dir8?", input_is_dir8, 0);
-  module_func(input, "any_char?", input_is_any_char, 0);
-  module_func(input, "string", input_string, 0);
-  module_func(input, "enable_edit=", input_enable_edit, 1);
   VALUE key, val, hash = rb_hash_new();
   /* In RGSS3 all Input::XYZ constants are equal to :XYZ symbols,
    * to be compatible with the previous convention */
@@ -462,5 +498,12 @@ void inputBindingInit()
   }
   rb_hash_set_ifnone(hash, rb_const_get(joystick,rb_intern("DEFAULT_VENDOR")));
   rb_cvar_set(joystick, rb_intern("vendors"), hash);
+  hash = rb_hash_new();
+  for (size_t i = 0; i < buttonStringsN; ++i) {
+    key = RB_INT2FIX(buttonStrings[i].code);
+    val = rstr(buttonStrings[i].str);
+    rb_hash_aset(hash, key, val);
+  }
+  rb_const_set(input, rb_intern("KEY2CHAR"), hash);
   gamepad = input_gamepad_new(input);
 }

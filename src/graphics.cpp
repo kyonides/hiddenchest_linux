@@ -1061,6 +1061,7 @@ bool Graphics::save_screenshot()
 {
   time_t rt = time(NULL);
   tm *tmp = localtime(&rt);
+  Debug() << screenshot_dir;
   char str[500];
   sprintf(str, "%s/%s_%d-%02d-%02d_%02dh%02dm%02ds.%s",
           screenshot_dir.c_str(), screenshot_fn.c_str(),

@@ -162,13 +162,18 @@ static VALUE graphics_snap2color_bitmap(VALUE self, VALUE color)
   return obj;
 }
 
+static VALUE graphics_set_screenshot_dir(VALUE self, VALUE directory)
+{
+  directory = rb_funcall(directory, rb_intern("to_s"), 0);
+  const char *dir = RSTRING_PTR(directory);
+  shState->graphics().set_screenshot_dir(dir);
+  return directory;
+}
+
 static VALUE graphics_save_screenshot(VALUE self)
 {
-  bool result = false;
-  VALUE game = rb_const_get(rb_cObject, rb_intern("Game"));
-  safe_mkdir(rb_iv_get(game, "@shot_dir"));
-  result = shState->graphics().save_screenshot();
-  return result;
+  bool result = shState->graphics().save_screenshot();
+  return result ? Qtrue : Qfalse;
 }
 
 static VALUE graphics_resize_screen(int n, VALUE *args, VALUE self)
@@ -354,6 +359,7 @@ void graphicsBindingInit()
   module_func(graph, "snap_to_gray_bitmap", graphics_snap2gray_bitmap, 0);
   module_func(graph, "snap_to_sepia_bitmap", graphics_snap2sepia_bitmap, 0);
   module_func(graph, "snap_to_color_bitmap", graphics_snap2color_bitmap, 1);
+  module_func(graph, "screenshot_dir=", graphics_set_screenshot_dir, 1);
   module_func(graph, "save_screenshot", graphics_save_screenshot, 0);
   module_func(graph, "screenshot", graphics_save_screenshot, 0);
   module_func(graph, "snapshot", graphics_save_screenshot, 0);

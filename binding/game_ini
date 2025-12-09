@@ -226,6 +226,7 @@ module Game
     unless Dir.exist?(@shot_path)
       Dir.mkdir(@shot_path)
     end
+    Graphics.screenshot_dir = @shot_path
   rescue => e
     puts e.class, e.message, e.backtrace
   end

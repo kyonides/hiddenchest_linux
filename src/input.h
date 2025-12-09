@@ -66,6 +66,8 @@ public:
     MouseLeft = 130, MouseMiddle = 131, MouseRight = 132,
   };
   void update();
+  void main_update();
+  void text_update();
   int timer() const;
   int trigger_timer() const;
   int trigger_base_timer() const;
@@ -95,8 +97,13 @@ public:
   bool is_pressed_any();
   bool is_triggered_any();
   bool is_triggered_double(int button);
-  int is_triggered_last();
-  int is_triggered_old();
+  bool is_last_key();
+  bool text_input();
+  void set_text_input(bool state);
+  int last_key();
+  void last_key_clear();
+  int triggered_last();
+  int triggered_old();
   int dir4Value();
   int dir8Value();
   bool is_dir4();
@@ -119,9 +126,6 @@ public:
   int joystick_set_rumble(int lfr, int rfr, int ms);
   int joystick_change();
   void reset_joystick_change();
-  bool is_any_char();
-  char* string();
-  void enableMode(bool state);
 
 private:
   Input(const RGSSThreadData &rtData);

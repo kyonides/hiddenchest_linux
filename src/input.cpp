@@ -305,6 +305,88 @@ static const KbBindingData staticKbBindings[] =
 
 static elementsN(staticKbBindings);
 
+// Keys for Text Input - Not rebindable
+static const KbBindingData char_kb_bindings[] =
+{
+  { SDL_SCANCODE_LSHIFT,         Input::Shift },
+  { SDL_SCANCODE_RSHIFT,         Input::Shift },
+  { SDL_SCANCODE_LCTRL,          Input::Ctrl },
+  { SDL_SCANCODE_RCTRL,          Input::Ctrl },
+  { SDL_SCANCODE_A,              Input::KeyA },
+  { SDL_SCANCODE_B,              Input::KeyB },
+  { SDL_SCANCODE_C,              Input::KeyC },
+  { SDL_SCANCODE_D,              Input::KeyD },
+  { SDL_SCANCODE_E,              Input::KeyE },
+  { SDL_SCANCODE_F,              Input::KeyF },
+  { SDL_SCANCODE_G,              Input::KeyG },
+  { SDL_SCANCODE_H,              Input::KeyH },
+  { SDL_SCANCODE_I,              Input::KeyI },
+  { SDL_SCANCODE_J,              Input::KeyJ },
+  { SDL_SCANCODE_K,              Input::KeyK },
+  { SDL_SCANCODE_L,              Input::KeyL },
+  { SDL_SCANCODE_M,              Input::KeyM },
+  { SDL_SCANCODE_N,              Input::KeyN },
+  { SDL_SCANCODE_O,              Input::KeyO },
+  { SDL_SCANCODE_P,              Input::KeyP },
+  { SDL_SCANCODE_Q,              Input::KeyQ },
+  { SDL_SCANCODE_R,              Input::KeyR },
+  { SDL_SCANCODE_S,              Input::KeyS },
+  { SDL_SCANCODE_T,              Input::KeyT },
+  { SDL_SCANCODE_U,              Input::KeyU },
+  { SDL_SCANCODE_V,              Input::KeyV },
+  { SDL_SCANCODE_W,              Input::KeyW },
+  { SDL_SCANCODE_X,              Input::KeyX },
+  { SDL_SCANCODE_Y,              Input::KeyY },
+  { SDL_SCANCODE_Z,              Input::KeyZ },
+  { SDL_SCANCODE_1,              Input::N1   },
+  { SDL_SCANCODE_2,              Input::N2   },
+  { SDL_SCANCODE_3,              Input::N3   },
+  { SDL_SCANCODE_4,              Input::N4   },
+  { SDL_SCANCODE_5,              Input::N5   },
+  { SDL_SCANCODE_6,              Input::N6   },
+  { SDL_SCANCODE_7,              Input::N7   },
+  { SDL_SCANCODE_8,              Input::N8   },
+  { SDL_SCANCODE_9,              Input::N9   },
+  { SDL_SCANCODE_0,              Input::N0   },
+  { SDL_SCANCODE_RETURN,         Input::Return         },
+  { SDL_SCANCODE_ESCAPE,         Input::Escape         },
+  { SDL_SCANCODE_BACKSPACE,      Input::Backspace      },
+  { SDL_SCANCODE_SPACE,          Input::Space          },
+  { SDL_SCANCODE_MINUS,          Input::Minus          },
+  { SDL_SCANCODE_EQUALS,         Input::Equals         },
+  { SDL_SCANCODE_LEFTBRACKET,    Input::LeftBracket    },
+  { SDL_SCANCODE_RIGHTBRACKET,   Input::RightBracket   },
+  { SDL_SCANCODE_BACKSLASH,      Input::BackSlash      },
+  { SDL_SCANCODE_SEMICOLON,      Input::Semicolon      },
+  { SDL_SCANCODE_APOSTROPHE,     Input::Apostrophe     },
+  { SDL_SCANCODE_GRAVE,          Input::Grave          },
+  { SDL_SCANCODE_COMMA,          Input::Comma          },
+  { SDL_SCANCODE_PERIOD,         Input::Period         },
+  { SDL_SCANCODE_SLASH,          Input::Slash          },
+  { SDL_SCANCODE_CAPSLOCK,       Input::CapsLock       },
+  { SDL_SCANCODE_PAUSE,          Input::Pause          },
+  { SDL_SCANCODE_INSERT,         Input::Insert         },
+  { SDL_SCANCODE_DELETE,         Input::Delete         },
+  { SDL_SCANCODE_KP_MINUS,       Input::NumPadMinus    },
+  { SDL_SCANCODE_KP_PLUS,        Input::NumPadPlus     },
+  { SDL_SCANCODE_KP_ENTER,       Input::Enter          },
+  { SDL_SCANCODE_KP_1,           Input::NumPad1        },
+  { SDL_SCANCODE_KP_2,           Input::NumPad2        },
+  { SDL_SCANCODE_KP_3,           Input::NumPad3        },
+  { SDL_SCANCODE_KP_4,           Input::NumPad4        },
+  { SDL_SCANCODE_KP_5,           Input::NumPad5        },
+  { SDL_SCANCODE_KP_6,           Input::NumPad6        },
+  { SDL_SCANCODE_KP_7,           Input::NumPad7        },
+  { SDL_SCANCODE_KP_8,           Input::NumPad8        },
+  { SDL_SCANCODE_KP_9,           Input::NumPad9        },
+  { SDL_SCANCODE_KP_0,           Input::NumPad0        },
+  { SDL_SCANCODE_KP_PERIOD,      Input::NumPadDot      },
+  { SDL_SCANCODE_NONUSBACKSLASH, Input::LessOrGreater  },
+  { SDL_SCANCODE_KP_EQUALS,      Input::NumPadEquals   },
+};
+
+static elementsN(char_kb_bindings);
+
 static const Input::ButtonCode dirs[] =
 { Input::Down, Input::Left, Input::Right, Input::Up };
 
@@ -335,15 +417,19 @@ struct InputPrivate
 {
   std::vector<KbBinding> kbStatBindings;
   std::vector<KbBinding> kbBindings;
+  std::vector<KbBinding> min_kb_bindings;
   std::vector<JsAxisBinding> jsABindings;
   std::vector<JsHatBinding> jsHBindings;
   std::vector<JsButtonBinding> jsBBindings;
   std::vector<MsBinding> msBindings;
   // Collective binding array
   std::vector<Binding*> bindings;
+  std::vector<Binding*> text_bindings;
   ButtonState stateArray[520 * 2]; // stateArray[BUTTON_CODE_COUNT*2];
   ButtonState *states;
   ButtonState *statesOld;
+  ButtonState *text_states;
+  ButtonState *text_states_old;
   Input::ButtonCode btn;
   Input::ButtonCode repeating;
   Input::ButtonCode trigger_old;
@@ -366,6 +452,8 @@ struct InputPrivate
   int old_scroll_y;
   int scroll_factor;
   int scroll_remainder;
+  int trigger_now;
+  bool text_input;
   bool same_mouse_pos;
   bool press_any = false;
   bool trigger_any = false;
@@ -384,18 +472,26 @@ struct InputPrivate
   InputPrivate(const RGSSThreadData &rtData, Input *parent)
   {
     input = parent;
+    text_input = false;
     same_mouse_pos = false;
+    init_char_kb_bindings();
     initStaticKbBindings();
     initMsBindings();
     // Main thread should have these posted by now
     checkBindingChange(rtData);
     states    = stateArray;
     statesOld = stateArray + 520; // + BUTTON_CODE_COUNT;
+    text_states     = stateArray;
+    text_states_old = stateArray + 520;
     scroll_factor = SCROLL_FACTOR;
     // Clear buffers
     clearBuffer();
     swapBuffers();
     clearBuffer();
+    clear_text_buffer();
+    swap_text_buffers();
+    clear_text_buffer();
+    trigger_now = 0;
     trigger_old = Input::None;
     trigger_new = Input::None;
     repeating = Input::None;
@@ -436,6 +532,40 @@ struct InputPrivate
     trigger_any = false;
   }
 
+  inline ButtonState &get_text_state_check(int code)
+  {
+    return (code < 0 ? text_states[0] : text_states[code]);
+  }
+
+  inline ButtonState &get_text_state(Input::ButtonCode code)
+  {
+    return (code < 0 ? text_states[0] : text_states[code]);
+  }
+
+  inline ButtonState &get_text_old_state(Input::ButtonCode code)
+  {
+    return (code < 0 ? text_states[0] : text_states_old[code]);
+  }
+  
+  void swap_text_buffers()
+  {
+    ButtonState *tmp = text_states;
+    text_states = text_states_old;
+    text_states_old = tmp;
+  }
+
+  void clear_text_buffer()
+  {
+    memset(text_states, 0, 300 * 2);
+    press_any = false;
+    trigger_any = false;
+  }
+
+  inline ButtonState &get_current_state_check(int code)
+  {
+    return text_input ? get_text_state_check(code) : getStateCheck(code);
+  }
+
   void checkBindingChange(const RGSSThreadData &rtData)
   {
     BDescVec d;
@@ -449,6 +579,13 @@ struct InputPrivate
   {
     for (size_t i = 0; i < bind.size(); ++i)
       bindings.push_back(&bind[i]);
+  }
+
+  template<class B>
+  void append_text_bindings(std::vector<B> &bind)
+  {
+    for (size_t i = 0; i < bind.size(); ++i)
+      text_bindings.push_back(&bind[i]);
   }
 
   void applyBindingDesc(const BDescVec &d)
@@ -511,6 +648,18 @@ struct InputPrivate
     appendBindings(jsABindings);
     appendBindings(jsHBindings);
     appendBindings(jsBBindings);
+    text_bindings.clear();
+    append_text_bindings(min_kb_bindings);
+    append_text_bindings(msBindings);
+  }
+
+  void init_char_kb_bindings()
+  {
+    trigger_base_timer = TRIGGER_TIMER;
+    trigger_timer = 0;
+    min_kb_bindings.clear();
+    for (size_t i = 0; i < char_kb_bindingsN; ++i)
+      min_kb_bindings.push_back(KbBinding(char_kb_bindings[i]));
   }
 
   void initStaticKbBindings()
@@ -573,7 +722,8 @@ struct InputPrivate
   {
     for (size_t i = 0; i < bindings.size(); ++i)
       pollBindingPriv(*bindings[i], repeat_btn);
-    poll_alt_ctrl_shift();
+    poll_alt_ctrl();
+    poll_shift();
     updateDir4();
     updateDir8();
   }
@@ -613,6 +763,51 @@ struct InputPrivate
       }
     }
     if (repeating != btn && !oldState.pressed)
+      repeat_btn = btn;
+  }
+
+  void poll_bindings4text(Input::ButtonCode &repeat_btn)
+  {
+    for (size_t i = 0; i < char_kb_bindingsN; ++i)
+      poll_binding_text_priv(*text_bindings[i], repeat_btn);
+    poll_shift();
+  }
+
+  void poll_binding_text_priv(const Binding &b, Input::ButtonCode &repeat_btn)
+  {
+    if (!b.sourceActive())
+      return;
+    btn = b.target;
+    if (btn == Input::None)
+      return;
+    ButtonState &state = get_text_state(btn);
+    ButtonState &state_old = get_text_old_state(btn);
+    state.pressed = true;
+    press_any = true;
+    // Must have been released before to trigger it
+    if (!state_old.pressed) {
+      state.triggered = true;
+      trigger_any = true;
+      trigger_old = trigger_new;
+      trigger_now = btn;
+      if (trigger_old == btn && trigger_timer == 0)
+        trigger_old = Input::None;
+      if (trigger_old != btn)
+        trigger_timer = trigger_base_timer;
+      // Double Click Check
+      if (btn == Input::MouseLeft || btn == Input::MouseRight) {
+        clicks = (btn == double_target)? 2 : 1;
+        if (clicks == 1) {
+          set_click(btn);
+        } else if (clicks == 2) {
+          click_timer = 0;
+          same_mouse_pos = (input->mouseX() == last_mx && input->mouseY() == last_my);
+        }
+      } else {
+        clear_unused_clicks();
+      }
+    }
+    if (repeating != btn && !state_old.pressed)
       repeat_btn = btn;
   }
 
@@ -689,7 +884,7 @@ struct InputPrivate
     }
   }
 
-  void poll_alt_ctrl_shift()
+  void poll_alt_ctrl()
   {
     getState(Input::Alt).pressed = getState(Input::LeftAlt).pressed ||
       getState(Input::RightAlt).pressed;
@@ -703,6 +898,10 @@ struct InputPrivate
       getState(Input::RightCtrl).triggered;
     getState(Input::Ctrl).repeated = getState(Input::LeftCtrl).repeated ||
       getState(Input::RightCtrl).repeated;
+  }
+
+  void poll_shift()
+  {
     getState(Input::Shift).pressed = getState(Input::LeftShift).pressed ||
       getState(Input::RightShift).pressed;
     getState(Input::Shift).triggered = getState(Input::LeftShift).triggered ||
@@ -713,7 +912,7 @@ struct InputPrivate
 
   bool is_same_trigger(int button)
   {
-    if (!getStateCheck(button).triggered || trigger_timer == 0)
+    if (!get_current_state_check(button).triggered || trigger_timer == 0)
       return false;
     return trigger_old == trigger_new;
   }
@@ -726,6 +925,14 @@ Input::Input(const RGSSThreadData &rtData)
 
 void Input::update()
 {
+  if (!p->text_input)
+    main_update();
+  else
+    text_update();
+}
+
+void Input::main_update()
+{
   shState->checkShutdown();
   p->checkBindingChange(shState->rtData());
   p->swapBuffers();
@@ -734,6 +941,34 @@ void Input::update()
   ButtonCode repeat_btn = None;
   // Poll all bindings
   p->pollBindings(repeat_btn);
+  // Check for new repeating key
+  if (repeat_btn != None && repeat_btn != p->repeating) {
+    p->repeating = repeat_btn;
+    p->repeatCount = 0;
+    p->getState(repeat_btn).repeated = true;
+    return;
+  }
+  // Check if repeating key is still pressed
+  if (p->getState(p->repeating).pressed) {
+    p->repeatCount++;
+    bool repeated;
+    repeated = p->repeatCount >= 23 && ((p->repeatCount+1) % 6) == 0;
+    p->getState(p->repeating).repeated |= repeated;
+    return;
+  }
+  p->repeating = None;
+}
+
+void Input::text_update()
+{
+  shState->checkShutdown();
+  p->checkBindingChange(shState->rtData());
+  p->swap_text_buffers();
+  p->clear_text_buffer();
+  p->update_timers();
+  ButtonCode repeat_btn = None;
+  // Poll all bindings
+  p->poll_bindings4text(repeat_btn);
   // Check for new repeating key
   if (repeat_btn != None && repeat_btn != p->repeating) {
     p->repeating = repeat_btn;
@@ -807,60 +1042,64 @@ void Input::clear_clicks()
 
 bool Input::is_left_click()
 {
-  if (!p->getStateCheck(MouseLeft).triggered)
+  if (!p->get_current_state_check(MouseLeft).triggered)
     return false;
   return p->clicks == 1 && !shState->rtData().mouse_moved;
 }
 
 bool Input::is_middle_click()
 {
-  if (!p->getStateCheck(MouseMiddle).triggered)
+  if (!p->get_current_state_check(MouseMiddle).triggered)
     return false;
   return p->clicks == 1 && !shState->rtData().mouse_moved;
 }
 
 bool Input::is_right_click()
 {
-  if (!p->getStateCheck(MouseRight).triggered)
+  if (!p->get_current_state_check(MouseRight).triggered)
     return false;
   return p->clicks == 1 && !shState->rtData().mouse_moved;
 }
 
 bool Input::is_double_left_click()
 {
-  if (!p->getStateCheck(MouseLeft).triggered || p->double_target != MouseLeft)
+  if (p->double_target != MouseLeft)
+    return false;
+  if (!p->get_current_state_check(MouseLeft).triggered)
     return false;
   return (p->clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
 bool Input::is_double_right_click()
 {
-  if (!p->getStateCheck(MouseRight).triggered || p->double_target != MouseRight)
+  if (p->double_target != MouseRight)
+    return false;
+  if (!p->get_current_state_check(MouseRight).triggered)
     return false;
   return (p->clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
 bool Input::is_double_click(int btn)
 {
-  if (btn != MouseLeft || btn != MouseRight)
+  if (btn != MouseLeft || btn != MouseRight || p->double_target != btn)
     return false;
-  if (!p->getStateCheck(btn).triggered || p->double_target != btn)
+  if (!p->get_current_state_check(btn).triggered)
     return false;
   return (p->clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
 bool Input::press_left_click()
 {
-  if (p->getStateCheck(MouseLeft).triggered)
+  if (p->get_current_state_check(MouseLeft).triggered)
     return false;
-  return p->getStateCheck(MouseLeft).pressed;
+  return p->get_current_state_check(MouseLeft).pressed;
 }
 
 bool Input::press_right_click()
 {
-  if (p->getStateCheck(MouseRight).triggered)
+  if (p->get_current_state_check(MouseRight).triggered)
     return false;
-  return p->getStateCheck(MouseRight).pressed;
+  return p->get_current_state_check(MouseRight).pressed;
 }
 
 bool Input::is_mouse_scroll_x(bool go_up)
@@ -889,7 +1128,8 @@ bool Input::is_mouse_scroll_y(bool go_up)
 
 bool Input::isPressed(int button)
 {
-  ButtonState state = p->getStateCheck(button);
+  ButtonState state;
+  state = p->get_current_state_check(button);
   if (button == MouseLeft || button == MouseRight)
     if (state.triggered)
       return false;
@@ -898,21 +1138,17 @@ bool Input::isPressed(int button)
 
 bool Input::isTriggered(int button)
 {
-  if (button == MouseLeft) {
-    bool trig = p->getStateCheck(MouseLeft).triggered;
-    p->getStateCheck(button).triggered = false;
-    return trig;
-  } else if (button == MouseRight) {
-    bool trig = p->getStateCheck(MouseRight).triggered;
-    p->getStateCheck(button).triggered = false;
+  if (button == MouseLeft || button == MouseRight) {
+    bool trig = p->getStateCheck(button).triggered;
+    p->get_current_state_check(button).triggered = false;
     return trig;
   }
-  return p->getStateCheck(button).triggered;
+  return p->get_current_state_check(button).triggered;
 }
 
 bool Input::isRepeated(int button)
 {
-  return p->getStateCheck(button).repeated;
+  return p->get_current_state_check(button).repeated;
 }
 
 bool Input::is_pressed_any()
@@ -930,12 +1166,43 @@ bool Input::is_triggered_double(int button)
   return p->is_same_trigger(button);
 }
 
-int Input::is_triggered_last()
+bool Input::is_last_key()
+{
+  int k = p->trigger_now;
+  if (!k)
+    return false;
+  return k != Backspace && k != Delete && k != Enter && k != Return &&
+         k != LeftShift && k != RightShift;
+}
+
+bool Input::text_input()
+{
+  return p->text_input;
+}
+
+void Input::set_text_input(bool state)
+{
+  p->text_input = state;
+}
+
+int Input::last_key()
+{
+  int key = p->trigger_now;
+  p->trigger_now = 0;
+  return key;
+}
+
+void Input::last_key_clear()
+{
+  p->trigger_now = 0;
+}
+
+int Input::triggered_last()
 {
   return p->trigger_new;
 }
 
-int Input::is_triggered_old()
+int Input::triggered_old()
 {
   return p->trigger_old;
 }
@@ -1076,24 +1343,6 @@ int Input::joystick_change()
 void Input::reset_joystick_change()
 {
   shState->rtData().joystick_change = 0;
-}
-
-bool Input::is_any_char()
-{
-  return shState->rtData().any_char_found;
-}
-
-char* Input::string()
-{
-  return shState->rtData().text;
-}
-
-void Input::enableMode(bool state)
-{
-  Debug() << state;
-  shState->rtData().start_sdl_input = state;
-  state ? SDL_StartTextInput() : SDL_StopTextInput();
-  return;
 }
 
 Input::~Input()
