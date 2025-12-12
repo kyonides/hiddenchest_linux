@@ -1,22 +1,82 @@
 # * KEnterText HC for XP * #
 #   Scripter : Kyonides
-#   2025-12-11
+#   2025-12-12
 
-class KEnterText
+# $scene = KEnter::TextScene.new
+
+module KEnter
+
+class TextBox
+  def initialize(bw, bh, color)
+    bitmap = Bitmap.new(bw, bh)
+    bitmap.fill_rect(bitmap.rect, color)
+    @box = Sprite.new
+    @box.bitmap = bitmap
+    bitmap = Bitmap.new(bw - 8, bh - 4)
+    bitmap.font.size = 24
+    bitmap.font.outline = true
+    @text = Sprite.new
+    @text.bitmap = bitmap
+    @sprites = [@text, @box]
+  end
+
+  def move2(bx, by, n, lh)
+    @box.set_xy(bx, by + n * lh)
+    @text.set_xy(bx + 4, by + 2 + n * lh)
+  end
+
+  def chars=(ary)
+    @chars = ary
+    refresh
+  end
+
+  def process_char
+    char = Input.last_char
+    if Input.press?(Input::SHIFT)
+      char = Input.capslock_state ? char.downcase : char.upcase
+    end
+    @chars << char
+    @chars.compact!
+    refresh
+  end
+
+  def delete_char
+    @chars.pop
+    refresh
+  end
+
+  def refresh
+    @text.bitmap.clear
+    @text.bitmap.draw_text(@text.bitmap.rect, @chars.join)
+  end
+
+  def bitmap
+    @text.bitmap
+  end
+
+  def dispose
+    @sprites.each do |sprite|
+      sprite.bitmap.dispose
+      sprite.dispose
+    end
+    @sprites.clear
+  end
+  attr_reader :chars
+end
+
+class TextScene
   CHAR_LIMIT = 18
   BACKDROP = "catacombs"
   LABELS = ["Your Name", "Your Nickname"]
+  @@texts = Array.new(2) {[]}
   def main
     @stage = :main
     @blink_timer = Graphics.frame_rate / 5
     @blink_state = false
     @index = 0
-    @name_chars = []
-    @nick_chars = []
-    @box_sprites = []
     @text_sprites = []
     black = Color.new(0, 0, 0)
-    blue = Color.new(80, 80, 255)
+    @blue = Color.new(80, 80, 255)
     custom = Color.new(255, 255, 40)
     lbit = Bitmap.new(208, 160)
     lbit.font.outline = true
@@ -27,10 +87,7 @@ class KEnterText
     @label_sprite = Sprite.new
     @label_sprite.set_xy(16, 12)
     @label_sprite.bitmap = lbit
-    bbit = Bitmap.new(208, 32)
-    bbit.fill_rect(bbit.rect, blue)
-    make_box_text_sprites(bbit)
-    bbit.dispose
+    make_box_text_sprites
     cb = Bitmap.new(200, 4)
     @main_cursor = Sprite.new
     @main_cursor.set_xy(20, 38)
@@ -45,9 +102,6 @@ class KEnterText
     @text_cursor.set_xy(22, 50)
     @text_cursor.visible = @blink_state
     @text_cursor.bitmap = cbit
-    @name_bitmap = @text_sprites[0].bitmap
-    @nick_bitmap = @text_sprites[1].bitmap
-    @texts = { name: @name_chars, nick: @nick_chars }
     Graphics.transition
     while @stage
       Graphics.update
@@ -59,29 +113,21 @@ class KEnterText
     cb.dispose
     @text_cursor.dispose
     @main_cursor.dispose
-    list = @box_sprites + @text_sprites
-    list.each do |sprite|
-      sprite.bitmap.dispose
-      sprite.dispose
+    @text_sprites.each_with_index do |box, n|
+      box.dispose
+      @@texts << box.chars
     end
     @label_sprite.dispose
     @backdrop.bitmap.dispose
     @backdrop.dispose
   end
 
-  def make_box_text_sprites(bit)
+  def make_box_text_sprites
     2.times do |n|
-      sprite = Sprite.new
-      sprite.set_xy(16, 48 + n * 78)
-      sprite.bitmap = bit.dup
-      @box_sprites << sprite
-      bitmap = Bitmap.new(200, 28)
-      bitmap.font.size = 24
-      bitmap.font.outline = true
-      sprite = Sprite.new
-      sprite.set_xy(20, 50 + n * 78)
-      sprite.bitmap = bitmap
-      @text_sprites << sprite
+      textbox = TextBox.new(208, 32, @blue)
+      textbox.move2(16, 48, n, 78)
+      textbox.chars = @@texts[n]
+      @text_sprites << textbox
     end
   end
 
@@ -89,10 +135,8 @@ class KEnterText
     case @stage
     when :main
       update_index
-    when :name
-      update_name
-    when :nick
-      update_nickname
+    when :text_input
+      update_text_input
     end
   end
 
@@ -114,28 +158,11 @@ class KEnterText
     @stage = :main
   end
 
-  def process_char(bitmap, ary)
-    char = Input.last_char
-    if Input.press?(Input::SHIFT)
-      char = Input.capslock_state ? char.downcase : char.upcase
-    end
-    ary << char
-    ary.compact!
-    refresh_text(bitmap, ary.join)
-  end
-
-  def refresh_text(bitmap, text)
-    tw = bitmap.text_width(text)
-    @text_cursor.x = 22 + tw
-    bitmap.clear
-    bitmap.draw_text(bitmap.rect, text)
-  end
-
   def update_index
     if Input.trigger?(Input::Escape)
       $game_system.se_play($data_system.cancel_se)
       $scene = Scene_Map.new
-      return @stage = nil
+      return @sprite = @stage = nil
     elsif Input.trigger?(Input::UP)
       set_index(-1)
       return
@@ -146,9 +173,11 @@ class KEnterText
       $game_system.se_play($data_system.decision_se)
       Input.text_input = true
       Input.update
-      @stage = set_stage
-      text = @texts[@stage].join
-      tw = @name_bitmap.text_width(text)
+      @stage = :text_input
+      @sprite = @text_sprites[@index]
+      @bitmap = @sprite.bitmap
+      text = @sprite.chars.join
+      tw = @bitmap.text_width(text)
       @text_cursor.x = 22 + tw
       @text_cursor.visible = @blink_state = true
     end
@@ -161,16 +190,7 @@ class KEnterText
     @text_cursor.y = 50 + @index * 78
   end
 
-  def set_stage
-    case @index
-    when 0
-      :name
-    when 1
-      :nick
-    end
-  end
-
-  def update_name
+  def update_text_input
     update_blink
     if Input.trigger?(Input::Escape)
       $game_system.se_play($data_system.cancel_se)
@@ -183,42 +203,24 @@ class KEnterText
       return
     elsif Input.repeat?(Input::Backspace)
       $game_system.se_play($data_system.buzzer_se)
-      @name_chars.pop
-      refresh_text(@name_bitmap, @name_chars.join)
+      @sprite.delete_char
+      refresh_text(@sprite.chars.join)
       return
     elsif Input.trigger_any? and Input.last_key?
-      if @name_chars.size == CHAR_LIMIT
+      if @sprite.chars.size == CHAR_LIMIT
         $game_system.se_play($data_system.buzzer_se)
         return
       end
       $game_system.se_play($data_system.equip_se)
-      process_char(@name_bitmap, @name_chars)
+      @sprite.process_char
+      refresh_text(@sprite.chars.join)
     end
   end
 
-  def update_nickname
-    update_blink
-    if Input.trigger?(Input::Escape)
-      $game_system.se_play($data_system.cancel_se)
-      process_text_box_cancel
-      return
-    elsif Input.trigger?(Input::Enter) or Input.trigger?(Input::Return)
-      $game_system.se_play($data_system.decision_se)
-      Graphics.screenshot
-      process_text_box_cancel
-      return
-    elsif Input.repeat?(Input::Backspace)
-      $game_system.se_play($data_system.buzzer_se)
-      @nick_chars.pop
-      refresh_text(@nick_bitmap, @nick_chars.join)
-      return
-    elsif Input.trigger_any? and Input.last_key?
-      if @nick_chars.size == CHAR_LIMIT
-        $game_system.se_play($data_system.buzzer_se)
-        return
-      end
-      $game_system.se_play($data_system.equip_se)
-      process_char(@nick_bitmap, @nick_chars)
-    end
+  def refresh_text(text)
+    tw = @bitmap.text_width(text)
+    @text_cursor.x = 22 + tw
   end
+end
+  
 end
