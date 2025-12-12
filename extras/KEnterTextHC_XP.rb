@@ -115,7 +115,7 @@ class TextScene
     @main_cursor.dispose
     @text_sprites.each_with_index do |box, n|
       box.dispose
-      @@texts << box.chars
+      @@texts[n] = box.chars
     end
     @label_sprite.dispose
     @backdrop.bitmap.dispose
