@@ -1,6 +1,6 @@
 # * KEnterText HC for VX + ACE * #
 #   Scripter : Kyonides
-#   2025-12-12
+#   2025-12-13
 
 # For VX:
 # $scene = KEnter::TextScene.new
@@ -12,6 +12,7 @@ module KEnter
 
 class TextBox
   def initialize(bw, bh, color)
+    @char_limit = 1
     bitmap = Bitmap.new(bw, bh)
     bitmap.fill_rect(bitmap.rect, color)
     @box = Sprite.new
@@ -57,6 +58,10 @@ class TextBox
     @text.bitmap
   end
 
+  def char_max?
+    @chars.size == @char_limit
+  end
+
   def dispose
     @sprites.each do |sprite|
       sprite.bitmap.dispose
@@ -64,6 +69,7 @@ class TextBox
     end
     @sprites.clear
   end
+  attr_writer :char_limit
   attr_reader :chars
 end
 
@@ -131,6 +137,7 @@ class TextScene
       textbox = TextBox.new(208, 32, @blue)
       textbox.move2(16, 48, n, 78)
       textbox.chars = @@texts[n]
+      textbox.char_limit = CHAR_LIMIT
       @text_sprites << textbox
     end
   end
@@ -211,7 +218,7 @@ class TextScene
       refresh_text(@sprite.chars.join)
       return
     elsif Input.trigger_any? and Input.last_key?
-      if @sprite.chars.size == CHAR_LIMIT
+      if @sprite.char_max?
         Sound.play_buzzer
         return
       end
