@@ -1,6 +1,6 @@
 # * KEnterText HC for VX + ACE * #
 #   Scripter : Kyonides
-#   2025-12-13
+#   2025-12-17
 
 # For VX:
 # $scene = KEnter::TextScene.new
@@ -11,55 +11,109 @@
 module KEnter
 
 class TextBox
+  REGEX_INT = /\-?[0-9]/
+  REGEX_DBL = /\-?[0-9]+[\.,]?[0-9]?/
   def initialize(bw, bh, color)
+    @index = 0
     @char_limit = 1
+    @number_mode = nil 
     bitmap = Bitmap.new(bw, bh)
     bitmap.fill_rect(bitmap.rect, color)
     @box = Sprite.new
     @box.bitmap = bitmap
-    bitmap = Bitmap.new(bw - 8, bh - 4)
+    @bitmap = Bitmap.new(bw - 8, bh - 4)
+    @bitmap.font.size = 24
+    @bitmap.font.outline = true
+    @rect = @bitmap.rect
+    @text = Sprite.new
+    @text.bitmap = @bitmap
+    bitmap = Bitmap.new(20, 28)
     bitmap.font.size = 24
     bitmap.font.outline = true
-    @text = Sprite.new
-    @text.bitmap = bitmap
-    @sprites = [@text, @box]
+    bitmap.draw_text(bitmap.rect, "|")
+    @cursor = Sprite.new
+    @cursor.visible = false
+    @cursor.bitmap = bitmap
+    @sprites = [@text, @box, @cursor]
   end
 
   def move2(bx, by, n, lh)
+    ly = by + 2 + n * lh
     @box.set_xy(bx, by + n * lh)
-    @text.set_xy(bx + 4, by + 2 + n * lh)
+    @text.set_xy(bx + 4, ly)
+    @cursor.set_xy(bx + 22, ly)
   end
 
   def chars=(ary)
     @chars = ary
+    @index = ary.size - 1
+    refresh
+  end
+
+  def move_back
+    @index -= 1 if @index > 0
+  end
+
+  def move_forward
+    @index += 1 if @index < @chars.size - 1
   end
 
   def process_char
     char = Input.last_char
-    if Input.press?(Input::SHIFT)
-      char = Input.capslock_state ? char.downcase : char.upcase
+    return unless char
+    case @number_mode
+    when :int
+      char = char[REGEX_INT]
+    when :dbl
+      char = char[REGEX_DBL]
+    else
+      if Input.press?(Input::SHIFT)
+        char = Input.capslock_state ? char.downcase : char.upcase
+      end
     end
-    @chars << char
+    return unless char
+    if @chars.size == @index + 1
+      @chars << char
+    else
+      @chars[@index, 1] = char
+    end
+    @index += 1
     @chars.compact!
     refresh
   end
 
   def delete_char
-    @chars.pop
+    if @chars.size - 1 == @index
+      @chars.pop
+      @index = @chars.size - 1
+    else
+      @chars.delete_at(@index)
+    end
     refresh
   end
 
   def refresh
-    @text.bitmap.clear
-    @text.bitmap.draw_text(@text.bitmap.rect, @chars.join)
-  end
-
-  def bitmap
-    @text.bitmap
+    text = @chars.join
+    tw = @bitmap.text_width(text)
+    @bitmap.clear
+    @bitmap.draw_text(@rect, text)
+    @cursor.x = tw + 22
   end
 
   def char_max?
     @chars.size == @char_limit
+  end
+
+  def integer_only!
+    @number_mode = :int
+  end
+
+  def double_only!
+    @number_mode = :dbl
+  end
+
+  def include_all!
+    @number_mode = nil
   end
 
   def dispose
@@ -70,14 +124,14 @@ class TextBox
     @sprites.clear
   end
   attr_writer :char_limit
-  attr_reader :chars
+  attr_reader :chars, :index, :bitmap, :cursor
 end
 
 class TextScene
   CHAR_LIMIT = 18
   BACKDROP = "catacombs"
-  LABELS = ["Your Name", "Your Nickname"]
-  @@texts = Array.new(2) {[]}
+  LABELS = ["Your Name", "Your Nickname", "Your Age"]
+  @@texts = Array.new(3) {[]}
   def main
     @vx_ace = Game::RGSS_VERSION == 3
     @stage = :main
@@ -88,10 +142,9 @@ class TextScene
     black = Color.new(0, 0, 0)
     @blue = Color.new(80, 80, 255)
     custom = Color.new(255, 255, 40)
-    lbit = Bitmap.new(208, 160)
+    lbit = Bitmap.new(208, 180)
     lbit.font.outline = true
-    lbit.draw_text(16, 0, 208, 24, LABELS[0])
-    lbit.draw_text(16, 78, 208, 24, LABELS[1])
+    3.times {|n| lbit.draw_text(16, 78 * n, 208, 24, LABELS[n]) }
     @backdrop = Sprite.new
     @backdrop.bitmap = Cache.system(BACKDROP)
     @label_sprite = Sprite.new
@@ -104,14 +157,7 @@ class TextScene
     @main_cursor.bitmap = cb
     cb.fill_rect(cb.rect, black)
     cb.fill_rect(2, 1, 196, 2, custom)
-    cbit = Bitmap.new(20, 28)
-    cbit.font.size = 24
-    cbit.font.outline = true
-    cbit.draw_text(cbit.rect, "|")
-    @text_cursor = Sprite.new
-    @text_cursor.set_xy(22, 50)
-    @text_cursor.visible = @blink_state
-    @text_cursor.bitmap = cbit
+    @text_cursor = @text_sprites[0].cursor
     Graphics.transition
     while @stage
       Graphics.update
@@ -119,9 +165,7 @@ class TextScene
       update
     end
     Graphics.freeze
-    cbit.dispose
     cb.dispose
-    @text_cursor.dispose
     @main_cursor.dispose
     @text_sprites.each_with_index do |box, n|
       box.dispose
@@ -133,11 +177,12 @@ class TextScene
   end
 
   def make_box_text_sprites
-    2.times do |n|
-      textbox = TextBox.new(208, 32, @blue)
+    3.times do |n|
+      textbox = TextBox.new(220, 32, @blue)
       textbox.move2(16, 48, n, 78)
       textbox.chars = @@texts[n]
-      textbox.char_limit = CHAR_LIMIT
+      textbox.char_limit = n < 2 ? CHAR_LIMIT : NUM_LIMIT
+      textbox.integer_only! if n == 2
       @text_sprites << textbox
     end
   end
@@ -186,23 +231,26 @@ class TextScene
       Input.update
       @stage = :text_input
       @sprite = @text_sprites[@index]
-      @bitmap = @sprite.bitmap
-      text = @sprite.chars.join
-      tw = @bitmap.text_width(text)
-      @text_cursor.x = 22 + tw
+      @blink_timer = Graphics.frame_rate / 5
       @text_cursor.visible = @blink_state = true
     end
   end
 
   def set_index(n)
     Sound.play_cursor
-    @index = (@index + n) % 2
+    @index = (@index + n) % 3
     @main_cursor.y = 38 + @index * 78
-    @text_cursor.y = 50 + @index * 78
+    @text_cursor = @text_sprites[@index].cursor
   end
 
   def update_text_input
     update_blink
+    case Input.dir4
+    when 4
+      @sprite.move_back
+    when 6
+      @sprite.move_forward
+    end
     if Input.trigger?(Input::Escape)
       Sound.play_cancel
       process_text_box_cancel
@@ -215,7 +263,6 @@ class TextScene
     elsif Input.repeat?(Input::Backspace)
       Sound.play_buzzer
       @sprite.delete_char
-      refresh_text(@sprite.chars.join)
       return
     elsif Input.trigger_any? and Input.last_key?
       if @sprite.char_max?
@@ -224,13 +271,7 @@ class TextScene
       end
       Sound.play_equip
       @sprite.process_char
-      refresh_text(@sprite.chars.join)
     end
-  end
-
-  def refresh_text(text)
-    tw = @bitmap.text_width(text)
-    @text_cursor.x = 22 + tw
   end
 end
 
