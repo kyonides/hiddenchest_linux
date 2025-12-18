@@ -30,6 +30,7 @@
 #include <SDL_events.h>
 #include <SDL_scancode.h>
 #include <SDL_mouse.h>
+#include <SDL_joystick.h>
 #include <vector>
 #include <string.h>
 #include <assert.h>
@@ -1327,25 +1328,21 @@ bool Input::has_joystick()
 
 const char* Input::joystick_name()
 {
-  //if (!shState->rtData().joystick) //  return ""; //else
   return SDL_JoystickName(shState->rtData().joystick);
 }
 
 int Input::joystick_vendor()
 {
-  //if (!shState->rtData().joystick) //  return 0; //else
   return SDL_JoystickGetVendor(shState->rtData().joystick);
 }
 
 int Input::joystick_kind()
 {
-  //if (!shState->rtData().joystick) //  return 0; //else
   return SDL_JoystickGetType(shState->rtData().joystick);
 }
 
 int Input::joystick_power()
 {
-  //if (!shState->rtData().joystick) //  return 0; //else
   return SDL_JoystickCurrentPowerLevel(shState->rtData().joystick);
 }
 
@@ -1367,6 +1364,16 @@ int Input::joystick_change()
 void Input::reset_joystick_change()
 {
   shState->rtData().joystick_change = 0;
+}
+
+bool Input::close_joystick()
+{
+  return EventThread::close_joystick();
+}
+
+bool Input::open_joystick()
+{
+  return EventThread::open_joystick();
 }
 
 Input::~Input()

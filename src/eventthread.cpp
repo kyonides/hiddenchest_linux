@@ -22,7 +22,6 @@
 
 #include "eventthread.h"
 #include <SDL_events.h>
-#include <SDL_joystick.h>
 #include <SDL_messagebox.h>
 #include <SDL_timer.h>
 #include <SDL_thread.h>
@@ -84,6 +83,7 @@ enum
 };
 
 static uint32_t usrIdStart;
+SDL_Joystick *js;
 
 bool EventThread::allocUserEvents()
 {
@@ -124,7 +124,6 @@ void EventThread::process(RGSSThreadData &rtData)
   /* SDL doesn't send an initial FOCUS_GAINED event */
   bool windowFocused = true;
   bool terminate = false;
-  SDL_Joystick *js = 0;
   if (SDL_NumJoysticks() > 0) {
     js = SDL_JoystickOpen(0);
     rtData.joystick = js;
@@ -565,6 +564,27 @@ void EventThread::notifyGameScreenChange(const SDL_Rect &screen)
   event.user.data1 = reinterpret_cast<void*>(screen.w);
   event.user.data2 = reinterpret_cast<void*>(screen.h);
   SDL_PushEvent(&event);
+}
+
+bool EventThread::close_joystick()
+{
+  if (SDL_NumJoysticks() == 0)
+    return false;
+  SDL_JoystickClose(js);
+  js = 0;
+  shState->rtData().joystick = 0;
+  shState->rtData().joystick_change = 1;
+  return true;
+}
+
+bool EventThread::open_joystick()
+{
+  if (SDL_NumJoysticks() == 0)
+    return false;
+  js = SDL_JoystickOpen(0);
+  shState->rtData().joystick = js;
+  shState->rtData().joystick_change = 2;
+  return true;
 }
 
 void SyncPoint::haltThreads()

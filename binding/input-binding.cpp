@@ -37,7 +37,8 @@
 
 static VALUE joystick;
 
-static void input_gamepad_init(VALUE pad, VALUE nm, int vndr, int kind, int lvl, VALUE b1)
+static void input_gamepad_init(VALUE pad, VALUE nm, int vndr, int kind,
+                               int lvl, VALUE b1, VALUE b2)
 {
   VALUE type, level, vendor, vendor_id, vendors;
   type = rb_cvar_get(joystick, rb_intern("types"));
@@ -56,6 +57,7 @@ static void input_gamepad_init(VALUE pad, VALUE nm, int vndr, int kind, int lvl,
   rb_iv_set(pad, "@power_level", RB_INT2FIX(lvl));
   rb_iv_set(pad, "@rumble", b1);
   rb_iv_set(pad, "@last_rumble", Qnil);
+  rb_iv_set(pad, "@active", b2);
 }
 
 static VALUE input_gamepad_new(VALUE input)
@@ -63,7 +65,7 @@ static VALUE input_gamepad_new(VALUE input)
   VALUE gamepad, name;
   gamepad = rb_class_new_instance(0, 0, joystick);
   name = rb_const_get(joystick, rb_intern("DEFAULT_NAME"));
-  input_gamepad_init(gamepad, name, 0, 0, -1, Qfalse);
+  input_gamepad_init(gamepad, name, 0, 0, -1, Qfalse, Qfalse);
   return rb_iv_set(input, "gamepad", gamepad);
 }
 
@@ -93,7 +95,7 @@ static void joystick_state_change(VALUE input)
     VALUE gamepad, rumble;
     gamepad = rb_iv_get(input, "gamepad");
     rumble = shState->input().joystick_has_rumble() ? Qtrue : Qfalse;
-    input_gamepad_init(gamepad, rstr(name), vendor, kind, power, rumble);
+    input_gamepad_init(gamepad, rstr(name), vendor, kind, power, rumble, Qtrue);
     rb_ary_push(ary, hc_sym("add"));
   } else {
     rb_ary_push(ary, hc_sym("remove"));
@@ -371,6 +373,28 @@ static VALUE input_joystick_updates(VALUE self)
   return rb_iv_get(self, "joystick_updates");
 }
 
+static VALUE input_joystick_close(VALUE self)
+{
+  bool result = shState->input().close_joystick();
+  if (result)
+    joystick_state_change(self);
+  return result ? Qtrue : Qfalse;
+}
+
+static VALUE input_joystick_open(VALUE self)
+{
+  bool result = shState->input().open_joystick();
+  if (result)
+    joystick_state_change(self);
+  return result ? Qtrue : Qfalse;
+}
+
+static VALUE input_joystick_reset(VALUE self)
+{
+  input_joystick_close(self);
+  return input_joystick_open(self);
+}
+
 static VALUE input_trigger_timer(VALUE self)
 {
   int n = shState->input().trigger_timer();
@@ -431,6 +455,7 @@ void inputBindingInit()
   rb_define_attr(joystick, "type_number", 1, 0);
   rb_define_attr(joystick, "power", 1, 0);
   rb_define_attr(joystick, "power_level", 1, 0);
+  rb_define_attr(joystick, "active", 1, 0);
   rb_define_attr(joystick, "rumble", 1, 0);
   rb_define_attr(joystick, "last_rumble", 1, 0);
   rb_define_method(joystick, "set_rumble", RMF(input_gamepad_set_rumble), 3);
@@ -482,6 +507,12 @@ void inputBindingInit()
   module_func(input, "joystick_update", input_joystick_update, 0);
   module_func(input, "gamepad_updates", input_joystick_updates, 0);
   module_func(input, "joystick_updates", input_joystick_updates, 0);
+  module_func(input, "gamepad_close!", input_joystick_close, 0);
+  module_func(input, "joystick_close!", input_joystick_close, 0);
+  module_func(input, "gamepad_open!", input_joystick_open, 0);
+  module_func(input, "joystick_open!", input_joystick_open, 0);
+  module_func(input, "gamepad_reset!", input_joystick_reset, 0);
+  module_func(input, "joystick_reset!", input_joystick_reset, 0);
   module_func(input, "dir4", inputDir4, 0);
   module_func(input, "dir8", inputDir8, 0);
   module_func(input, "dir4?", input_is_dir4, 0);

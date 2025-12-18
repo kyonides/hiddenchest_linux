@@ -126,6 +126,8 @@ public:
   int joystick_set_rumble(int lfr, int rfr, int ms);
   int joystick_change();
   void reset_joystick_change();
+  bool close_joystick();
+  bool open_joystick();
 
 private:
   Input(const RGSSThreadData &rtData);

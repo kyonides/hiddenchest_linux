@@ -88,6 +88,8 @@ public:
   void notifyFrame();
   /* Called on game screen (size / offset) changes */
   void notifyGameScreenChange(const SDL_Rect &screen);
+  static bool close_joystick();
+  static bool open_joystick();
   void reset_scroll_xy();
 
 private:
