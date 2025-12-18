@@ -156,6 +156,8 @@ struct
 }
 static buttonStrings[] =
 {
+  { Input::Left,           0 },
+  { Input::Right,          0 },
   { Input::N1,           "1" },
   { Input::N2,           "2" },
   { Input::N3,           "3" },

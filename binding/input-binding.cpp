@@ -30,6 +30,7 @@
 #include "util.h"
 #include "hcextras.h"
 #include <SDL_keyboard.h>
+#include "debugwriter.h"
 
 #define ZERO RB_INT2FIX(0)
 #define SUBZERO RB_INT2FIX(-1)
@@ -486,6 +487,7 @@ void inputBindingInit()
   module_func(input, "dir4?", input_is_dir4, 0);
   module_func(input, "dir8?", input_is_dir8, 0);
   VALUE key, val, hash = rb_hash_new();
+  const char *tmp;
   /* In RGSS3 all Input::XYZ constants are equal to :XYZ symbols,
    * to be compatible with the previous convention */
   for (size_t i = 0; i < buttonCodesN; ++i) {
@@ -507,7 +509,8 @@ void inputBindingInit()
   hash = rb_hash_new();
   for (size_t i = 0; i < buttonStringsN; ++i) {
     key = RB_INT2FIX(buttonStrings[i].code);
-    val = rstr(buttonStrings[i].str);
+    tmp = buttonStrings[i].str;
+    val = !tmp ? Qnil : rstr(tmp);
     rb_hash_aset(hash, key, val);
   }
   rb_const_set(input, rb_intern("KEY2CHAR"), hash);

@@ -1,6 +1,6 @@
 # * KEnterText HC for XP * #
 #   Scripter : Kyonides
-#   2025-12-17
+#   2025-12-18
 
 # $scene = KEnter::TextScene.new
 
@@ -12,46 +12,57 @@ class TextBox
   def initialize(bw, bh, color)
     @index = 0
     @char_limit = 1
-    @number_mode = nil 
+    @number_mode = nil
+    @viewport = Viewport.new(0, 0, bw, bh)
     bitmap = Bitmap.new(bw, bh)
     bitmap.fill_rect(bitmap.rect, color)
-    @box = Sprite.new
+    @box = Sprite.new(@viewport)
     @box.bitmap = bitmap
     @bitmap = Bitmap.new(bw - 8, bh - 4)
     @bitmap.font.size = 24
     @bitmap.font.outline = true
     @rect = @bitmap.rect
-    @text = Sprite.new
+    @text = Sprite.new(@viewport)
     @text.bitmap = @bitmap
     bitmap = Bitmap.new(20, 28)
     bitmap.font.size = 24
     bitmap.font.outline = true
     bitmap.draw_text(bitmap.rect, "|")
-    @cursor = Sprite.new
+    @cursor = Sprite.new(@viewport)
     @cursor.visible = false
     @cursor.bitmap = bitmap
     @sprites = [@text, @box, @cursor]
   end
 
   def move2(bx, by, n, lh)
-    ly = by + 2 + n * lh
-    @box.set_xy(bx, by + n * lh)
-    @text.set_xy(bx + 4, ly)
-    @cursor.set_xy(bx + 22, ly)
+    @viewport.x = bx
+    @viewport.y = by + n * lh
+    @text.set_xy(4, 2)
+    @cursor.set_xy(8, 2)
+  end
+
+  def reset_cursor
+    @index = @chars.size - 1
+    set_cursor(@chars.join)
   end
 
   def chars=(ary)
     @chars = ary
     @index = ary.size - 1
     refresh
+    set_cursor(@chars.join)
   end
 
   def move_back
     @index -= 1 if @index > 0
+    text = @chars[0, @index] || [""]
+    set_cursor(text.join)
   end
 
   def move_forward
     @index += 1 if @index < @chars.size - 1
+    text = @chars[0, @index] || [""]
+    set_cursor(text.join)
   end
 
   def process_char
@@ -68,32 +79,45 @@ class TextBox
       end
     end
     return unless char
-    if @chars.size == @index + 1
+    @index += 1
+    if @chars.size == @index
       @chars << char
     else
-      @chars[@index, 1] = char
+      @chars[@index, 0] = char
     end
-    @index += 1
     @chars.compact!
+    text = @chars[0, @index]
     refresh
+    set_cursor(text.join)
   end
 
-  def delete_char
+  def delete_prev_char
     if @chars.size - 1 == @index
       @chars.pop
-      @index = @chars.size - 1
+      @index = [@chars.size - 1, 0].max
+      text = @chars
     else
       @chars.delete_at(@index)
+      @index = [@index - 1, 0].max
+      text = @chars[0, @index] || [""]
     end
+    refresh
+    set_cursor(text.join)
+  end
+
+  def delete_next_char
+    @chars.delete_at(@index + 1)
     refresh
   end
 
   def refresh
-    text = @chars.join
-    tw = @bitmap.text_width(text)
     @bitmap.clear
-    @bitmap.draw_text(@rect, text)
-    @cursor.x = tw + 22
+    @bitmap.draw_text(@rect, @chars.join)
+  end
+
+  def set_cursor(text)
+    tw = @bitmap.text_width(text)
+    @cursor.x = tw + 8
   end
 
   def char_max?
@@ -118,9 +142,10 @@ class TextBox
       sprite.dispose
     end
     @sprites.clear
+    @viewport.dispose
   end
   attr_writer :char_limit
-  attr_reader :chars, :index, :bitmap, :cursor
+  attr_reader :chars, :index, :cursor
 end
 
 class TextScene
@@ -140,19 +165,19 @@ class TextScene
     custom = Color.new(255, 255, 40)
     lbit = Bitmap.new(208, 180)
     lbit.font.outline = true
-    3.times {|n| lbit.draw_text(16, 78 * n, 208, 24, LABELS[n]) }
+    3.times {|n| lbit.draw_text(16, 78 * n, 220, 24, LABELS[n]) }
     @backdrop = Sprite.new
     @backdrop.bitmap = RPG::Cache.title(BACKDROP)
     @label_sprite = Sprite.new
     @label_sprite.set_xy(16, 12)
     @label_sprite.bitmap = lbit
     make_box_text_sprites
-    cb = Bitmap.new(200, 4)
+    cb = Bitmap.new(208, 4)
     @main_cursor = Sprite.new
     @main_cursor.set_xy(20, 38)
     @main_cursor.bitmap = cb
     cb.fill_rect(cb.rect, black)
-    cb.fill_rect(2, 1, 196, 2, custom)
+    cb.fill_rect(2, 1, 204, 2, custom)
     @text_cursor = @text_sprites[0].cursor
     Graphics.transition
     while @stage
@@ -174,7 +199,7 @@ class TextScene
 
   def make_box_text_sprites
     3.times do |n|
-      textbox = TextBox.new(220, 32, @blue)
+      textbox = TextBox.new(n < 2 ? 228 : 116, 32, @blue)
       textbox.move2(16, 48, n, 78)
       textbox.chars = @@texts[n]
       textbox.char_limit = n < 2 ? CHAR_LIMIT : NUM_LIMIT
@@ -199,15 +224,6 @@ class TextScene
       @blink_state = !@blink_state
       @text_cursor.visible = @blink_state
     end
-  end
-
-  def process_text_box_cancel
-    Input.text_input = false
-    Input.clear_text_input
-    Input.update
-    @text_cursor.visible = @blink_state = false
-    @blink_timer = Graphics.frame_rate / 5
-    @stage = :main
   end
 
   def update_index
@@ -241,13 +257,15 @@ class TextScene
 
   def update_text_input
     update_blink
-    case Input.dir4
-    when 4
+    if Input.trigger?(Input::Left)
+      $game_system.se_play($data_system.cursor_se)
       @sprite.move_back
-    when 6
+      return
+    elsif Input.trigger?(Input::Right)
+      $game_system.se_play($data_system.cursor_se)
       @sprite.move_forward
-    end
-    if Input.trigger?(Input::Escape)
+      return
+    elsif Input.trigger?(Input::Escape)
       $game_system.se_play($data_system.cancel_se)
       process_text_box_cancel
       return
@@ -258,7 +276,11 @@ class TextScene
       return
     elsif Input.repeat?(Input::Backspace)
       $game_system.se_play($data_system.buzzer_se)
-      @sprite.delete_char
+      @sprite.delete_prev_char
+      return
+    elsif Input.repeat?(Input::Delete)
+      $game_system.se_play($data_system.buzzer_se)
+      @sprite.delete_next_char
       return
     elsif Input.trigger_any? and Input.last_key?
       if @sprite.char_max?
@@ -268,6 +290,16 @@ class TextScene
       $game_system.se_play($data_system.equip_se)
       @sprite.process_char
     end
+  end
+
+  def process_text_box_cancel
+    Input.text_input = false
+    Input.clear_text_input
+    Input.update
+    @sprite.reset_cursor
+    @text_cursor.visible = @blink_state = false
+    @blink_timer = Graphics.frame_rate / 5
+    @stage = :main
   end
 end
   
