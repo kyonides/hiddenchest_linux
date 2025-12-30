@@ -23,7 +23,6 @@
 #define KEYBINDINGS_H
 
 #include "input.h"
-
 #include <SDL_scancode.h>
 #include <SDL_joystick.h>
 #include <stdint.h>

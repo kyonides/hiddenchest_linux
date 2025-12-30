@@ -16,7 +16,7 @@ static vendors[] =
   { 1118,  "Microsoft Corp."        },
   { 1133,  "Logitech Inc."          },
   { 1356,  "Sony Corp."             },
-  { 1406,  "Nintentdo Co. Ltd."     },
+  { 1406,  "Nintendo Co. Ltd."      },
   { 3695,  "Logic3"                 },
   { 5426,  "Razer USA Ltd."         },
   { 5769,  "Razer USA Ltd."         },
@@ -26,3 +26,5 @@ static vendors[] =
 };
 
 static elementsN(vendors);
+
+static int vendor_ids[] = { 1118, 1133, 1356, 1406, 3695, 5426, 5769, 2821, 11720, 11925 };

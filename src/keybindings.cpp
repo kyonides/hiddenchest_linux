@@ -20,11 +20,13 @@
 */
 
 #include "keybindings.h"
-
 #include "config.h"
 #include "util.h"
-
 #include <stdio.h>
+#include <iostream>
+#include <regex>
+#include "../binding/input_vendors.h"
+#include "debugwriter.h"
 
 struct KbBindingData
 {
@@ -183,17 +185,83 @@ struct Header
 	uint32_t count;
 };
 
+int get_vendor_name_pos(int vendor_id)
+{
+  for (size_t n = 0; n < vendorsN; n++)
+    if (vendor_ids[n] == vendor_id)
+      return n;
+  return 0;
+}
+
+std::string get_short_vendor_name(int pos)
+{
+  if (!pos)
+    return "vendor";
+  std::string name = vendors[pos].name;
+  if (!name.find("Sony"))
+    return "sony";
+  else if (!name.find("Logitech"))
+    return "logitech";
+  else if (!name.find("Microsoft"))
+    return "ms";
+  else if (!name.find("Nintendo"))
+    return "nintendo";
+  else if (!name.find("Logic3"))
+    return "logic3";
+  else if (!name.find("Razer"))
+    return "razer";
+  else if (!name.find("ASUSTek"))
+    return "asus";
+  else if (!name.find("8BitDo"))
+    return "8bitdo";
+  else if (!name.find("SCUF"))
+    return "scuf";
+}
+
+bool found_substring(const std::string &s, const std::string &sub, int min, int max)
+{
+	int n = s.find(sub);
+  return n >= 0 && n <= 64;
+}
+
+std::string get_short_gamepad_name(const std::string &pad, const std::string &vendor)
+{
+  if (vendor == "vendor")
+    return "generic";
+  Debug() << "Gamepad's Name:" << pad;
+	std::smatch matches;
+	std::regex pattern("(PS)(\\d?)");
+  if (regex_search(pad, matches, pattern))
+    return "ps" + matches[2].str();
+  if (found_substring(pad, "Dual Action", 0, 64))
+    return "dact";
+  return "generic";
+}
+
 static void buildPath(const std::string &dir, uint32_t rgssVersion,
                       char *out, size_t outSize)
 {
-	snprintf(out, outSize, "%skeybindings.hc%u", dir.c_str(), rgssVersion);
+  std::string jn, vn, pn;
+  SDL_Joystick *js = SDL_JoystickOpen(0);
+  if (!js) {
+    vn = "kb";
+    pn = "generic";
+  } else {
+    int vendor_id = SDL_JoystickGetVendor(js);
+    int pos = get_vendor_name_pos(vendor_id);
+    jn = SDL_JoystickName(js);
+    vn = get_short_vendor_name(pos);
+    pn = get_short_gamepad_name(jn, vn);
+  }
+  snprintf(out, outSize, "%skb_%s_%s.hc%u", dir.c_str(), vn.c_str(),
+           pn.c_str(), rgssVersion);
 }
 
 static bool writeBindings(const BDescVec &d, const std::string &dir,
                           uint32_t rgssVersion)
 {
-	if (dir.empty())
-		return false;
+  if (dir.empty())
+    return false;
 	char path[1024];
 	buildPath(dir, rgssVersion, path, sizeof(path));
 	FILE *f = fopen(path, "wb");

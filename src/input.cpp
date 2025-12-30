@@ -577,6 +577,13 @@ struct InputPrivate
     applyBindingDesc(d);
   }
 
+  void check_joystick_change(const RGSSThreadData &rtData)
+  {
+    BDescVec d;
+    if (rtData.joystick_change > 0)
+      applyBindingDesc(d);
+  }
+
   template<class B>
   void appendBindings(std::vector<B> &bind)
   {
@@ -1326,6 +1333,11 @@ bool Input::has_joystick()
   return SDL_NumJoysticks() > 0;
 }
 
+int Input::joysticks_total()
+{
+  return SDL_NumJoysticks();
+}
+
 const char* Input::joystick_name()
 {
   return SDL_JoystickName(shState->rtData().joystick);
@@ -1346,6 +1358,21 @@ int Input::joystick_power()
   return SDL_JoystickCurrentPowerLevel(shState->rtData().joystick);
 }
 
+int Input::joystick_axis_number()
+{
+  return SDL_JoystickNumAxes(shState->rtData().joystick);
+}
+
+int Input::joystick_hat_number()
+{
+  return SDL_JoystickNumHats(shState->rtData().joystick);
+}
+
+int Input::joystick_button_number()
+{
+  return SDL_JoystickNumButtons(shState->rtData().joystick);
+}
+
 bool Input::joystick_has_rumble()
 {
   return SDL_JoystickHasRumble(shState->rtData().joystick);
@@ -1363,6 +1390,15 @@ int Input::joystick_change()
 
 void Input::reset_joystick_change()
 {
+  shState->rtData().joystick_change = 0;
+}
+
+void Input::reset_joystick_bindings(bool removed)
+{
+  if (removed)
+    EventThread::open_joystick();
+  shState->reset_keybindings_path();
+  p->check_joystick_change(shState->rtData());
   shState->rtData().joystick_change = 0;
 }
 

@@ -44,6 +44,8 @@ A class that handles some game controller data.
 [joystick](#gamepad)  
 [gamepad?](#gamepad?)  
 [joystick?](#gamepad?)  
+[total_gamepads](#total_gamepads)  
+[total_joysticks](#total_gamepads)  
 [gamepad_update](#gamepad_update)  
 [joystick_update](#gamepad_update)  
 [gamepad_updates](#gamepad_updates)  
@@ -56,6 +58,10 @@ A class that handles some game controller data.
 ##### **gamepad?**
 <a name="gamepad?"></a>
 > Returns true if a gamepad could be found, false otherwise.
+
+##### **total_gamepads**
+<a name="total_gamepads"></a>
+> Returns the number of gamepads discovered by the engine.
 
 ##### **gamepad_update**
 <a name="gamepad_update"></a>
@@ -72,6 +78,9 @@ A class that handles some game controller data.
 [vendor](#vendor)  
 [type](#type)  
 [power](#power)  
+[axes](#axes)  
+[hats](#hats)  
+[buttons](#buttons)  
 [rumble](#rumble)  
 [last_rumble](#last_rumble)  
 [set_rumble](#set_rumble)  
@@ -91,6 +100,18 @@ A class that handles some game controller data.
 ##### **power**
 <a name="power"></a>
 > Returns the gamepad's power level as a Ruby String.
+
+##### **axes**
+<a name="axes"></a>
+> Returns the gamepad's total number of axes.
+
+##### **hats**
+<a name="hats"></a>
+> Returns the gamepad's total number of hats.
+
+##### **buttons**
+<a name="buttons"></a>
+> Returns the gamepad's total number of buttons.
 
 ##### **rumble**
 <a name="rumble"></a>

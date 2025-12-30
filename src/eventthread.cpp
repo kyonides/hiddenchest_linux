@@ -301,6 +301,7 @@ void EventThread::process(RGSSThreadData &rtData)
       break;
     case SDL_JOYDEVICEREMOVED :
       resetInputStates();
+      js = 0;
       rtData.joystick_change = 1;
       rtData.joystick = 0;
       break;

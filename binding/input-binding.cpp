@@ -44,7 +44,7 @@ static void input_gamepad_init(VALUE pad, VALUE nm, int vndr, int kind,
   type = rb_cvar_get(joystick, rb_intern("types"));
   type = rb_ary_entry(type, kind);
   level = rb_cvar_get(joystick, rb_intern("levels"));
-  level = rb_hash_aref(level, lvl);
+  level = rb_hash_aref(level, RB_INT2FIX(lvl));
   vendor_id = RB_INT2FIX(vndr);
   vendors = rb_cvar_get(joystick, rb_intern("vendors"));
   vendor = rb_hash_aref(vendors, vendor_id);
@@ -69,6 +69,33 @@ static VALUE input_gamepad_new(VALUE input)
   return rb_iv_set(input, "gamepad", gamepad);
 }
 
+static VALUE input_joystick_number_axis(VALUE self)
+{
+  if (rb_iv_get(self, "@active") == Qtrue) {
+    int n = shState->input().joystick_axis_number();
+    return RB_INT2FIX(n);
+  } else
+    return ZERO;
+}
+
+static VALUE input_joystick_number_hats(VALUE self)
+{
+  if (rb_iv_get(self, "@active") == Qtrue) {
+    int n = shState->input().joystick_hat_number();
+    return RB_INT2FIX(n);
+  } else
+    return ZERO;
+}
+
+static VALUE input_joystick_number_buttons(VALUE self)
+{
+  if (rb_iv_get(self, "@active") == Qtrue) {
+    int n = shState->input().joystick_button_number();
+    return RB_INT2FIX(n);
+  } else
+    return ZERO;
+}
+
 static VALUE input_gamepad_set_rumble(VALUE self, VALUE lint, VALUE rint, VALUE ms)
 {
   if (rb_iv_get(self, "@rumble") == Qfalse)
@@ -80,27 +107,38 @@ static VALUE input_gamepad_set_rumble(VALUE self, VALUE lint, VALUE rint, VALUE 
   return rb_iv_set(self, "@last_rumble", !result ? Qtrue : Qfalse);
 }
 
+static void set_joystick(VALUE input)
+{
+  const char *name = shState->input().joystick_name();
+  int vendor = shState->input().joystick_vendor();
+  int kind = shState->input().joystick_kind();
+  int power = shState->input().joystick_power();
+  VALUE gamepad, rumble;
+  gamepad = rb_iv_get(input, "gamepad");
+  rumble = shState->input().joystick_has_rumble() ? Qtrue : Qfalse;
+  input_gamepad_init(gamepad, rstr(name), vendor, kind, power, rumble, Qtrue);
+}
+
 static void joystick_state_change(VALUE input)
 {
   int state = shState->input().joystick_change();
   if (state == 0)
     return;
+  bool reset = false;
   VALUE ary = rb_iv_get(input, "joystick_updates");
   rb_ary_pop(ary);
   if (state == 2) {
-    const char *name = shState->input().joystick_name();
-    int vendor = shState->input().joystick_vendor();
-    int kind = shState->input().joystick_kind();
-    int power = shState->input().joystick_power();
-    VALUE gamepad, rumble;
-    gamepad = rb_iv_get(input, "gamepad");
-    rumble = shState->input().joystick_has_rumble() ? Qtrue : Qfalse;
-    input_gamepad_init(gamepad, rstr(name), vendor, kind, power, rumble, Qtrue);
+    set_joystick(input);
     rb_ary_push(ary, hc_sym("add"));
   } else {
     rb_ary_push(ary, hc_sym("remove"));
-    ary = input_gamepad_new(input);
+    reset = shState->input().has_joystick();
+    if (reset)
+      set_joystick(input);
+    else
+      ary = input_gamepad_new(input);
   }
+  shState->input().reset_joystick_bindings(reset);
   shState->input().reset_joystick_change();
 }
 
@@ -362,6 +400,11 @@ static VALUE input_has_joystick(VALUE self)
   return shState->input().has_joystick() ? Qtrue : Qfalse;
 }
 
+static VALUE input_total_joysticks(VALUE self)
+{
+  return RB_INT2FIX(shState->input().joysticks_total());
+}
+
 static VALUE input_joystick_update(VALUE self)
 {
   VALUE state = rb_iv_get(self, "joystick_updates");
@@ -458,6 +501,9 @@ void inputBindingInit()
   rb_define_attr(joystick, "active", 1, 0);
   rb_define_attr(joystick, "rumble", 1, 0);
   rb_define_attr(joystick, "last_rumble", 1, 0);
+  rb_define_method(joystick, "axes", RMF(input_joystick_number_axis), 0);
+  rb_define_method(joystick, "hats", RMF(input_joystick_number_hats), 0);
+  rb_define_method(joystick, "buttons", RMF(input_joystick_number_buttons), 0);
   rb_define_method(joystick, "set_rumble", RMF(input_gamepad_set_rumble), 3);
   input_create_gamepad_types(joystick);
   rb_iv_set(input, "text_input", Qfalse);
@@ -503,6 +549,8 @@ void inputBindingInit()
   module_func(input, "joystick", input_joystick, 0);
   module_func(input, "gamepad?", input_has_joystick, 0);
   module_func(input, "joystick?", input_has_joystick, 0);
+  module_func(input, "total_gamepads", input_total_joysticks, 0);
+  module_func(input, "total_joysticks", input_total_joysticks, 0);
   module_func(input, "gamepad_update", input_joystick_update, 0);
   module_func(input, "joystick_update", input_joystick_update, 0);
   module_func(input, "gamepad_updates", input_joystick_updates, 0);
