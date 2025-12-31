@@ -166,7 +166,11 @@ void SharedState::check_soundfont_dir(const char *sf_dir)
 
 void SharedState::reset_keybindings_path()
 {
-  p->rtData.bindingUpdateMsg.post(loadBindings(p->config));
+  int state;
+  BDescVec binds = loadBindings(p->config, state);
+  p->rtData.bindingUpdateMsg.post(binds);
+  if (!state)
+    storeBindings(binds, p->config);
 }
 
 void SharedState::initInstance(RGSSThreadData *threadData)

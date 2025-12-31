@@ -83,7 +83,8 @@ std::string sourceDescString(const SourceDesc &src)
     return std::string();
   case Key:
   {
-    if (src.d.scan == SDL_SCANCODE_LSHIFT) return "Shift";
+    if (src.d.scan == SDL_SCANCODE_LSHIFT)
+      return "Shift";
     SDL_Keycode key = SDL_GetKeyFromScancode(src.d.scan);
     const char *str = SDL_GetKeyName(key);
     return *str == '\0' ? "Unknown key" : str;
@@ -622,12 +623,10 @@ struct SettingsMenuPrivate
 		default:
 			return false;
 		}
-
 		captureDesc = 0;
 		state = Idle;
 		updateDuplicateStatus();
 		redraw();
-
 		return true;
 	}
 
@@ -635,9 +634,7 @@ struct SettingsMenuPrivate
 	{
 		if (state != Idle)
 			return;
-
-		if (button == SDL_BUTTON_LEFT)
-		{
+		if (button == SDL_BUTTON_LEFT) {
 			captureDesc = &desc;
 			captureName = str;
 			state = AwaitingInput;
@@ -647,37 +644,32 @@ struct SettingsMenuPrivate
 			/* Clear binding */
 			desc.type = Invalid;
 		}
-
 		updateDuplicateStatus();
 		redraw();
 	}
 
-	void onResetToDefault()
-	{
-		setupBindingData(genDefaultBindings(rtData.config));
-		updateDuplicateStatus();
-		redraw();
-	}
+  void onResetToDefault()
+  {
+    setupBindingData(genDefaultBindings(rtData.config));
+    updateDuplicateStatus();
+    redraw();
+  }
 
-	void onAccept()
-	{
-		BDescVec binds;
+  void onAccept()
+  {
+    BDescVec binds;
+    for (size_t i = 0; i < bWidgets.size(); ++i)
+      bWidgets[i].appendBindings(binds);
+    rtData.bindingUpdateMsg.post(binds);
+    // Store the key bindings to disk as well to prevent config loss
+    storeBindings(binds, rtData.config);
+    destroyReq = true;
+  }
 
-		for (size_t i = 0; i < bWidgets.size(); ++i)
-			bWidgets[i].appendBindings(binds);
-
-		rtData.bindingUpdateMsg.post(binds);
-
-		/* Store the key bindings to disk as well to prevent config loss */
-		storeBindings(binds, rtData.config);
-
-		destroyReq = true;
-	}
-
-	void onCancel()
-	{
-		destroyReq = true;
-	}
+  void onCancel()
+  {
+    destroyReq = true;
+  }
 };
 
 Widget::Widget(SMP *p, const IntRect &rect)
@@ -686,25 +678,25 @@ Widget::Widget(SMP *p, const IntRect &rect)
 
 bool Widget::hit(int x, int y)
 {
-	return pointInRect(rect, x, y);
+  return pointInRect(rect, x, y);
 }
 
 void Widget::draw(SDL_Surface *surf)
 {
-	Vec2i prev = p->drawOff;
-	p->drawOff = rect.pos();
-	drawHandler(surf);
-	p->drawOff = prev;
+  Vec2i prev = p->drawOff;
+  p->drawOff = rect.pos();
+  drawHandler(surf);
+  p->drawOff = prev;
 }
 
 void Widget::motion(int x, int y)
 {
-	motionHandler(x - rect.x, y - rect.y);
+  motionHandler(x - rect.x, y - rect.y);
 }
 
 void Widget::leave()
 {
-	leaveHandler();
+  leaveHandler();
 }
 
 void Widget::click(int x, int y, uint8_t button)
@@ -778,31 +770,28 @@ void BindingWidget::drawHandler(SDL_Surface *surf)
 
 void BindingWidget::setHoveredCell(int cell)
 {
-	if (hoveredCell == cell)
-		return;
-
-	hoveredCell = cell;
-	p->redraw();
+  if (hoveredCell == cell)
+   return;
+  hoveredCell = cell;
+  p->redraw();
 }
 
 void BindingWidget::motionHandler(int x, int y)
 {
-	setHoveredCell(cellIndex(x, y));
+  setHoveredCell(cellIndex(x, y));
 }
 
 void BindingWidget::leaveHandler()
 {
-	setHoveredCell(-1);
+  setHoveredCell(-1);
 }
 
 void BindingWidget::clickHandler(int x, int y, uint8_t button)
 {
-	int cell = cellIndex(x, y);
-
-	if (cell == -1)
-		return;
-
-	p->onBWidgetCellClicked(src[cell], vb.str, button);
+  int cell = cellIndex(x, y);
+  if (cell == -1)
+    return;
+  p->onBWidgetCellClicked(src[cell], vb.str, button);
 }
 
 int BindingWidget::cellIndex(int x, int y) const
@@ -810,12 +799,9 @@ int BindingWidget::cellIndex(int x, int y) const
 	const int cellW = (rect.w*BW_CELL_R) / 2;
 	const int cellH = rect.h / 2;
 	const int cellOff = (1.0f-BW_CELL_R) * rect.w;
-
 	if (x < cellOff)
 		return -1;
-
 	x -= cellOff;
-
 	if (y < cellH)
 		if (x < cellW)
 			return 0;
@@ -826,101 +812,87 @@ int BindingWidget::cellIndex(int x, int y) const
 			return 2;
 		else
 			return 3;
-
 	return -1;
 }
 
 void BindingWidget::appendBindings(BDescVec &d) const
 {
-	for (size_t i = 0; i < 4; ++i)
-	{
-		if (src[i].type == Invalid)
-			continue;
-
-		BindingDesc desc;
-		desc.src = src[i];
-		desc.target = vb.code;
-		d.push_back(desc);
-	}
+  for (size_t i = 0; i < 4; ++i) {
+    if (src[i].type == Invalid)
+      continue;
+    BindingDesc desc;
+    desc.src = src[i];
+    desc.target = vb.code;
+    d.push_back(desc);
+  }
 }
 
 void Button::setHovered(bool val)
 {
-	if (hovered == val)
-		return;
-
-	hovered = val;
-	p->redraw();
+  if (hovered == val)
+    return;
+  hovered = val;
+  p->redraw();
 }
 
 void Button::drawHandler(SDL_Surface *surf)
 {
 	if (hovered)
 		p->fillRect(surf, cBgDark, 0, 0, rect.w, rect.h);
-
 	p->strokeRectInner(surf, cLine, 0, 0, rect.w, rect.h, 2);
 	p->drawText(surf, str, 0, rect.h/2, rect.w, Center);
 }
 
 void Button::motionHandler(int, int)
 {
-	setHovered(true);
+  setHovered(true);
 }
 
 void Button::leaveHandler()
 {
-	setHovered(false);
+  setHovered(false);
 }
 
 void Button::clickHandler(int, int, uint8_t button)
 {
-	if (button != SDL_BUTTON_LEFT)
-		return;
-
-	(p->*cb)();
+  if (button != SDL_BUTTON_LEFT)
+    return;
+  (p->*cb)();
 }
 
 void Label::setVisible(bool val)
 {
-	if (visible == val)
-		return;
-
-	visible = val;
-	p->redraw();
+  if (visible == val)
+    return;
+  visible = val;
+  p->redraw();
 }
 
 void Label::drawHandler(SDL_Surface *surf)
 {
-	if (visible)
-		p->drawText(surf, str, 0, rect.h/2, rect.w, Left, c);
+  if (visible)
+    p->drawText(surf, str, 0, rect.h/2, rect.w, Left, c);
 }
 
 SettingsMenu::SettingsMenu(RGSSThreadData &rtData)
 {
 	p = new SettingsMenuPrivate(rtData);
 	p->state = Idle;
-
 	p->hasFocus = false;
 	p->destroyReq = false;
-
-	p->window = SDL_CreateWindow("Key bindings",
+	p->window = SDL_CreateWindow("Key Bindings",
 	                             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 	                             winSize.x, winSize.y, SDL_WINDOW_INPUT_FOCUS);
 	p->winSurf = SDL_GetWindowSurface(p->window);
 	p->winID = SDL_GetWindowID(p->window);
-
 	p->font = SharedFontState::openBundled(fontSize);
-
 	p->rgb = p->winSurf->format;
-
 	const size_t layoutW = 4;
 	const size_t layoutH = 3;
 	assert(layoutW*layoutH == vButtonsN);
-
 	const int bWidgetW = winSize.x / layoutH;
 	const int bWidgetH = 64;
 	const int bWidgetY = winSize.y - layoutW*bWidgetH - 48;
-
 	for (int y = 0; y < 4; ++y)
 		for (int x = 0; x < 3; ++x)
 		{
@@ -936,7 +908,6 @@ SettingsMenu::SettingsMenu(RGSSThreadData &rtData)
 	BDescVec binds;
 	rtData.bindingUpdateMsg.get(binds);
 	p->setupBindingData(binds);
-
 	/* Buttons */
 	const int buttonH = 32;
 	const int buttonY = winSize.y - buttonH - 8;
@@ -947,7 +918,6 @@ SettingsMenu::SettingsMenu(RGSSThreadData &rtData)
 	    IntRect(winSize.x-16-64*2-8, buttonY, 64, buttonH),
 	    IntRect(winSize.x-16-64, buttonY, 64, buttonH)
 	};
-
 	p->buttons.push_back(Button(p, btRects[0], "Reset defaults", &SMP::onResetToDefault));
 	p->buttons.push_back(Button(p, btRects[1], "Cancel", &SMP::onCancel));
 	p->buttons.push_back(Button(p, btRects[2], "Accept", &SMP::onAccept));
@@ -964,22 +934,18 @@ SettingsMenu::SettingsMenu(RGSSThreadData &rtData)
 
 	p->widgets.push_back(&p->infoLabel);
 	p->widgets.push_back(&p->dupWarnLabel);
-
 	p->hovered = 0;
 	p->captureDesc = 0;
 	p->captureName = 0;
-
 	p->updateDuplicateStatus();
-
 	p->redraw();
 }
 
 SettingsMenu::~SettingsMenu()
 {
-	TTF_CloseFont(p->font);
-	SDL_DestroyWindow(p->window);
-
-	delete p;
+  TTF_CloseFont(p->font);
+  SDL_DestroyWindow(p->window);
+  delete p;
 }
 
 bool SettingsMenu::onEvent(const SDL_Event &event)
