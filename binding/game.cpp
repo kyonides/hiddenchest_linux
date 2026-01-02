@@ -1,9 +1,9 @@
 /*
 ** game.cpp
 **
-** This file is part of HiddenChest
+** This file is part of HiddenChest.
 **
-** Copyright (C) 2018-2024 Kyonides-Arkanthes
+** Copyright (C) 2018-2026 Kyonides Arkanthes
 */
 
 #include "resolution.h"
@@ -116,7 +116,6 @@ static VALUE game_set_internal_values(VALUE self)
   shState->check_soundfont_dir(sf_dir);
   shState->config().subImageFix = subimg == Qtrue;
   shState->config().customDataPath = RSTRING_PTR(user_path);
-  shState->reset_keybindings_path();
   if (RSTRING_LEN(sfont) > 4)
     shState->midiState().set_default_soundfont(sf);
   return Qnil;

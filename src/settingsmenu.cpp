@@ -33,8 +33,8 @@
 #include "util.h"
 #include <algorithm>
 #include <assert.h>
-//include <iostream>
-const Vec2i winSize(540, 356);
+
+const Vec2i winSize(760, 356);
 const uint8_t cBgNorm = 50;
 const uint8_t cBgDark = 20;
 const uint8_t cLine = 0;
@@ -59,15 +59,17 @@ struct VButton
   BTN_STRING(Up),
   BTN_STRING(Down),
   BTN_STRING(L),
+  BTN_STRING(L2),
   BTN_STRING(Left),
   BTN_STRING(Right),
   BTN_STRING(R),
+  BTN_STRING(R2),
   BTN_STRING(A),
   BTN_STRING(B),
   BTN_STRING(C),
   BTN_STRING(X),
   BTN_STRING(Y),
-  BTN_STRING(Z)
+  BTN_STRING(Z),
 };
 
 static elementsN(vButtons);
@@ -185,95 +187,86 @@ protected:
 
 struct Label : Widget
 {
-	const char *str;
-	SDL_Color c;
-	Label() : Widget(0, IntRect()) {}
-	Label(SMP *p, const IntRect &rect,
-	      const char *str, uint8_t r, uint8_t g, uint8_t b)
-	    : Widget(p, rect),
-	      str(str),
-	      visible(true)
-	{
-		c.r = r;
-		c.g = g;
-		c.b = b;
-		c.a = 255;
-	}
+  const char *str;
+  SDL_Color c;
+  Label() : Widget(0, IntRect()) {}
+  Label(SMP *p, const IntRect &rect,
+        const char *str, uint8_t r, uint8_t g, uint8_t b)
+      : Widget(p, rect),
+        str(str),
+        visible(true)
+  {
+    c.r = r;
+    c.g = g;
+    c.b = b;
+    c.a = 255;
+  }
 
-	void setVisible(bool val);
+  void setVisible(bool val);
 
 protected:
-	bool visible;
-
-	void drawHandler(SDL_Surface *surf);
-	void motionHandler(int, int) {}
-	void leaveHandler() {}
-	void clickHandler(int, int, uint8_t) {}
+  bool visible;
+  void drawHandler(SDL_Surface *surf);
+  void motionHandler(int, int) {}
+  void leaveHandler() {}
+  void clickHandler(int, int, uint8_t) {}
 };
 
 enum State
 {
-	Idle,
-	AwaitingInput
+  Idle,
+  AwaitingInput
 };
 
 enum Justification
 {
-	Left,
-	Center
+  Left,
+  Center
 };
 
 struct SettingsMenuPrivate
 {
-	State state;
+  State state;
+  /* Necessary to decide which window gets to
+   * process joystick events */
+  bool hasFocus;
+  //* Tell the outer EventThread to destroy us
+  bool destroyReq;
+  // Offset added for all draw calls
+  Vec2i drawOff;
+  SDL_Window *window;
+  SDL_Surface *winSurf;
+  uint32_t winID;
+  TTF_Font *font;
+  SDL_PixelFormat *rgb;
+  RGSSThreadData &rtData;
+  std::vector<BindingWidget> bWidgets;
+  std::vector<Button> buttons;
+  Label infoLabel;
+  Label dupWarnLabel;
+  std::vector<Widget*> widgets;
+  Widget *hovered;
+  SourceDesc *captureDesc;
+  const char *captureName;
 
-	/* Necessary to decide which window gets to
-	 * process joystick events */
-	bool hasFocus;
+  SettingsMenuPrivate(RGSSThreadData &rtData)
+      : rtData(rtData)
+  {}
 
-	/* Tell the outer EventThread to destroy us */
-	bool destroyReq;
+  SDL_Surface *createSurface(int w, int h)
+  {
+    int bpp;
+    Uint32 rMask, gMask, bMask, aMask;
+    SDL_PixelFormatEnumToMasks(SDL_PIXELFORMAT_ABGR8888,
+                               &bpp, &rMask, &gMask, &bMask, &aMask);
 
-	/* Offset added for all draw calls */
-	Vec2i drawOff;
+    return SDL_CreateRGBSurface(0, w, h, bpp, rMask, gMask, bMask, 0);
+  }
 
-	SDL_Window *window;
-	SDL_Surface *winSurf;
-	uint32_t winID;
-
-	TTF_Font *font;
-	SDL_PixelFormat *rgb;
-
-	RGSSThreadData &rtData;
-
-	std::vector<BindingWidget> bWidgets;
-	std::vector<Button> buttons;
-	Label infoLabel;
-	Label dupWarnLabel;
-	std::vector<Widget*> widgets;
-	Widget *hovered;
-
-	SourceDesc *captureDesc;
-	const char *captureName;
-
-	SettingsMenuPrivate(RGSSThreadData &rtData)
-	    : rtData(rtData)
-	{}
-
-	SDL_Surface *createSurface(int w, int h)
-	{
-		int bpp;
-		Uint32 rMask, gMask, bMask, aMask;
-		SDL_PixelFormatEnumToMasks(SDL_PIXELFORMAT_ABGR8888,
-		                           &bpp, &rMask, &gMask, &bMask, &aMask);
-
-		return SDL_CreateRGBSurface(0, w, h, bpp, rMask, gMask, bMask, 0);
-	}
-
-	void fillSurface(SDL_Surface *surf, uint8_t grey)
-	{
-		SDL_FillRect(surf, 0, SDL_MapRGBA(rgb, grey, grey, grey, 255));
-	}
+  void fillSurface(SDL_Surface *surf, uint8_t grey)
+  {
+    SDL_FillRect(surf, 0, SDL_MapRGBA(rgb, grey, grey, grey, 255));
+  }
 
 	void fillRect(SDL_Surface *surf,
 	              int x, int y, int w, int h,
@@ -283,128 +276,121 @@ struct SettingsMenuPrivate
 		SDL_FillRect(surf, &rect, SDL_MapRGB(rgb, r, g, b));
 	}
 
-	void fillRect(SDL_Surface *surf, uint8_t grey,
-	              int x, int y, int w, int h)
-	{
-		fillRect(surf, x, y, w, h, grey, grey, grey);
-	}
+  void fillRect(SDL_Surface *surf, uint8_t grey,
+                int x, int y, int w, int h)
+  {
+    fillRect(surf, x, y, w, h, grey, grey, grey);
+  }
 
-	void strokeLineH(SDL_Surface *surf, uint8_t grey,
-	                 int x, int y, int length, int width)
-	{
-		fillRect(surf, grey, x, y-width/2, length, width);
-	}
+  void strokeLineH(SDL_Surface *surf, uint8_t grey,
+                   int x, int y, int length, int width)
+  {
+    fillRect(surf, grey, x, y-width/2, length, width);
+  }
 
-	void strokeLineV(SDL_Surface *surf, uint8_t grey,
-	                 int x, int y, int length, int width)
-	{
-		fillRect(surf, grey, x-width/2, y, width, length);
-	}
+  void strokeLineV(SDL_Surface *surf, uint8_t grey,
+                   int x, int y, int length, int width)
+  {
+    fillRect(surf, grey, x-width/2, y, width, length);
+  }
 
-	void strokeLineH(SDL_Surface *surf, uint8_t r, uint8_t g, uint8_t b,
-	                 int x, int y, int length, int width)
-	{
-		fillRect(surf, r, g, b, x, y-width/2, length, width);
-	}
+  void strokeLineH(SDL_Surface *surf, uint8_t r, uint8_t g, uint8_t b,
+                   int x, int y, int length, int width)
+  {
+    fillRect(surf, r, g, b, x, y-width/2, length, width);
+  }
 
-	void strokeLineV(SDL_Surface *surf, uint8_t r, uint8_t g, uint8_t b,
-	                 int x, int y, int length, int width)
-	{
-		fillRect(surf, r, g, b, x-width/2, y, width, length);
-	}
+  void strokeLineV(SDL_Surface *surf, uint8_t r, uint8_t g, uint8_t b,
+                   int x, int y, int length, int width)
+  {
+    fillRect(surf, r, g, b, x-width/2, y, width, length);
+ }
 
-	void strokeRect(SDL_Surface *surf, uint8_t grey,
-	                int x, int y, int w, int h,
-	                int lineW)
-	{
-		strokeLineH(surf, grey, x, y, w, lineW);
-		strokeLineH(surf, grey, x, y+h, w, lineW);
+  void strokeRect(SDL_Surface *surf, uint8_t grey,
+                  int x, int y, int w, int h,
+                  int lineW)
+  {
+    strokeLineH(surf, grey, x, y, w, lineW);
+    strokeLineH(surf, grey, x, y+h, w, lineW);
+    strokeLineV(surf, grey, x, y, h, lineW);
+    strokeLineV(surf, grey, x+w, y, h, lineW);
+  }
 
-		strokeLineV(surf, grey, x, y, h, lineW);
-		strokeLineV(surf, grey, x+w, y, h, lineW);
-	}
+  void strokeRectInner(SDL_Surface *surf,
+                       int x, int y, int w, int h, int lineW,
+                       uint8_t r, uint8_t g, uint8_t b)
+  {
+    fillRect(surf, x, y, w, lineW, r, g, b);
+    fillRect(surf, x, y+h-lineW, w, lineW, r, g, b);
+    fillRect(surf, x, y, lineW, h, r, g, b);
+    fillRect(surf, x+w-lineW, y, lineW, h, r, g ,b);
+ }
 
-	void strokeRectInner(SDL_Surface *surf,
-	                     int x, int y, int w, int h, int lineW,
-	                     uint8_t r, uint8_t g, uint8_t b)
-	{
-		fillRect(surf, x, y, w, lineW, r, g, b);
-		fillRect(surf, x, y+h-lineW, w, lineW, r, g, b);
-		fillRect(surf, x, y, lineW, h, r, g, b);
-		fillRect(surf, x+w-lineW, y, lineW, h, r, g ,b);
-	}
+  void strokeRectInner(SDL_Surface *surf, uint8_t grey,
+                       int x, int y, int w, int h,
+                       int lineW)
+  {
+    strokeRectInner(surf, x, y, w, h, lineW, grey, grey, grey);
+  }
 
-	void strokeRectInner(SDL_Surface *surf, uint8_t grey,
-	                     int x, int y, int w, int h,
-	                     int lineW)
-	{
-		strokeRectInner(surf, x, y, w, h, lineW, grey, grey, grey);
-	}
+  void applyFontStyle(bool bold)
+  {
+    if (bold)
+      TTF_SetFontStyle(font, TTF_STYLE_BOLD);
+    else
+      TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
+  }
 
-	void applyFontStyle(bool bold)
-	{
-		if (bold)
-			TTF_SetFontStyle(font, TTF_STYLE_BOLD);
-		else
-			TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
-	}
+  SDL_Surface *createTextSurface(const char *str, bool bold)
+  {
+    SDL_Color c = { cText, cText, cText, 255 };
+    applyFontStyle(bold);
+    return TTF_RenderUTF8_Blended(font, str, c);
+  }
 
-	SDL_Surface *createTextSurface(const char *str, bool bold)
-	{
-		SDL_Color c = { cText, cText, cText, 255 };
-		applyFontStyle(bold);
+  SDL_Surface *createTextSurface(const char *str, SDL_Color c,
+                                 bool bold)
+  {
+    applyFontStyle(bold);
+    return TTF_RenderUTF8_Blended(font, str, c);
+  }
 
-		return TTF_RenderUTF8_Blended(font, str, c);
-	}
+  // Horizontally centered
+  void blitTextSurf(SDL_Surface *surf, int x, int y,
+                    int alignW, SDL_Surface *txtSurf,
+                    Justification just)
+  {
+    SDL_Rect dstRect;
+    dstRect.x = drawOff.x;
+    dstRect.y = drawOff.y + y - txtSurf->h / 2;
+    dstRect.w = txtSurf->w;
+    dstRect.h = txtSurf->h;
+    switch (just)
+    {
+    case Left:
+      dstRect.x += x;
+      break;
+    case Center:
+      dstRect.x += x - (txtSurf->w - alignW) / 2;
+      break;
+    }
+    if (txtSurf->w <= alignW) {
+      SDL_BlitSurface(txtSurf, 0, surf, &dstRect);
+    } else {
+      dstRect.w = alignW;
+      dstRect.x = x;
+      SDL_BlitScaled(txtSurf, 0, surf, &dstRect);
+    }
+  }
 
-	SDL_Surface *createTextSurface(const char *str, SDL_Color c,
-	                               bool bold)
-	{
-		applyFontStyle(bold);
-		return TTF_RenderUTF8_Blended(font, str, c);
-	}
-
-	/* Horizontally centered */
-	void blitTextSurf(SDL_Surface *surf, int x, int y,
-	                  int alignW, SDL_Surface *txtSurf,
-	                  Justification just)
-	{
-		SDL_Rect dstRect;
-		dstRect.x = drawOff.x;
-		dstRect.y = drawOff.y + y - txtSurf->h / 2;
-		dstRect.w = txtSurf->w;
-		dstRect.h = txtSurf->h;
-
-		switch (just)
-		{
-		case Left:
-			dstRect.x += x;
-			break;
-		case Center:
-			dstRect.x += x - (txtSurf->w - alignW) / 2;
-			break;
-		}
-
-		if (txtSurf->w <= alignW)
-		{
-			SDL_BlitSurface(txtSurf, 0, surf, &dstRect);
-		}
-		else
-		{
-			dstRect.w = alignW;
-			dstRect.x = x;
-			SDL_BlitScaled(txtSurf, 0, surf, &dstRect);
-		}
-	}
-
-	void drawText(SDL_Surface *surf, const char *str,
-	              int x, int y, int alignW,
-	              Justification just, SDL_Color c, bool bold = false)
-	{
-		SDL_Surface *txt = createTextSurface(str, c, bold);
-		blitTextSurf(surf, x, y, alignW, txt, just);
-		SDL_FreeSurface(txt);
-	}
+  void drawText(SDL_Surface *surf, const char *str,
+                int x, int y, int alignW,
+                Justification just, SDL_Color c, bool bold = false)
+  {
+    SDL_Surface *txt = createTextSurface(str, c, bold);
+    blitTextSurf(surf, x, y, alignW, txt, just);
+    SDL_FreeSurface(txt);
+  }
 
   void drawText(SDL_Surface *surf, const char *str, int x, int y, int alignW, Justification just, bool bold = false)
   {
@@ -424,12 +410,14 @@ struct SettingsMenuPrivate
       const Input::ButtonCode trg = desc.target;
       size_t j;
       for (j = 0; j < vButtonsN; ++j) {// std::cout << "Joystick Button " << j << std::endl;
-        if (bWidgets[j].vb.code == trg) break;
+        if (bWidgets[j].vb.code == trg)
+          break;
       }
       assert(j < vButtonsN);
       size_t &slot = slotI[j];
       BindingWidget &w = bWidgets[j];
-      if (slot == 4) continue;
+      if (slot == 4)
+        continue;
       w.src[slot++] = desc.src;
     }
   }
@@ -475,94 +463,71 @@ struct SettingsMenuPrivate
 	void redraw()
 	{
 		fillSurface(winSurf, cBgNorm);
-
 		for (size_t i = 0; i < widgets.size(); ++i)
 			widgets[i]->draw(winSurf);
-
-		if (state == AwaitingInput)
-		{
+		if (state == AwaitingInput) {
 			char buf[64];
 			snprintf(buf, sizeof(buf), "Press key or joystick button for \"%s\"", captureName);
-
 			drawOff = Vec2i();
-
 			SDL_Surface *dark = createSurface(winSize.x, winSize.y);
 			fillSurface(dark, 0);
 			SDL_SetSurfaceAlphaMod(dark, 128);
 			SDL_SetSurfaceBlendMode(dark, SDL_BLENDMODE_BLEND);
 			SDL_Surface *txt = createTextSurface(buf, false);
-
 			SDL_BlitSurface(dark, 0, winSurf, 0);
-
 			SDL_Rect fill;
 			fill.x = (winSize.x - txt->w - 20) / 2;
 			fill.y = (winSize.y - txt->h - 20) / 2;
 			fill.w = txt->w + 20;
 			fill.h = txt->h + 20;
-
 			fillRect(winSurf, cBgNorm, fill.x, fill.y, fill.w, fill.h);
 			strokeRectInner(winSurf, cLine, fill.x, fill.y, fill.w, fill.h, 2);
-
 			fill.x += 10;
 			fill.y += 10;
 			fill.w = txt->w;
 			fill.h = txt->h;
-
 			SDL_BlitSurface(txt, 0, winSurf, &fill);
-
 			SDL_FreeSurface(txt);
 			SDL_FreeSurface(dark);
 		}
-
-		SDL_UpdateWindowSurface(window);
-	}
+    SDL_UpdateWindowSurface(window);
+  }
 
 	Widget *findWidget(int x, int y)
 	{
 		Widget *w = 0;
-
 		for (size_t i = 0; i < widgets.size(); ++i)
-			if (widgets[i]->hit(x, y))
-			{
+			if (widgets[i]->hit(x, y)) {
 				w = widgets[i];
 				break;
 			}
-
 		return w;
 	}
 
-	void onClick(const SDL_MouseButtonEvent &e)
-	{
-		if (e.button != SDL_BUTTON_LEFT && e.button != SDL_BUTTON_RIGHT)
-			return;
-
-		if (state == AwaitingInput)
-		{
-			state = Idle;
-			redraw();
-			return;
-		}
-
-		Widget *w = findWidget(e.x, e.y);
-
-		if (w)
-			w->click(e.x, e.y, e.button);
-	}
+  void onClick(const SDL_MouseButtonEvent &e)
+  {
+    if (e.button != SDL_BUTTON_LEFT && e.button != SDL_BUTTON_RIGHT)
+      return;
+    if (state == AwaitingInput) {
+      state = Idle;
+      redraw();
+      return;
+    }
+    Widget *w = findWidget(e.x, e.y);
+    if (w)
+      w->click(e.x, e.y, e.button);
+  }
 
 	void onMotion(const SDL_MouseMotionEvent &e)
 	{
 		if (state == AwaitingInput)
 			return;
-
 		Widget *w = findWidget(e.x, e.y);
-
-		if (w != hovered)
-		{
+		if (w != hovered) {
 			if (hovered)
 				hovered->leave();
 			hovered = w;
 		}
-
 		if (hovered)
 			hovered->motion(e.x, e.y);
 	}
@@ -704,7 +669,7 @@ void Widget::click(int x, int y, uint8_t button)
 	clickHandler(x - rect.x, y - rect.y, button);
 }
 
-/* Ratio of cell area to total widget width */
+// Ratio of cell area to total widget width
 #define BW_CELL_R 0.75f
 
 void BindingWidget::drawHandler(SDL_Surface *surf)
@@ -735,37 +700,29 @@ void BindingWidget::drawHandler(SDL_Surface *surf)
 		            cellOff[hoveredCell*2], cellOff[hoveredCell*2+1],
 		            cellW, cellH);
 
-	/* Frame */
-	p->strokeRectInner(surf, cLine, 0, 0, rect.w, rect.h, 2);
-
-	/* Virtual button name */
-	p->drawText(surf, vb.str, 1, rect.h/2, cellOffX, Center, true);
-
-	/* Cell frames */
+  /* Frame */
+  p->strokeRectInner(surf, cLine, 0, 0, rect.w, rect.h, 2);
+  /* Virtual button name */
+  p->drawText(surf, vb.str, 1, rect.h/2, cellOffX, Center, true);
+  /* Cell frames */
 	p->strokeLineV(surf, cLine, cellOffX, 0, rect.h, 2);
 	p->strokeLineV(surf, cLine, cellOffX+cellW, 0, rect.h, 2);
 	p->strokeLineH(surf, cLine, cellOffX, cellH, cellW*2, 2);
-
-	/* Draw binding labels */
-	for (size_t i = 0; i < 4; ++i)
-	{
+  /* Draw binding labels */
+	for (size_t i = 0; i < 4; ++i) {
 		std::string lb = sourceDescString(src[i]);
 		if (lb.empty())
 			continue;
-
 		const int x = lbOff[i*2+0];
 		const int y = lbOff[i*2+1];
 		p->drawText(surf, lb.c_str(), cellOffX+x+1, y, cellW-2, Center);
 	}
-
-	for (size_t i = 0; i < 4; ++i)
-	{
-		if (!dupFlag[i])
-			continue;
-
-		p->strokeRectInner(surf, cellOff[i*2]+1, cellOff[i*2+1]+1,
-		        cellW-2, cellH-3, 1, 255, 0, 0);
-	}
+  for (size_t i = 0; i < 4; ++i) {
+    if (!dupFlag[i])
+      continue;
+    p->strokeRectInner(surf, cellOff[i*2]+1, cellOff[i*2+1]+1,
+            cellW-2, cellH-3, 1, 255, 0, 0);
+  }
 }
 
 void BindingWidget::setHoveredCell(int cell)
@@ -837,10 +794,10 @@ void Button::setHovered(bool val)
 
 void Button::drawHandler(SDL_Surface *surf)
 {
-	if (hovered)
-		p->fillRect(surf, cBgDark, 0, 0, rect.w, rect.h);
-	p->strokeRectInner(surf, cLine, 0, 0, rect.w, rect.h, 2);
-	p->drawText(surf, str, 0, rect.h/2, rect.w, Center);
+  if (hovered)
+    p->fillRect(surf, cBgDark, 0, 0, rect.w, rect.h);
+  p->strokeRectInner(surf, cLine, 0, 0, rect.w, rect.h, 2);
+  p->drawText(surf, str, 0, rect.h/2, rect.w, Center);
 }
 
 void Button::motionHandler(int, int)
@@ -876,69 +833,63 @@ void Label::drawHandler(SDL_Surface *surf)
 
 SettingsMenu::SettingsMenu(RGSSThreadData &rtData)
 {
-	p = new SettingsMenuPrivate(rtData);
-	p->state = Idle;
-	p->hasFocus = false;
-	p->destroyReq = false;
-	p->window = SDL_CreateWindow("Key Bindings",
-	                             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-	                             winSize.x, winSize.y, SDL_WINDOW_INPUT_FOCUS);
-	p->winSurf = SDL_GetWindowSurface(p->window);
-	p->winID = SDL_GetWindowID(p->window);
-	p->font = SharedFontState::openBundled(fontSize);
-	p->rgb = p->winSurf->format;
-	const size_t layoutW = 4;
-	const size_t layoutH = 3;
-	assert(layoutW*layoutH == vButtonsN);
-	const int bWidgetW = winSize.x / layoutH;
-	const int bWidgetH = 64;
-	const int bWidgetY = winSize.y - layoutW*bWidgetH - 48;
-	for (int y = 0; y < 4; ++y)
-		for (int x = 0; x < 3; ++x)
-		{
-			int i = y*3+x;
-			BindingWidget w(i, p, IntRect(x*bWidgetW, bWidgetY+y*bWidgetH,
-			                              bWidgetW, bWidgetH));
-			p->bWidgets.push_back(w);
-		}
-
-	for (size_t i = 0; i< p->bWidgets.size(); ++i)
-		p->widgets.push_back(&p->bWidgets[i]);
-
-	BDescVec binds;
-	rtData.bindingUpdateMsg.get(binds);
-	p->setupBindingData(binds);
-	/* Buttons */
-	const int buttonH = 32;
-	const int buttonY = winSize.y - buttonH - 8;
-
-	IntRect btRects[] =
-	{
-	    IntRect(16, buttonY, 112, buttonH),
-	    IntRect(winSize.x-16-64*2-8, buttonY, 64, buttonH),
-	    IntRect(winSize.x-16-64, buttonY, 64, buttonH)
-	};
-	p->buttons.push_back(Button(p, btRects[0], "Reset defaults", &SMP::onResetToDefault));
-	p->buttons.push_back(Button(p, btRects[1], "Cancel", &SMP::onCancel));
-	p->buttons.push_back(Button(p, btRects[2], "Accept", &SMP::onAccept));
-
-	for (size_t i = 0; i< p->buttons.size(); ++i)
-		p->widgets.push_back(&p->buttons[i]);
-
-	/* Labels */
-	const char *info = "Use left click to bind a slot, right click to clear its binding";
-	p->infoLabel = Label(p, IntRect(16, 6, winSize.x, 16), info, cText, cText, cText);
-
-	const char *warn = "Warning: Same physical key bound to multiple slots";
-	p->dupWarnLabel = Label(p, IntRect(16, 26, winSize.x, 16), warn, 255, 0, 0);
-
-	p->widgets.push_back(&p->infoLabel);
-	p->widgets.push_back(&p->dupWarnLabel);
-	p->hovered = 0;
-	p->captureDesc = 0;
-	p->captureName = 0;
-	p->updateDuplicateStatus();
-	p->redraw();
+  p = new SettingsMenuPrivate(rtData);
+  p->state = Idle;
+  p->hasFocus = false;
+  p->destroyReq = false;
+  p->window = SDL_CreateWindow("Key Bindings",
+                               SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                               winSize.x, winSize.y, SDL_WINDOW_INPUT_FOCUS);
+  p->winSurf = SDL_GetWindowSurface(p->window);
+  p->winID = SDL_GetWindowID(p->window);
+  p->font = SharedFontState::openBundled(fontSize);
+  p->rgb = p->winSurf->format;
+  const size_t layoutW = 5;//const size_t layoutH = 3;
+  assert(layoutW*3 == vButtonsN);
+  const int bWidgetW = winSize.x / 4;//layoutH;
+  const int bWidgetH = 64;
+  const int bWidgetY = winSize.y - layoutW*bWidgetH + 8;
+  for (int y = 0; y < 4; ++y) {
+    for (int x = 0; x < 4; ++x) {
+      if (y == 3 && x == 2)
+        break;
+      int i = y*4+x;
+      BindingWidget w(i, p, IntRect(x*bWidgetW, bWidgetY+y*bWidgetH,
+                                    bWidgetW, bWidgetH));
+      p->bWidgets.push_back(w);
+    }
+  }
+  for (size_t i = 0; i< p->bWidgets.size(); ++i)
+    p->widgets.push_back(&p->bWidgets[i]);
+  BDescVec binds;
+  rtData.bindingUpdateMsg.get(binds);
+  p->setupBindingData(binds);
+  // Buttons
+  const int buttonH = 32;
+  const int buttonY = winSize.y - buttonH - 8;
+  IntRect btRects[] =
+  {
+     IntRect(16, buttonY, 112, buttonH),
+     IntRect(winSize.x-16-64*2-8, buttonY, 64, buttonH),
+     IntRect(winSize.x-16-64, buttonY, 64, buttonH)
+  };
+  p->buttons.push_back(Button(p, btRects[0], "Reset defaults", &SMP::onResetToDefault));
+  p->buttons.push_back(Button(p, btRects[1], "Cancel", &SMP::onCancel));
+  p->buttons.push_back(Button(p, btRects[2], "Accept", &SMP::onAccept));
+  for (size_t i = 0; i< p->buttons.size(); ++i)
+    p->widgets.push_back(&p->buttons[i]);
+  // Labels
+  const char *info = "Use left click to bind a slot, right click to clear its binding";
+  p->infoLabel = Label(p, IntRect(16, 6, winSize.x, 16), info, cText, cText, cText);
+  const char *warn = "Warning: Same physical key bound to multiple slots";
+  p->dupWarnLabel = Label(p, IntRect(16, 26, winSize.x, 16), warn, 255, 0, 0);
+  p->widgets.push_back(&p->infoLabel);
+  p->widgets.push_back(&p->dupWarnLabel);
+  p->hovered = 0;
+  p->captureDesc = 0;
+  p->captureName = 0;
+  p->updateDuplicateStatus();
+  p->redraw();
 }
 
 SettingsMenu::~SettingsMenu()

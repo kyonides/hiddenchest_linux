@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** 2019 Extended by Kyonides Arkanthes <kyonides@gmail.com>
+** Copyright (C) 2018-2026 Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** HiddenChest is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ public:
     LessOrGreater = 111, APP = 112, NumPadEquals = 113,
     LeftCtrl = 114, LeftShift = 115, LeftAlt = 116,
     RightCtrl = 117, RightShift = 118, RightAlt = 119,
-    LeftMeta = 120, RightMeta = 121,
+    LeftMeta = 120, RightMeta = 121, L2 = 122, R2 = 123,
     Web = 124, Mail = 125, Calculator = 126, Computer = 127,
     APP1 = 128, APP2 = 129,
     MouseLeft = 130, MouseMiddle = 131, MouseRight = 132,

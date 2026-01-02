@@ -96,7 +96,7 @@ static VALUE input_joystick_number_buttons(VALUE self)
     return ZERO;
 }
 
-static VALUE input_gamepad_set_rumble(VALUE self, VALUE lint, VALUE rint, VALUE ms)
+static VALUE input_joystick_set_rumble(VALUE self, VALUE lint, VALUE rint, VALUE ms)
 {
   if (rb_iv_get(self, "@rumble") == Qfalse)
     return rb_iv_set(self, "@last_rumble", Qfalse);
@@ -130,16 +130,16 @@ static void joystick_state_change(VALUE input)
   if (state == 2) {
     set_joystick(input);
     rb_ary_push(ary, hc_sym("add"));
+    shState->input().reset_joystick_bindings(reset);
   } else {
     rb_ary_push(ary, hc_sym("remove"));
     reset = shState->input().has_joystick();
+    shState->input().reset_joystick_bindings(reset);
     if (reset)
       set_joystick(input);
     else
       ary = input_gamepad_new(input);
   }
-  shState->input().reset_joystick_bindings(reset);
-  shState->input().reset_joystick_change();
 }
 
 static VALUE input_update(VALUE self)
@@ -150,12 +150,12 @@ static VALUE input_update(VALUE self)
 }
 
 // FIXME: RMXP allows only few more types that don't make sense (symbols in pre 3, floats)
-static int getButtonArg(VALUE number)
+static int getButtonArg(VALUE input, VALUE number)
 {
   if (FIXNUM_P(number))
     return RB_FIX2INT(number);
   if (SYMBOL_P(number)) {// && rgssVer == 3
-    VALUE sym_hash = getRbData()->buttoncodeHash;
+    VALUE sym_hash = rb_const_get(input, rb_intern("BUTTON_CODES"));
     return RB_FIX2INT(rb_hash_aref(sym_hash, number));
   }
   return 0;
@@ -163,19 +163,19 @@ static int getButtonArg(VALUE number)
 
 static VALUE inputPress(VALUE self, VALUE number)
 {
-  int num = getButtonArg(number);
+  int num = getButtonArg(self, number);
   return shState->input().isPressed(num) ? Qtrue : Qfalse;
 }
 
 static VALUE inputTrigger(VALUE self, VALUE number)
 {
-  int num = getButtonArg(number);
+  int num = getButtonArg(self, number);
   return shState->input().isTriggered(num) ? Qtrue : Qfalse;
 }
 
 static VALUE inputRepeat(VALUE self, VALUE number)
 {
-  int num = getButtonArg(number);
+  int num = getButtonArg(self, number);
   return shState->input().isRepeated(num) ? Qtrue : Qfalse;
 }
 
@@ -191,7 +191,7 @@ static VALUE input_trigger_any(VALUE self)
 
 static VALUE input_trigger_double(VALUE self, VALUE number)
 {
-  int num = getButtonArg(number);
+  int num = getButtonArg(self, number);
   return shState->input().is_triggered_double(num) ? Qtrue : Qfalse;
 }
 
@@ -209,38 +209,26 @@ static VALUE input_trigger_old(VALUE self)
 
 static VALUE input_are_triggered(int size, VALUE* buttons, VALUE self)
 {
-  if (ARRAY_TYPE_P(buttons[0])) {
-    VALUE rbuttons = buttons[0];
-    int size = RARRAY_LEN(rbuttons);
-    for (int n = 0; n < size; n++) {
-      int num = getButtonArg(rb_ary_entry(rbuttons, n));
-      if (shState->input().isTriggered(num))
-        return Qtrue;
-    }
-    return Qfalse;
+  if (size == 1 && ARRAY_TYPE_P(buttons[0])) {
+    size = RARRAY_LEN(buttons[0]);
+    buttons = RARRAY_PTR(buttons[0]);
   }
   for (int n = 0; n < size; n++) {
-    int num = getButtonArg(buttons[n]);
-    if (shState->input().isTriggered(num))
-      return Qtrue;
+    int num = getButtonArg(self, buttons[n]);
+    if (!shState->input().isTriggered(num))
+      return Qfalse;
   }
-  return Qfalse;
+  return Qtrue;
 }
 
-static VALUE input_are_pressed(int size, VALUE* buttons, VALUE self)
+static VALUE input_are_pressed(int size, VALUE *buttons, VALUE self)
 {
-  if (ARRAY_TYPE_P(buttons[0])) {
-    VALUE rbuttons = buttons[0];
-    int size = RARRAY_LEN(rbuttons);
-    for (int n = 0; n < size; n++) {
-      int num = getButtonArg(rb_ary_entry(rbuttons, n));
-      if (!shState->input().isPressed(num))
-        return Qfalse;
-    }
-    return Qtrue;
+  if (size == 1 && ARRAY_TYPE_P(buttons[0])) {
+    size = RARRAY_LEN(buttons[0]);
+    buttons = RARRAY_PTR(buttons[0]);
   }
   for (int n = 0; n < size; n++) {
-    int num = getButtonArg(buttons[n]);
+    int num = getButtonArg(self, buttons[n]);
     if (!shState->input().isPressed(num))
       return Qfalse;
   }
@@ -501,10 +489,11 @@ void inputBindingInit()
   rb_define_attr(joystick, "active", 1, 0);
   rb_define_attr(joystick, "rumble", 1, 0);
   rb_define_attr(joystick, "last_rumble", 1, 0);
+  rb_define_attr(joystick, "bindings", 1, 0);
   rb_define_method(joystick, "axes", RMF(input_joystick_number_axis), 0);
   rb_define_method(joystick, "hats", RMF(input_joystick_number_hats), 0);
   rb_define_method(joystick, "buttons", RMF(input_joystick_number_buttons), 0);
-  rb_define_method(joystick, "set_rumble", RMF(input_gamepad_set_rumble), 3);
+  rb_define_method(joystick, "set_rumble", RMF(input_joystick_set_rumble), 3);
   input_create_gamepad_types(joystick);
   rb_iv_set(input, "text_input", Qfalse);
   rb_iv_set(input, "default_trigger_timer", RB_INT2FIX(TRIGGER_TIMER));
@@ -576,6 +565,7 @@ void inputBindingInit()
     rb_hash_aset(hash, rb_id2sym(sym), val);
   }
   getRbData()->buttoncodeHash = hash;
+  rb_const_set(input, rb_intern("BUTTON_CODES"), hash);
   rb_hash_set_ifnone(hash, ZERO);
   hash = rb_hash_new();
   for (size_t i = 0; i < vendorsN; ++i) {
@@ -583,7 +573,7 @@ void inputBindingInit()
     val = rstr(vendors[i].name);
     rb_hash_aset(hash, key, val);
   }
-  rb_hash_set_ifnone(hash, rb_const_get(joystick,rb_intern("DEFAULT_VENDOR")));
+  rb_hash_set_ifnone(hash, rb_const_get(joystick, rb_intern("DEFAULT_VENDOR")));
   rb_cvar_set(joystick, rb_intern("vendors"), hash);
   hash = rb_hash_new();
   for (size_t i = 0; i < buttonStringsN; ++i) {

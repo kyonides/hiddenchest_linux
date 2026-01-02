@@ -1,9 +1,10 @@
 /*
 ** keybindings.h
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2014 Jonas Kulla <Nyocurio@gmail.com>
+** Copyright (C) 2018-2026 Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -103,8 +104,8 @@ struct SourceDesc
 
 struct BindingDesc
 {
-	SourceDesc src;
-	Input::ButtonCode target;
+  SourceDesc src;
+  Input::ButtonCode target;
 };
 
 typedef std::vector<BindingDesc> BDescVec;
@@ -113,7 +114,8 @@ struct Config;
 BDescVec genDefaultBindings(const Config &conf);
 
 void storeBindings(const BDescVec &d, const Config &conf);
-BDescVec loadBindings(const Config &conf, int &state);
+BDescVec loadBindings(const Config &conf);
+BDescVec load_reset_bindings(const Config &conf);
 BDescVec load_generic_bindings(const Config &conf);
 
 #endif // KEYBINDINGS_H

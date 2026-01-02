@@ -166,10 +166,14 @@ void SharedState::check_soundfont_dir(const char *sf_dir)
 
 void SharedState::reset_keybindings_path()
 {
-  int state;
-  BDescVec binds = loadBindings(p->config, state);
+  bool store_now = false;
+  BDescVec binds = load_reset_bindings(p->config);
+  if (!binds.size()) {
+    binds = load_generic_bindings(p->config);
+    store_now = true;
+  }
   p->rtData.bindingUpdateMsg.post(binds);
-  if (!state)
+  if (store_now)
     storeBindings(binds, p->config);
 }
 

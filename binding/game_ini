@@ -18,6 +18,208 @@ module System
   end
 end
 
+module Input
+  KEYBOARD_GENERIC_INI = "Input/kb_generic.ini"
+  class Binding
+    TYPES = ["Invalid", "Key", "Button", "Axis", "Hat"]
+    def initialize
+      @name = ""
+      @value = nil
+      self.type = 0
+    end
+
+    def type=(tp)
+      @type_name = TYPES[tp]
+      @type = tp
+    end
+
+    def get_hat_pos(s)
+      s =~ /u/i ? 1 : s =~ /r/i ? 2 : s =~ /d/i ? 4 : s =~ /l/i ? 8 : 0
+    end
+
+    def get_value_by_name
+      s = "NumPad" + @name
+      @symbol = s.to_sym
+      @value = BUTTON_CODES[@symbol]
+    end
+
+    def refresh_type
+      if @name[/(?:\/|Divide)/i]
+        @name = "Divide"
+        get_value_by_name
+        return
+      elsif @name[/(?:\*|Multiply)/i]
+        @name = "Multiply"
+        get_value_by_name
+        return
+      elsif @name[/(?:\-|Minus)/i]
+        @name = "Minus"
+        get_value_by_name
+        return
+      elsif @name[/(?:\*|Plus)/i]
+        @name = "Plus"
+        get_value_by_name
+        return
+      elsif @name[/(?:key|num)pad (\d+)/i]
+        self.type = 1
+        s = "NumPad" + $1
+        @symbol = s.to_sym
+        @value = BUTTON_CODES[@symbol]
+        return
+      elsif @name[/js (\d+)/i]
+        self.type = 2
+        @value = $1.to_i
+        return
+      elsif @name[/axis (\d+)(\+|\-)/i]
+        self.type = 3
+        @value = $1.to_i
+        @dir = $2 == "+" ? 1 : 0
+        return
+      elsif @name[/hat (\d+).(\w)/i]
+        self.type = 4
+        @value = $1.to_i
+        @dir = get_hat_pos($2)
+        return
+      elsif @name[/\w+/i]
+        self.type = 1
+        s = @name.chomp.dup
+        if s.size == 1 and s[/[a-z]/i]
+          s = "Key" + s.upcase
+        end
+        @symbol = s.to_sym
+        @value = BUTTON_CODES[@symbol]
+        return
+      elsif @name[/\d/i]
+        self.type = 1
+        s = "N" + @name
+        @symbol = s.to_sym
+        @value = BUTTON_CODES[@symbol]
+        return
+      else
+        self.type = 0
+        @value = nil
+        @name = ""
+      end
+    end
+
+    def name=(text)
+      @name = text.chomp
+      refresh_type
+      @name
+    end
+    attr_reader :name, :type, :type_name, :symbol
+    attr_accessor :index, :value, :dir
+  end
+
+  class BindingGroup
+    def initialize
+      @name = "?"
+      @target = 0
+      @data = Array.new(4) { Binding.new }
+    end
+
+    def [](n)
+      @data[n]
+    end
+
+    def []=(n, bind)
+      @data[n] = bind
+    end
+    attr_accessor :name, :target
+    attr_reader :data
+  end
+
+  class KeyBindings
+    def initialize
+      @name = ""
+      @version = 0
+      @size = 0
+      @list = Array.new(14) { BindingGroup.new }
+    end
+    attr_accessor :name, :version, :size, :list
+  end
+
+  module BindParser
+    def self.process_number_entry(line)
+      line[/(\d+)/]
+      $1.to_i
+    end
+
+    def self.process_target_button(line)
+      line.sub!(/(\w+)\s?=\s?/i, "")
+      $1
+    end
+  end
+  extend self
+  attr_reader :bindings
+  def self.create_generic_bindings
+    fn = Dir.pwd + "/" + KEYBOARD_GENERIC_INI
+    return unless File.exist?(fn)
+    lines = File.readlines(fn)
+    heading = lines.shift
+    return unless heading[/header/i]
+    @bindings.name = BindParser.process_number_entry(lines.shift)
+    @bindings.version = Game::RGSS_VERSION
+    heading = lines.shift
+    return unless heading[/bindings/i]
+    puts "Processing Gemeric Bindings..."
+    slot_max = 4
+    14.times do |n|
+      line = lines.shift
+      group = @bindings.list[n]
+      group.target = n
+      group.name = BindParser.process_target_button(line)
+      line.sub!(/(\s?=\s?)/i, "")
+      names = line.split(",")
+      names = names.take(slot_max)
+      while names.size < slot_max
+        names << ""
+      end
+      slot_max.times do |n|
+        b = group[n]
+        b.index = n
+        b.name = names[n]
+      end
+    end
+    @success = true
+  end
+
+  def self.save_bindings(fn)
+    path = "#{Game.user_path}/#{fn}.#{Game.data_ext}"
+    save_data(path, @bindings)
+  end
+
+  def self.load_bindings(fn)
+    path = "#{Game.user_path}/#{fn}.#{Game.data_ext}"
+    @bindings = load_data(path)
+  end
+
+  def self.load_init_bindings
+    files = Dir[Game.glob_kb].sort
+    if files.empty?
+      @success = false
+      @bindings = KeyBindings.new
+      create_generic_bindings
+      if @success
+        save_bindings("kb_generic")
+      end
+    else
+      puts "Loading Generic Bindings..."
+      load_bindings("kb_generic")
+    end
+  end
+  private
+  def self.save_data(fn, obj)
+    File.open(fn, "wb") {|f| Marshal.dump(obj, f) }
+  end
+
+  def self.load_data(fn)
+    obj = nil
+    File.open(fn, "rb") {|f| obj = Marshal.load(f) }
+    obj
+  end
+end
+
 module Game
   SCENE_SCRIPT = "Data/Splash"
   SCENE_SCRIPT_EXT = ".rhc"
@@ -25,11 +227,12 @@ module Game
   DATA.default = ""
   RTP = []
   SOUNDFONT_REGEX = "/*.sf{2,3}"
+  DATA_EXT = ["", "rxdata", "rvdata", "rvdata2", ""]
   extend self
-  attr_reader(:shot_formats, :shot_format, :shot_dir, :shot_filename)
-  attr_reader(:shot_path, :save_dir, :save_path, :show_splash)
-  attr_reader(:soundfont, :soundfonts, :env_dir, :user_dir)
-  attr_accessor(:save_filename, :setup_screen)
+  attr_reader :shot_formats, :shot_format, :shot_dir, :shot_filename
+  attr_reader :shot_path, :save_dir, :save_path, :show_splash
+  attr_reader :soundfont, :soundfonts, :env_dir, :user_dir, :user_path
+  attr_accessor :save_filename, :setup_screen
   def self.clear
     @shot_formats = ["jpg", "png"]
     @shot_format = "jpg"
@@ -45,6 +248,14 @@ module Game
 
   def self.make_path(*args)
     args.join("/")
+  end
+
+  def self.data_ext
+    DATA_EXT[RGSS_VERSION]
+  end
+
+  def self.glob_kb
+    @user_path + "/*." + data_ext
   end
 
   def self.save_dir=(dir)
@@ -299,9 +510,11 @@ begin
     Graphics.hide_window
   else
     Game.setup
+    Input.load_init_bindings
   end
   puts "Completed setup successfully."
   Game.window_show_borders = true
+  puts "Resize the game window"
   Graphics.resize(Game::WIDTH, Game::HEIGHT)
   Game.icon = Game::ICON
   Game.title = Game::TITLE
@@ -314,5 +527,6 @@ begin
 rescue => e
   puts e.class, e.message, e.backtrace
   Game.setup
+  Input.load_init_bindings
   Graphics.show_window
 end

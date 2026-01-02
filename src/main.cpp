@@ -249,8 +249,6 @@ int main(int argc, char *argv[])
   int winW, winH;
   SDL_GetWindowSize(win, &winW, &winH);
   rtData.windowSizeMsg.post(Vec2i(winW, winH));
-  // Load and post key bindings
-  rtData.bindingUpdateMsg.post(load_generic_bindings(conf));
   // Start RGSS thread
   SDL_Thread *rgssThread = SDL_CreateThread(rgssThreadFun, "rgss", &rtData);
   // Start event processing

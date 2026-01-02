@@ -1,9 +1,10 @@
 /*
 ** keybindings.cpp
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2014 Jonas Kulla <Nyocurio@gmail.com>
+** Copyright (C) 2018-2026 Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -30,70 +31,66 @@
 
 struct KbBindingData
 {
-	SDL_Scancode source;
-	Input::ButtonCode target;
+  SDL_Scancode source;
+  Input::ButtonCode target;
 
-	void add(BDescVec &d) const
-	{
-		SourceDesc src;
-		src.type = Key;
-		src.d.scan = source;
-
-		BindingDesc desc;
-		desc.src = src;
-		desc.target = target;
-
-		d.push_back(desc);
-	}
+  void add(BDescVec &d) const
+  {
+    SourceDesc src;
+    src.type = Key;
+    src.d.scan = source;
+    BindingDesc desc;
+    desc.src = src;
+    desc.target = target;
+    d.push_back(desc);
+  }
 };
 
 struct JsBindingData
 {
-	int source;
-	Input::ButtonCode target;
+  int source;
+  Input::ButtonCode target;
 
-	void add(BDescVec &d) const
-	{
-		SourceDesc src;
-		src.type = JButton;
-		src.d.jb = source;
-
-		BindingDesc desc;
-		desc.src = src;
-		desc.target = target;
-
-		d.push_back(desc);
-	}
+  void add(BDescVec &d) const
+  {
+    SourceDesc src;
+    src.type = JButton;
+    src.d.jb = source;
+    BindingDesc desc;
+    desc.src = src;
+    desc.target = target;
+    d.push_back(desc);
+  }
 };
 
-/* Common */
+// Common
 static const KbBindingData defaultKbBindings[] =
 {
-	{ SDL_SCANCODE_LEFT,     Input::Left  },
-	{ SDL_SCANCODE_RIGHT,    Input::Right },
-	{ SDL_SCANCODE_UP,       Input::Up    },
-	{ SDL_SCANCODE_DOWN,     Input::Down  },
-	{ SDL_SCANCODE_SPACE,    Input::C     },
-	{ SDL_SCANCODE_RETURN,   Input::C     },
-	{ SDL_SCANCODE_ESCAPE,   Input::B     },
-	{ SDL_SCANCODE_KP_0,     Input::B     },
-	{ SDL_SCANCODE_LSHIFT,   Input::A     },
-	{ SDL_SCANCODE_X,        Input::B     },
-	{ SDL_SCANCODE_D,        Input::Z     },
-	{ SDL_SCANCODE_Q,        Input::L     },
-	{ SDL_SCANCODE_W,        Input::R     },
-	{ SDL_SCANCODE_A,        Input::X     },
-	{ SDL_SCANCODE_S,        Input::Y     }
+  { SDL_SCANCODE_LEFT,     Input::Left  },
+  { SDL_SCANCODE_RIGHT,    Input::Right },
+  { SDL_SCANCODE_UP,       Input::Up    },
+  { SDL_SCANCODE_DOWN,     Input::Down  },
+  { SDL_SCANCODE_SPACE,    Input::C     },
+  { SDL_SCANCODE_RETURN,   Input::C     },
+  { SDL_SCANCODE_ESCAPE,   Input::B     },
+  { SDL_SCANCODE_KP_0,     Input::B     },
+  { SDL_SCANCODE_LSHIFT,   Input::A     },
+  { SDL_SCANCODE_X,        Input::B     },
+  { SDL_SCANCODE_D,        Input::Z     },
+  { SDL_SCANCODE_Q,        Input::L     },
+  { SDL_SCANCODE_W,        Input::R     },
+  { SDL_SCANCODE_A,        Input::X     },
+  { SDL_SCANCODE_S,        Input::Y     }
 };
 
-/* RGSS1 */
+// RGSS1
 static const KbBindingData defaultKbBindings1[] =
 {
   { SDL_SCANCODE_Z,  Input::A },
   { SDL_SCANCODE_C,  Input::C },
 };
 
-/* RGSS2 and higher */
+// RGSS2 and higher
 static const KbBindingData defaultKbBindings2[] =
 {
   { SDL_SCANCODE_Z,  Input::C }
@@ -162,7 +159,7 @@ static void addHatBinding(BDescVec &d, uint8_t hat, uint8_t pos, Input::ButtonCo
   d.push_back(desc);
 }
 
-static void set_axis_button(BDescVec &d)
+static void set_axis_buttons(BDescVec &d)
 {
   addAxisBinding(d, 0, Negative, Input::Left );
   addAxisBinding(d, 0, Positive, Input::Right);
@@ -170,7 +167,15 @@ static void set_axis_button(BDescVec &d)
   addAxisBinding(d, 1, Positive, Input::Down );
 }
 
-static void set_hat_button(BDescVec &d)
+static void set_ps_axis_buttons(BDescVec &d)
+{
+  addAxisBinding(d, 4, Negative, Input::L2 );
+  addAxisBinding(d, 4, Positive, Input::L2 );
+  addAxisBinding(d, 5, Negative, Input::R2 );
+  addAxisBinding(d, 5, Positive, Input::R2 );
+}
+
+static void set_hat_buttons(BDescVec &d)
 {
   addHatBinding(d, 0, SDL_HAT_LEFT,  Input::Left );
   addHatBinding(d, 0, SDL_HAT_RIGHT, Input::Right);
@@ -223,7 +228,6 @@ std::string get_short_gamepad_name(const std::string &pad, const std::string &ve
 {
   if (vendor == "vendor")
     return "generic";
-  Debug() << "Gamepad's Name:" << pad;
   std::smatch matches;
   std::regex pattern("(PS)(\\d?)");
   if (regex_search(pad, matches, pattern))
@@ -233,6 +237,17 @@ std::string get_short_gamepad_name(const std::string &pad, const std::string &ve
   if (found_substring(pad, "ZD", 0, 8))
     return "zdv";
   return "generic";
+}
+
+static int joystick_group(const std::string &vendor, const std::string &pad)
+{
+  if (vendor == "sony" && !pad.find("ps"))
+    return 100;
+  if (vendor == "zd" && pad == "zdv")
+    return 100;
+  if (vendor == "logitech" && pad == "dact")
+    return 101;
+  return 0;
 }
 
 BDescVec genDefaultBindings(const Config &conf)
@@ -246,28 +261,27 @@ BDescVec genDefaultBindings(const Config &conf)
   else
     for (size_t i = 0; i < defaultKbBindings2N; ++i)
       defaultKbBindings2[i].add(d);
-
   SDL_Joystick *js = SDL_JoystickOpen(0);
   if (!js) {
     kb_enter_binding[0].add(d);
     return d;
   }
+  set_axis_buttons(d);
   int vendor_id = SDL_JoystickGetVendor(js);
   int pos = get_vendor_name_pos(vendor_id);
   std::string jn, vn, pn;
   jn = SDL_JoystickName(js);
   vn = get_short_vendor_name(pos);
   pn = get_short_gamepad_name(jn, vn);
-  set_axis_button(d);
-  if ((vn == "sony" && !pn.find("ps")) ||
-      (vn == "zd" && !pn.find("zdv")))
-  {
+  int joy_group = joystick_group(vn, pn);
+  if (joy_group == 100) {
+    set_ps_axis_buttons(d);
     for (size_t i = 0; i < 12; ++i)
       ps_button_bindings[i].add(d);
   } else {
     for (size_t i = 0; i < defaultJsBindingsN; ++i)
       defaultJsBindings[i].add(d);
-    set_hat_button(d);
+    set_hat_buttons(d);
   }
   return d;
 }
@@ -282,19 +296,21 @@ struct Header
 };
 
 static void buildPath(const std::string &dir, uint32_t rgssVersion,
-                      char *out, size_t outSize)
+                      char *out, size_t outSize, int &js_group)
 {
   std::string jn, vn, pn;
   SDL_Joystick *js = SDL_JoystickOpen(0);
   if (!js) {
     vn = "kb";
     pn = "generic";
+    js_group = 0;
   } else {
     int vendor_id = SDL_JoystickGetVendor(js);
     int pos = get_vendor_name_pos(vendor_id);
     jn = SDL_JoystickName(js);
     vn = get_short_vendor_name(pos);
     pn = get_short_gamepad_name(jn, vn);
+    js_group = joystick_group(vn, pn);
   }
   snprintf(out, outSize, "%skb_%s_%s.hc%u", dir.c_str(), vn.c_str(),
            pn.c_str(), rgssVersion);
@@ -305,32 +321,35 @@ static bool writeBindings(const BDescVec &d, const std::string &dir,
 {
   if (dir.empty())
     return false;
-	char path[1024];
-	buildPath(dir, rgssVersion, path, sizeof(path));
-	FILE *f = fopen(path, "wb");
-	if (!f)
-		return false;
-	Header hd;
-	hd.formVer = FORMAT_VER;
-	hd.rgssVer = rgssVersion;
-	hd.count = d.size();
-	if (fwrite(&hd, sizeof(hd), 1, f) < 1) {
-		fclose(f);
-		return false;
-	}
-	if (fwrite(&d[0], sizeof(d[0]), hd.count, f) < hd.count) {
-		fclose(f);
-		return false;
-	}
-	fclose(f);
-	return true;
+  char path[1024];
+  int js_group;
+  buildPath(dir, rgssVersion, path, sizeof(path), js_group);
+  Debug() << "Write Path:" << path;
+  FILE *f = fopen(path, "wb");
+  if (!f)
+    return false;
+  Header hd;
+  hd.formVer = FORMAT_VER;
+  hd.rgssVer = rgssVersion;
+  hd.count = d.size();
+  Debug() << "Write Header's Count:" << hd.count;
+  const size_t total = fwrite(&hd, sizeof(hd), 1, f);
+  Debug() << "Write File Result:" << total;
+  if (total != 1) {
+    fclose(f);
+    return false;
+  }
+  if (fwrite(&d[0], sizeof(d[0]), hd.count, f) < hd.count) {
+    fclose(f);
+    return false;
+  }
+  fclose(f);
+  return true;
 }
 
 void storeBindings(const BDescVec &d, const Config &conf)
 {
-  if (writeBindings(d, conf.customDataPath, conf.rgssVersion))
-    return;
-  writeBindings(d, conf.commonDataPath, conf.rgssVersion);
+  writeBindings(d, conf.customDataPath, conf.rgssVersion);
 }
 
 #define READ(ptr, size, n, f) if (fread(ptr, size, n, f) < n) return false
@@ -349,31 +368,29 @@ static bool verifyDesc(const BindingDesc &desc)
   };
   elementsN(codes);
   size_t i;
-	for (i = 0; i < codesN; ++i)
-		if (desc.target == codes[i])
-			break;
-
-	if (i == codesN)
-		return false;
-
-	const SourceDesc &src = desc.src;
-	switch (src.type)
-	{
-	case Invalid:
-		return true;
-	case Key:
-		return src.d.scan < SDL_NUM_SCANCODES;
-	case JButton:
-		return true;
-	case JHat:
-		/* Only accept single directional binds */
-		return src.d.jh.pos == SDL_HAT_LEFT || src.d.jh.pos == SDL_HAT_RIGHT ||
-		       src.d.jh.pos == SDL_HAT_UP   || src.d.jh.pos == SDL_HAT_DOWN;
-	case JAxis:
-		return src.d.ja.dir == Negative || src.d.ja.dir == Positive;
-	default:
-		return false;
-	}
+  for (i = 0; i < codesN; ++i)
+    if (desc.target == codes[i])
+      break;
+  if (i == codesN)
+    return false;
+  const SourceDesc &src = desc.src;
+  switch (src.type)
+  {
+  case Invalid:
+    return true;
+  case Key:
+    return src.d.scan < SDL_NUM_SCANCODES;
+  case JButton:
+    return true;
+  case JHat:
+    // Only accept single directional binds
+    return src.d.jh.pos == SDL_HAT_LEFT || src.d.jh.pos == SDL_HAT_RIGHT ||
+           src.d.jh.pos == SDL_HAT_UP   || src.d.jh.pos == SDL_HAT_DOWN;
+  case JAxis:
+    return src.d.ja.dir == Negative || src.d.ja.dir == Positive;
+  default:
+    return false;
+  }
 }
 
 static bool readBindings(BDescVec &out, const std::string &dir,
@@ -382,23 +399,36 @@ static bool readBindings(BDescVec &out, const std::string &dir,
   if (dir.empty())
     return false;
   char path[1024];
-  buildPath(dir, rgssVersion, path, sizeof(path));
+  int js_group;
+  buildPath(dir, rgssVersion, path, sizeof(path), js_group);
+  Debug() << "Read Path: " << path;
   FILE *f = fopen(path, "rb");
   if (!f)
     return false;
   Header hd;
-  if (fread(&hd, sizeof(hd), 1, f) < 1)	{
+  hd.formVer = FORMAT_VER;
+  hd.rgssVer = 1;
+  hd.count = 1;
+  const size_t total = fread(&hd, sizeof(hd), 1, f);
+  Debug() << "Read File Result: " << total;
+  if (total != 1) {
     fclose(f);
     return false;
   }
+  Debug() << "Header's Format: " << hd.formVer;
+  Debug() << "Header's RGSS:   " << hd.rgssVer;
+  Debug() << "Header's Count:  " << hd.count;
   if (hd.formVer != FORMAT_VER)
     return false;
   if (hd.rgssVer != rgssVersion)
     return false;
+  Debug() << "Check Count";
   // Arbitrary max value
-  if (hd.count > 1024)
+  if (hd.count > 96)
     return false;
+  Debug() << "Resize Count";
   out.resize(hd.count);
+  Debug() << "Count Now: " << out.size();
   if (fread(&out[0], sizeof(out[0]), hd.count, f) < hd.count) {
     fclose(f);
     return false;
@@ -409,19 +439,21 @@ static bool readBindings(BDescVec &out, const std::string &dir,
   return true;
 }
 
-BDescVec loadBindings(const Config &conf, int &state)
+BDescVec loadBindings(const Config &conf)
 {
   BDescVec d;
   if (readBindings(d, conf.customDataPath, conf.rgssVersion)) {
-    state = 1;
+    Debug() << "Loaded Custom Bindings";
     return d;
   }
-  if (readBindings(d, conf.commonDataPath, conf.rgssVersion)) {
-    state = 1;
-    return d;
-  }
-  state = 0;
   return genDefaultBindings(conf);
+}
+
+BDescVec load_reset_bindings(const Config &conf)
+{
+  BDescVec d;
+  readBindings(d, conf.customDataPath, conf.rgssVersion);
+  return d;
 }
 
 BDescVec load_generic_bindings(const Config &conf)

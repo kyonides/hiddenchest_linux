@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Copyright (C) 2019-2024 Extended by Kyonides Arkanthes <kyonides@gmail.com>
+** Copyright (C) 2019-2026 Extended by Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** HiddenChest is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -459,7 +459,7 @@ static void runRGSSscripts(BacktraceData &btData)
   Debug() << "Loading Scripts now";
   long scriptCount = RARRAY_LEN(script_ary);
   std::string decodeBuffer;
-  decodeBuffer.resize(0x128000);
+  decodeBuffer.resize(0x160000);
   for (long i = 0; i < scriptCount; ++i) {
     VALUE script = rb_ary_entry(script_ary, i);
     if (!RB_TYPE_P(script, RUBY_T_ARRAY))
@@ -637,6 +637,7 @@ static void mriBindingExecute()
   sprite_setup_bush_opacity();
   BacktraceData btData;
   mriBindingInit();
+  shState->reset_keybindings_path();
   std::string &customScript = conf.customScript;
   if (!customScript.empty())
     runCustomScript(customScript);
