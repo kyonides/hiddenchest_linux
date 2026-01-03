@@ -19,8 +19,9 @@ module System
 end
 
 module Input
-  KEYBOARD_GENERIC_INI = "Input/kb_generic.ini"
-  class Binding
+  KEYBOARD_GENERIC = "kb_generic"
+  KEYBOARD_GENERIC_INI = "Input/#{KEYBOARD_GENERIC}.ini"
+  class KeyBinding
     TYPES = ["Invalid", "Key", "Button", "Axis", "Hat"]
     def initialize
       @name = ""
@@ -43,8 +44,17 @@ module Input
       @value = BUTTON_CODES[@symbol]
     end
 
+    def set_invalid_values
+      self.type = 0
+      @value = nil
+      @name = ""
+    end
+
     def refresh_type
-      if @name[/(?:\/|Divide)/i]
+      if @name.empty?
+        set_invalid_values
+        return
+      elsif @name[/(?:\/|Divide)/i]
         @name = "Divide"
         get_value_by_name
         return
@@ -82,7 +92,7 @@ module Input
         return
       elsif @name[/\w+/i]
         self.type = 1
-        s = @name.chomp.dup
+        s = @name.dup
         if s.size == 1 and s[/[a-z]/i]
           s = "Key" + s.upcase
         end
@@ -96,9 +106,7 @@ module Input
         @value = BUTTON_CODES[@symbol]
         return
       else
-        self.type = 0
-        @value = nil
-        @name = ""
+        set_invalid_values
       end
     end
 
@@ -111,11 +119,11 @@ module Input
     attr_accessor :index, :value, :dir
   end
 
-  class BindingGroup
+  class KeyBindingGroup
     def initialize
       @name = "?"
       @target = 0
-      @data = Array.new(4) { Binding.new }
+      @data = Array.new(4) { KeyBinding.new }
     end
 
     def [](n)
@@ -134,7 +142,7 @@ module Input
       @name = ""
       @version = 0
       @size = 0
-      @list = Array.new(14) { BindingGroup.new }
+      @list = Array.new(14) { KeyBindingGroup.new }
     end
     attr_accessor :name, :version, :size, :list
   end
@@ -151,22 +159,22 @@ module Input
     end
   end
   extend self
-  attr_reader :bindings
-  def self.create_generic_bindings
-    fn = Dir.pwd + "/" + KEYBOARD_GENERIC_INI
-    return unless File.exist?(fn)
+  attr_reader :default_bindings, :bindings
+  def self.create_custom_bindings(code)
+    fn = "Input/" + code + ".ini"
     lines = File.readlines(fn)
     heading = lines.shift
     return unless heading[/header/i]
-    @bindings.name = BindParser.process_number_entry(lines.shift)
-    @bindings.version = Game::RGSS_VERSION
+    bind = KeyBindings.new
+    bind.name = BindParser.process_number_entry(lines.shift)
+    bind.version = Game::RGSS_VERSION
     heading = lines.shift
     return unless heading[/bindings/i]
-    puts "Processing Gemeric Bindings..."
+    puts "Processing #{code} Bindings..."
     slot_max = 4
     14.times do |n|
       line = lines.shift
-      group = @bindings.list[n]
+      group = bind.list[n]
       group.target = n
       group.name = BindParser.process_target_button(line)
       line.sub!(/(\s?=\s?)/i, "")
@@ -181,31 +189,72 @@ module Input
         b.name = names[n]
       end
     end
+    @default_bindings[code] = bind
     @success = true
   end
 
+  def self.load_init_custom_bindings(files)
+    files.each do |fn|
+      code = File.basename(fn, "." + Game.data_ext)
+      load_custom_bindings(code)
+    end
+  end
+
   def self.save_bindings(fn)
-    path = "#{Game.user_path}/#{fn}.#{Game.data_ext}"
-    save_data(path, @bindings)
+    file = Game.bindings_path(fn)
+    save_data(file, @bindings)
   end
 
   def self.load_bindings(fn)
-    path = "#{Game.user_path}/#{fn}.#{Game.data_ext}"
-    @bindings = load_data(path)
+    file = Game.bindings_path(fn)
+    @bindings = load_data(file)
+    @default_bindings[KEYBOARD_GENERIC] = @bindings
+  end
+
+  def self.save_custom_bindings(code)
+    file = Game.bindings_path(code)
+    save_data(file, @default_bindings[code])
+  end
+
+  def self.load_custom_bindings(code)
+    file = Game.bindings_path(code)
+    @default_bindings[code] = load_data(file)
   end
 
   def self.load_init_bindings
+    @default_bindings = {}
     files = Dir[Game.glob_kb].sort
-    if files.empty?
+    ini = Game.bindings_path(KEYBOARD_GENERIC)
+    unless files.include?(ini)
+      puts "Creating Generic Bindings..."
       @success = false
-      @bindings = KeyBindings.new
-      create_generic_bindings
+      create_custom_bindings(KEYBOARD_GENERIC)
+      @bindings = @default_bindings[KEYBOARD_GENERIC]
       if @success
-        save_bindings("kb_generic")
+        puts "Saving Generic Bindings..."
+        save_bindings(KEYBOARD_GENERIC)
       end
     else
       puts "Loading Generic Bindings..."
-      load_bindings("kb_generic")
+      load_bindings(KEYBOARD_GENERIC)
+      files.delete(ini)
+    end
+    if files.any?
+      puts "Loading Custom Bindings..."
+      load_init_custom_bindings(files)
+    else
+      puts "Creating Custom Bindings..."
+      rgx = /\w+\/(.+)\.ini/i
+      ini_files = Dir["Input/*.ini"].sort
+      ini_files.each do |fname|
+        fname[/\w+\/(.+)\.ini/i]
+        code = $1
+        @success = false
+        create_custom_bindings(code)
+        next unless @success
+        puts "Saving Basic #{code} Binding..."
+        save_custom_bindings(code)
+      end
     end
   end
   private
@@ -232,6 +281,7 @@ module Game
   attr_reader :shot_formats, :shot_format, :shot_dir, :shot_filename
   attr_reader :shot_path, :save_dir, :save_path, :show_splash
   attr_reader :soundfont, :soundfonts, :env_dir, :user_dir, :user_path
+  attr_reader :bind_dir, :bind_path
   attr_accessor :save_filename, :setup_screen
   def self.clear
     @shot_formats = ["jpg", "png"]
@@ -240,6 +290,7 @@ module Game
     @shot_filename = "screenshot"
     @save_dir = "Saves"
     @save_filename = "Save"
+    @bind_dir = "Bindings"
     @env_dir = ""
     @user_dir = ""
     @soundfont = ""
@@ -256,6 +307,10 @@ module Game
 
   def self.glob_kb
     @user_path + "/*." + data_ext
+  end
+
+  def self.bindings_path(code)
+    @bind_path + "/#{code}." + data_ext
   end
 
   def self.save_dir=(dir)
@@ -438,6 +493,10 @@ module Game
       Dir.mkdir(@shot_path)
     end
     Graphics.screenshot_dir = @shot_path
+    @bind_path = make_path(@user_path, @bind_dir)
+    unless Dir.exist?(@bind_path)
+      Dir.mkdir(@bind_path)
+    end
   rescue => e
     puts e.class, e.message, e.backtrace
   end
