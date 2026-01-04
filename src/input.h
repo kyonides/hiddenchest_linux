@@ -123,6 +123,7 @@ public:
   int joystick_vendor();
   int joystick_kind();
   int joystick_power();
+  std::vector<int> joystick_basic_values();
   int joystick_axis_number();
   int joystick_hat_number();
   int joystick_button_number();
@@ -130,7 +131,6 @@ public:
   int joystick_set_rumble(int lfr, int rfr, int ms);
   int joystick_change();
   void reset_joystick_change();
-  void reset_joystick_bindings(bool removed);
   bool close_joystick();
   bool open_joystick();
 

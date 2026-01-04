@@ -1358,6 +1358,15 @@ int Input::joystick_power()
   return SDL_JoystickCurrentPowerLevel(shState->rtData().joystick);
 }
 
+std::vector<int> Input::joystick_basic_values()
+{
+  std::vector<int> values;
+  values.push_back(joystick_vendor());
+  values.push_back(joystick_kind());
+  values.push_back(joystick_power());
+  return values;
+}
+
 int Input::joystick_axis_number()
 {
   return SDL_JoystickNumAxes(shState->rtData().joystick);
@@ -1390,15 +1399,6 @@ int Input::joystick_change()
 
 void Input::reset_joystick_change()
 {
-  shState->rtData().joystick_change = 0;
-}
-
-void Input::reset_joystick_bindings(bool removed)
-{
-  if (removed)
-    EventThread::open_joystick();
-  shState->reset_keybindings_path();
-  p->check_joystick_change(shState->rtData());
   shState->rtData().joystick_change = 0;
 }
 

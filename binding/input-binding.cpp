@@ -25,6 +25,8 @@
 #include "input_buttons.h"
 #include "input_vendors.h"
 #include "sharedstate.h"
+#include "eventthread.h"
+#include "keybindings.h"
 #include "exception.h"
 #include "binding-util.h"
 #include "util.h"
@@ -32,71 +34,259 @@
 #include <SDL_keyboard.h>
 #include "debugwriter.h"
 
+#define ONE RB_INT2FIX(1)
 #define ZERO RB_INT2FIX(0)
 #define SUBZERO RB_INT2FIX(-1)
 
-static VALUE joystick;
 
-static void input_gamepad_init(VALUE pad, VALUE nm, int vndr, int kind,
-                               int lvl, VALUE b1, VALUE b2)
+static VALUE gamepad;
+
+static void add_keyboard_key(BDescVec &d, int source, int target)
 {
-  VALUE type, level, vendor, vendor_id, vendors;
-  type = rb_cvar_get(joystick, rb_intern("types"));
-  type = rb_ary_entry(type, kind);
-  level = rb_cvar_get(joystick, rb_intern("levels"));
-  level = rb_hash_aref(level, RB_INT2FIX(lvl));
-  vendor_id = RB_INT2FIX(vndr);
-  vendors = rb_cvar_get(joystick, rb_intern("vendors"));
-  vendor = rb_hash_aref(vendors, vendor_id);
-  rb_iv_set(pad, "@name", nm);
-  rb_iv_set(pad, "@vendor", vendor);
-  rb_iv_set(pad, "@vendor_id", vendor_id);
-  rb_iv_set(pad, "@type", type);
-  rb_iv_set(pad, "@type_number", RB_INT2FIX(kind));
-  rb_iv_set(pad, "@power", level);
-  rb_iv_set(pad, "@power_level", RB_INT2FIX(lvl));
-  rb_iv_set(pad, "@rumble", b1);
-  rb_iv_set(pad, "@last_rumble", Qnil);
-  rb_iv_set(pad, "@active", b2);
+  SourceDesc src;
+  src.type = Key;
+  src.d.scan = (SDL_Scancode)source;
+  BindingDesc desc;
+  desc.src = src;
+  desc.target = (Input::ButtonCode)target;
+  d.push_back(desc);
 }
 
-static VALUE input_gamepad_new(VALUE input)
+static void add_joystick_button(BDescVec &d, int source, int target)
 {
-  VALUE gamepad, name;
-  gamepad = rb_class_new_instance(0, 0, joystick);
-  name = rb_const_get(joystick, rb_intern("DEFAULT_NAME"));
-  input_gamepad_init(gamepad, name, 0, 0, -1, Qfalse, Qfalse);
-  return rb_iv_set(input, "gamepad", gamepad);
+  SourceDesc src;
+  src.type = JButton;
+  src.d.jb = source;
+  BindingDesc desc;
+  desc.src = src;
+  desc.target = (Input::ButtonCode)target;
+  d.push_back(desc);
 }
 
-static VALUE input_joystick_number_axis(VALUE self)
+static void add_axis_binding(BDescVec &d, int axis, int dir, int target)
+{
+  SourceDesc src;
+  src.type = JAxis;
+  src.d.ja.axis = axis;
+  src.d.ja.dir = dir == 1 ? Positive : Negative;
+  BindingDesc desc;
+  desc.src = src;
+  desc.target = (Input::ButtonCode)target;
+  d.push_back(desc);
+}
+
+static void add_hat_binding(BDescVec &d, uint8_t hat, uint8_t pos, int target)
+{
+  SourceDesc src;
+  src.type = JHat;
+  src.d.jh.hat = hat;
+  src.d.jh.pos = pos;
+  BindingDesc desc;
+  desc.src = src;
+  desc.target = (Input::ButtonCode)target;
+  d.push_back(desc);
+}
+
+static void gamepad_set_sdl_binding(BDescVec &bind, int target, int type, VALUE b)
+{
+  VALUE value, rdir;
+  int v, dir;
+  value = rb_iv_get(b, "@value");
+  v = RB_FIX2INT(value);
+  switch (type)
+  {
+  case 0:
+    break;
+  case 1:
+    value = rb_iv_get(b, "@scancode");
+    v = RB_FIX2INT(value);
+    add_keyboard_key(bind, v, target);
+    break;
+  case 2:
+    add_joystick_button(bind, v, target);
+    break;
+  case 3:
+    rdir = rb_iv_get(b, "@dir");
+    dir = RB_FIX2INT(rdir);
+    add_axis_binding(bind, v, dir, target);
+    break;
+  case 4:
+    rdir = rb_iv_get(b, "@dir");
+    dir = RB_FIX2INT(rdir);
+    add_hat_binding(bind, v, dir, target);
+    break;
+  }
+}
+
+static void gamepad_set_sdl_bound_values(VALUE list, int total, BDescVec &bind)
+{
+  VALUE bg, data, b, type;
+  int target, kind;
+  for (int n = 0; n < total; n++) {
+    target = target_buttons[n];
+    bg = rb_ary_entry(list, n);
+    data = rb_iv_get(bg, "@data");
+    for (int i = 0; i < 4; i++) {
+      b = rb_ary_entry(data, i);
+      type = rb_iv_get(b, "@type");
+      kind = RB_FIX2INT(type);
+      gamepad_set_sdl_binding(bind, target, kind, b);
+    }
+  }
+}
+
+static int get_target_button_index(int target)
+{
+  int n = -1;
+  for (; n < target_buttonsN; ++n)
+    if (target_buttons[n] == target)
+      break;
+  return n;
+}
+
+static void gamepad_set_rb_bound_values(VALUE input, VALUE list,
+                                        int total, BDescVec &bind)
+{
+  BindingDesc b;
+  AxisDir ad;
+  SDL_Scancode s;
+  int type, o, old_target, target = -1, pos = 0;
+  VALUE bg, data, kb, cb, sb, sc, kn, key, name, sym, fix, val;
+  cb = rb_const_get(input, rb_intern("CODE_BUTTONS"));
+  sb = rb_const_get(input, rb_intern("SCANCODE_BUTTONS"));
+  kn = rb_const_get(input, rb_intern("KEY2NAME"));
+  for (int n = 0; n < total; n++) {
+    b = bind.at(n);
+    old_target = target;
+    target = b.target;
+    bg = rb_ary_entry(list, n / 4);
+    data = rb_iv_get(bg, "@data");
+    pos = (target == old_target)? pos + 1 : 0;
+    kb = rb_ary_entry(data, pos);
+    type = b.src.type;
+    rb_funcall(kb, rb_intern("type="), 1, RB_INT2FIX(type));
+    switch (type)
+    {
+    case Invalid:
+      rb_funcall(kb, rb_intern("clear_invalid"), 0);
+      continue;
+    case Key:
+      s = b.src.d.scan;
+      sc = RB_INT2FIX(s);
+      key = rb_hash_aref(sb, sc);
+      name = rb_hash_aref(kn, key);
+      sym = rb_funcall(name, rb_intern("sub"), 2, rstr(" "), rstr(""));
+      sym = rb_any_to_s(sym);
+      val = rb_hash_aref(sb, sc);
+      rb_iv_set(kb, "@name", name);
+      rb_iv_set(kb, "@symbol", sym);
+      rb_iv_set(kb, "@value", val);
+      rb_iv_set(kb, "@scancode", sc);
+      rb_iv_set(kb, "@dir", ZERO);
+      continue;
+    case JButton:
+      o = b.src.d.jb;
+      sc = RB_INT2FIX(o);
+      fix = rb_funcall(sc, rb_intern("to_s"), 0);
+      name = rstr("JS ");
+      name = rb_str_plus(name, fix);
+      rb_iv_set(kb, "@name", name);
+      rb_iv_set(kb, "@symbol", Qnil);
+      rb_iv_set(kb, "@value", sc);
+      rb_iv_set(kb, "@scancode", ZERO);
+      continue;
+    case JAxis:
+      ad = b.src.d.ja.dir;
+      val = ad == Positive ? ONE : ZERO;
+      sc = RB_INT2FIX(b.src.d.ja.axis);
+      fix = rb_funcall(sc, rb_intern("to_s"), 0);
+      name = rstr("Axis ");
+      name = rb_str_plus(name, fix);
+      fix = ad == Positive ? rstr("+") : rstr("-");
+      name = rb_str_plus(name, fix);
+      rb_iv_set(kb, "@name", name);
+      rb_iv_set(kb, "@symbol", Qnil);
+      rb_iv_set(kb, "@value", sc);
+      rb_iv_set(kb, "@dir", val);
+      continue;
+    case JHat:
+      sc = RB_INT2FIX(b.src.d.jh.hat);
+      fix = rb_funcall(sc, rb_intern("to_s"), 0);
+      name = rstr("Hat ");
+      name = rb_str_plus(name, fix);
+      name = rb_str_plus(name, rstr(":"));
+      o = b.src.d.jh.pos;
+      if (o == 1)
+        fix = rstr("U");
+      else if (o == 2)
+        fix = rstr("R");
+      else if (o == 4)
+        fix = rstr("D");
+      else
+        fix = rstr("L");
+      name = rb_str_plus(name, fix);
+      rb_iv_set(kb, "@name", name);
+      rb_iv_set(kb, "@symbol", Qnil);
+      rb_iv_set(kb, "@value", sc);
+      rb_iv_set(kb, "@dir", val);
+      continue;
+    }
+  }
+}
+
+static VALUE input_reset_sdl_bindings(VALUE self)
+{
+  BDescVec bind;
+  VALUE list, rgss, kb_gen_code;
+  list = rb_iv_get(self, "@bindings");
+  list = rb_iv_get(list, "@list");
+  int total = RARRAY_LEN(list);
+  gamepad_set_sdl_bound_values(list, total, bind);
+  shState->rtData().bindingUpdateMsg.post(bind);
+  return Qtrue;
+}
+
+static VALUE input_reset_rb_bindings(VALUE self)
+{
+  VALUE list;
+  BDescVec bind;
+  shState->rtData().bindingUpdateMsg.get(bind);
+  int total = bind.size();
+  list = rb_iv_get(self, "@bindings");
+  list = rb_iv_get(list, "@list");
+  gamepad_set_rb_bound_values(self, list, total, bind);
+  shState->rtData().modify_settings = false;
+  return Qtrue;
+}
+
+static VALUE input_gamepad_number_axis(VALUE self)
 {
   if (rb_iv_get(self, "@active") == Qtrue) {
-    int n = shState->input().joystick_axis_number();
+    int n = SDL_JoystickNumAxes(shState->rtData().joystick);
     return RB_INT2FIX(n);
   } else
     return ZERO;
 }
 
-static VALUE input_joystick_number_hats(VALUE self)
+static VALUE input_gamepad_number_hats(VALUE self)
 {
   if (rb_iv_get(self, "@active") == Qtrue) {
-    int n = shState->input().joystick_hat_number();
+    int n = SDL_JoystickNumHats(shState->rtData().joystick);
     return RB_INT2FIX(n);
   } else
     return ZERO;
 }
 
-static VALUE input_joystick_number_buttons(VALUE self)
+static VALUE input_gamepad_number_buttons(VALUE self)
 {
   if (rb_iv_get(self, "@active") == Qtrue) {
-    int n = shState->input().joystick_button_number();
+    int n = SDL_JoystickNumButtons(shState->rtData().joystick);
     return RB_INT2FIX(n);
   } else
     return ZERO;
 }
 
-static VALUE input_joystick_set_rumble(VALUE self, VALUE lint, VALUE rint, VALUE ms)
+static VALUE input_gamepad_set_rumble(VALUE self, VALUE lint, VALUE rint, VALUE ms)
 {
   if (rb_iv_get(self, "@rumble") == Qfalse)
     return rb_iv_set(self, "@last_rumble", Qfalse);
@@ -107,45 +297,9 @@ static VALUE input_joystick_set_rumble(VALUE self, VALUE lint, VALUE rint, VALUE
   return rb_iv_set(self, "@last_rumble", !result ? Qtrue : Qfalse);
 }
 
-static void set_joystick(VALUE input)
-{
-  const char *name = shState->input().joystick_name();
-  int vendor = shState->input().joystick_vendor();
-  int kind = shState->input().joystick_kind();
-  int power = shState->input().joystick_power();
-  VALUE gamepad, rumble;
-  gamepad = rb_iv_get(input, "gamepad");
-  rumble = shState->input().joystick_has_rumble() ? Qtrue : Qfalse;
-  input_gamepad_init(gamepad, rstr(name), vendor, kind, power, rumble, Qtrue);
-}
-
-static void joystick_state_change(VALUE input)
-{
-  int state = shState->input().joystick_change();
-  if (state == 0)
-    return;
-  bool reset = false;
-  VALUE ary = rb_iv_get(input, "joystick_updates");
-  rb_ary_pop(ary);
-  if (state == 2) {
-    set_joystick(input);
-    rb_ary_push(ary, hc_sym("add"));
-    shState->input().reset_joystick_bindings(reset);
-  } else {
-    rb_ary_push(ary, hc_sym("remove"));
-    reset = shState->input().has_joystick();
-    shState->input().reset_joystick_bindings(reset);
-    if (reset)
-      set_joystick(input);
-    else
-      ary = input_gamepad_new(input);
-  }
-}
-
-static VALUE input_update(VALUE self)
+static VALUE input_update_internal(VALUE self)
 {
   shState->input().update();
-  joystick_state_change(self);
   return Qnil;
 }
 
@@ -378,52 +532,88 @@ static VALUE input_text_input_clear(VALUE self)
   return input_text_input_set(self, Qfalse);
 }
 
-static VALUE input_joystick(VALUE self)
+static VALUE input_gamepad(VALUE self)
 {
-  return rb_iv_get(self, "gamepad");
+  return rb_iv_get(self, "@gamepad");
 }
 
-static VALUE input_has_joystick(VALUE self)
+static VALUE input_has_gamepad(VALUE self)
 {
-  return shState->input().has_joystick() ? Qtrue : Qfalse;
+  return SDL_NumJoysticks() > 0 ? Qtrue : Qfalse;
 }
 
-static VALUE input_total_joysticks(VALUE self)
+static VALUE input_total_gamepads(VALUE self)
 {
-  return RB_INT2FIX(shState->input().joysticks_total());
+  return RB_INT2FIX(SDL_NumJoysticks());
 }
 
-static VALUE input_joystick_update(VALUE self)
+static VALUE input_gamepad_change(VALUE self)
 {
-  VALUE state = rb_iv_get(self, "joystick_updates");
+  return RB_INT2FIX(shState->rtData().joystick_change);
+}
+
+static VALUE input_gamepad_clear_change(VALUE self)
+{
+  shState->rtData().joystick_change = 0;
+  return ZERO;
+}
+
+static VALUE input_sdl_bindings_change()
+{
+  return shState->rtData().modify_settings ? Qtrue : Qfalse;
+}
+
+static VALUE input_gamepad_update(VALUE self)
+{
+  VALUE state = rb_iv_get(self, "@gamepad_updates");
   return rb_ary_pop(state);
 }
 
-static VALUE input_joystick_updates(VALUE self)
+static VALUE input_gamepad_updates(VALUE self)
 {
-  return rb_iv_get(self, "joystick_updates");
+  return rb_iv_get(self, "@gamepad_updates");
 }
 
-static VALUE input_joystick_close(VALUE self)
+static VALUE input_gamepad_close(VALUE self)
 {
-  bool result = shState->input().close_joystick();
-  if (result)
-    joystick_state_change(self);
+  bool result = EventThread::close_joystick();
   return result ? Qtrue : Qfalse;
 }
 
-static VALUE input_joystick_open(VALUE self)
+static VALUE input_gamepad_open(VALUE self)
 {
-  bool result = shState->input().open_joystick();
-  if (result)
-    joystick_state_change(self);
+  bool result = EventThread::open_joystick();
   return result ? Qtrue : Qfalse;
 }
 
-static VALUE input_joystick_reset(VALUE self)
+static VALUE input_gamepad_reset(VALUE self)
 {
-  input_joystick_close(self);
-  return input_joystick_open(self);
+  input_gamepad_close(self);
+  return input_gamepad_open(self);
+}
+
+static VALUE input_gamepad_basic_values(VALUE self)
+{
+  VALUE ary = rb_ary_new();
+  if (!SDL_NumJoysticks()) {
+    rb_ary_push(ary, rstr("None"));
+    rb_ary_push(ary, ZERO);
+    rb_ary_push(ary, ZERO);
+    rb_ary_push(ary, SUBZERO);
+    rb_ary_push(ary, Qfalse);
+    return ary;
+  }
+  const char *name = SDL_JoystickName(shState->rtData().joystick);
+  int val, rumble;
+  rb_ary_push(ary, rstr(name));
+  std::vector<int> v = shState->input().joystick_basic_values();
+  for (int n = 0; n < v.size(); n++) {
+    val = v.at(n);
+    rb_ary_push(ary, RB_INT2FIX(val));
+  }
+  rumble = SDL_JoystickHasRumble(shState->rtData().joystick);
+  rb_ary_push(ary, rumble ? Qtrue : Qfalse);
+  return ary;
 }
 
 static VALUE input_trigger_timer(VALUE self)
@@ -464,46 +654,46 @@ void input_create_gamepad_types(VALUE pad)
   levels = rb_hash_new();
   rb_hash_aset(levels, SUBZERO, rstr("Unknown"));
   rb_hash_aset(levels, ZERO, rstr("Empty"));
-  rb_hash_aset(levels, RB_INT2FIX(1), rstr("Low"));
+  rb_hash_aset(levels, ONE, rstr("Low"));
   rb_hash_aset(levels, RB_INT2FIX(2), rstr("Medium"));
   rb_hash_aset(levels, RB_INT2FIX(3), rstr("Full"));
   rb_hash_aset(levels, RB_INT2FIX(4), rstr("Wired"));
   rb_hash_aset(levels, RB_INT2FIX(5), rstr("Maximum"));
-  rb_cvar_set(pad, rb_intern("types"), types);
-  rb_cvar_set(pad, rb_intern("levels"), levels);
+  rb_cvar_set(pad, rb_intern("@@types"), types);
+  rb_cvar_set(pad, rb_intern("@@levels"), levels);
 }
 
 void inputBindingInit()
 {
-  VALUE input, gamepad;
+  VALUE input;
   input = rb_define_module("Input");
-  joystick = rb_define_class_under(input, "Gamepad", rb_cObject);
-  rb_const_set(joystick, rb_intern("DEFAULT_NAME"), rstr("None"));
-  rb_const_set(joystick, rb_intern("DEFAULT_VENDOR"), rstr("None"));
-  rb_define_attr(joystick, "name", 1, 0);
-  rb_define_attr(joystick, "vendor", 1, 0);
-  rb_define_attr(joystick, "type", 1, 0);
-  rb_define_attr(joystick, "type_number", 1, 0);
-  rb_define_attr(joystick, "power", 1, 0);
-  rb_define_attr(joystick, "power_level", 1, 0);
-  rb_define_attr(joystick, "active", 1, 0);
-  rb_define_attr(joystick, "rumble", 1, 0);
-  rb_define_attr(joystick, "last_rumble", 1, 0);
-  rb_define_attr(joystick, "bindings", 1, 0);
-  rb_define_method(joystick, "axes", RMF(input_joystick_number_axis), 0);
-  rb_define_method(joystick, "hats", RMF(input_joystick_number_hats), 0);
-  rb_define_method(joystick, "buttons", RMF(input_joystick_number_buttons), 0);
-  rb_define_method(joystick, "set_rumble", RMF(input_joystick_set_rumble), 3);
-  input_create_gamepad_types(joystick);
+  gamepad = rb_define_class_under(input, "Gamepad", rb_cObject);
+  rb_const_set(gamepad, rb_intern("DEFAULT_NAME"), rstr("None"));
+  rb_const_set(gamepad, rb_intern("DEFAULT_VENDOR"), rstr("None"));
+  rb_define_attr(gamepad, "name", 1, 0);
+  rb_define_attr(gamepad, "vendor", 1, 0);
+  rb_define_attr(gamepad, "type", 1, 0);
+  rb_define_attr(gamepad, "type_number", 1, 0);
+  rb_define_attr(gamepad, "power", 1, 0);
+  rb_define_attr(gamepad, "power_level", 1, 0);
+  rb_define_attr(gamepad, "active", 1, 0);
+  rb_define_attr(gamepad, "rumble", 1, 0);
+  rb_define_attr(gamepad, "last_rumble", 1, 0);
+  rb_define_attr(gamepad, "bindings", 1, 0);
+  rb_define_method(gamepad, "axes", RMF(input_gamepad_number_axis), 0);
+  rb_define_method(gamepad, "hats", RMF(input_gamepad_number_hats), 0);
+  rb_define_method(gamepad, "buttons", RMF(input_gamepad_number_buttons), 0);
+  rb_define_method(gamepad, "set_rumble", RMF(input_gamepad_set_rumble), 3);
+  input_create_gamepad_types(gamepad);
   rb_iv_set(input, "text_input", Qfalse);
   rb_iv_set(input, "default_trigger_timer", RB_INT2FIX(TRIGGER_TIMER));
-  rb_iv_set(input, "joystick_updates", rb_ary_new());
+  rb_iv_set(input, "@gamepad_updates", rb_ary_new());
   module_func(input, "trigger_timer", input_trigger_timer, 0);
   module_func(input, "base_trigger_timer", input_default_trigger_timer, 0);
   module_func(input, "base_trigger_timer=", input_default_trigger_timer_set, 1);
   module_func(input, "default_trigger_timer", input_default_trigger_timer, 0);
   module_func(input, "default_trigger_timer=", input_default_trigger_timer_set, 1);
-  module_func(input, "update", input_update, 0);
+  module_func(input, "update_internal", input_update_internal, 0);
   module_func(input, "left_click?", input_left_click, 0);
   module_func(input, "middle_click?", input_middle_click, 0);
   module_func(input, "right_click?", input_right_click, 0);
@@ -534,28 +724,37 @@ void inputBindingInit()
   module_func(input, "text_input=", input_text_input_set, 1);
   module_func(input, "clear_last_key", input_last_key_clear, 0);
   module_func(input, "clear_text_input", input_text_input_clear, 0);
-  module_func(input, "gamepad", input_joystick, 0);
-  module_func(input, "joystick", input_joystick, 0);
-  module_func(input, "gamepad?", input_has_joystick, 0);
-  module_func(input, "joystick?", input_has_joystick, 0);
-  module_func(input, "total_gamepads", input_total_joysticks, 0);
-  module_func(input, "total_joysticks", input_total_joysticks, 0);
-  module_func(input, "gamepad_update", input_joystick_update, 0);
-  module_func(input, "joystick_update", input_joystick_update, 0);
-  module_func(input, "gamepad_updates", input_joystick_updates, 0);
-  module_func(input, "joystick_updates", input_joystick_updates, 0);
-  module_func(input, "gamepad_close!", input_joystick_close, 0);
-  module_func(input, "joystick_close!", input_joystick_close, 0);
-  module_func(input, "gamepad_open!", input_joystick_open, 0);
-  module_func(input, "joystick_open!", input_joystick_open, 0);
-  module_func(input, "gamepad_reset!", input_joystick_reset, 0);
-  module_func(input, "joystick_reset!", input_joystick_reset, 0);
+  module_func(input, "gamepad", input_gamepad, 0);
+  module_func(input, "gamepad?", input_has_gamepad, 0);
+  module_func(input, "total_gamepads", input_total_gamepads, 0);
+  module_func(input, "gamepad_change?", input_gamepad_change, 0);
+  module_func(input, "gamepad_clear_change", input_gamepad_clear_change, 0);
+  module_func(input, "gamepad_bindings_change?", input_sdl_bindings_change, 0);
+  module_func(input, "gamepad_update", input_gamepad_update, 0);
+  module_func(input, "gamepad_updates", input_gamepad_updates, 0);
+  module_func(input, "gamepad_close!", input_gamepad_close, 0);
+  module_func(input, "gamepad_open!", input_gamepad_open, 0);
+  module_func(input, "gamepad_reset!", input_gamepad_reset, 0);
+  module_func(input, "gamepad_basic_values", input_gamepad_basic_values, 0);
+  module_func(input, "reset_sdl_bindings", input_reset_sdl_bindings, 0);
+  module_func(input, "reset_ruby_bindings", input_reset_rb_bindings, 0);
   module_func(input, "dir4", inputDir4, 0);
   module_func(input, "dir8", inputDir8, 0);
   module_func(input, "dir4?", input_is_dir4, 0);
   module_func(input, "dir8?", input_is_dir8, 0);
   VALUE key, val, hash = rb_hash_new();
   const char *tmp;
+  for (size_t i = 0; i < button_scancodesN; ++i) {
+    key = RB_INT2FIX(button_scancodes[i].button);
+    val = RB_INT2FIX(button_scancodes[i].scancode);
+    rb_hash_aset(hash, key, val);
+  }
+  rb_const_set(input, rb_intern("BUTTON_SCANCODES"), hash);
+  rb_hash_set_ifnone(hash, ZERO);
+  hash = rb_funcall(hash, rb_intern("invert"), 0);
+  rb_const_set(input, rb_intern("SCANCODE_BUTTONS"), hash);
+  rb_hash_set_ifnone(hash, ZERO);
+  hash = rb_hash_new();
   /* In RGSS3 all Input::XYZ constants are equal to :XYZ symbols,
    * to be compatible with the previous convention */
   for (size_t i = 0; i < buttonCodesN; ++i) {
@@ -567,21 +766,31 @@ void inputBindingInit()
   getRbData()->buttoncodeHash = hash;
   rb_const_set(input, rb_intern("BUTTON_CODES"), hash);
   rb_hash_set_ifnone(hash, ZERO);
+  hash = rb_funcall(hash, rb_intern("invert"), 0);
+  rb_hash_set_ifnone(hash, ZERO);
+  rb_const_set(input, rb_intern("CODE_BUTTONS"), hash);
   hash = rb_hash_new();
   for (size_t i = 0; i < vendorsN; ++i) {
     key = RB_INT2FIX(vendors[i].id);
     val = rstr(vendors[i].name);
     rb_hash_aset(hash, key, val);
   }
-  rb_hash_set_ifnone(hash, rb_const_get(joystick, rb_intern("DEFAULT_VENDOR")));
-  rb_cvar_set(joystick, rb_intern("vendors"), hash);
+  rb_hash_set_ifnone(hash, rb_const_get(gamepad, rb_intern("DEFAULT_VENDOR")));
+  rb_cvar_set(gamepad, rb_intern("@@vendors"), hash);
   hash = rb_hash_new();
-  for (size_t i = 0; i < buttonStringsN; ++i) {
-    key = RB_INT2FIX(buttonStrings[i].code);
-    tmp = buttonStrings[i].str;
+  for (size_t i = 0; i < button_stringsN; ++i) {
+    key = RB_INT2FIX(button_strings[i].code);
+    tmp = button_strings[i].str;
     val = !tmp ? Qnil : rstr(tmp);
     rb_hash_aset(hash, key, val);
   }
   rb_const_set(input, rb_intern("KEY2CHAR"), hash);
-  gamepad = input_gamepad_new(input);
+  hash = rb_hash_dup(hash);
+  for (size_t i = 0; i < other_button_stringsN; ++i) {
+    key = RB_INT2FIX(other_button_strings[i].code);
+    tmp = other_button_strings[i].str;
+    val = !tmp ? rstr("") : rstr(tmp);
+    rb_hash_aset(hash, key, val);
+  }
+  rb_const_set(input, rb_intern("KEY2NAME"), hash);
 }

@@ -220,6 +220,7 @@ struct RGSSThreadData
   bool mouse_moved;
   bool start_sdl_input;
   bool any_char_found;
+  bool modify_settings;
   char* text;
   std::string rgssErrorMsg;
   RGSSThreadData(EventThread *ethread,
@@ -238,7 +239,8 @@ struct RGSSThreadData
     joystick(0),
     config(newconf),
     start_sdl_input(false),
-    any_char_found(false)
+    any_char_found(false),
+    modify_settings(false)
   {}
 };
 

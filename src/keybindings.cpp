@@ -169,10 +169,10 @@ static void set_axis_buttons(BDescVec &d)
 
 static void set_ps_axis_buttons(BDescVec &d)
 {
-  addAxisBinding(d, 4, Negative, Input::L2 );
-  addAxisBinding(d, 4, Positive, Input::L2 );
-  addAxisBinding(d, 5, Negative, Input::R2 );
-  addAxisBinding(d, 5, Positive, Input::R2 );
+  addAxisBinding(d, 4, Negative, Input::L2);
+  addAxisBinding(d, 4, Positive, Input::L2);
+  addAxisBinding(d, 5, Negative, Input::R2);
+  addAxisBinding(d, 5, Positive, Input::R2);
 }
 
 static void set_hat_buttons(BDescVec &d)
@@ -286,7 +286,7 @@ BDescVec genDefaultBindings(const Config &conf)
   return d;
 }
 
-#define FORMAT_VER 2
+#define FORMAT_VER 3
 
 struct Header
 {

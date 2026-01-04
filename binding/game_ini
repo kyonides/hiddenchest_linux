@@ -21,12 +21,86 @@ end
 module Input
   KEYBOARD_GENERIC = "kb_generic"
   KEYBOARD_GENERIC_INI = "Input/#{KEYBOARD_GENERIC}.ini"
+
+  class Gamepad
+    attr_reader :vendor_fn, :int_name
+    def initialize(name, vendor_id, kind, level, state1, state2)
+      @name = name
+      @vendor = @@vendors[vendor_id]
+      @vendor_id = vendor_id
+      @type = @@types[kind]
+      @type_number = kind
+      @power = @@levels[level]
+      @power_level = level
+      @rumble = state1
+      @last_rumble = nil
+      @active = state2
+      set_int_vendor_name
+      set_int_gamepad_name
+    end
+
+    def set_int_vendor_name
+      case @vendor
+      when /Sony/i
+        return @vendor_fn = "sony"
+      when /Logitech/i
+        return @vendor_fn = "logi"
+      when /Microsoft/i
+        return @vendor_fn = "ms"
+      when /Nintendo/i
+        return @vendor_fn = "nint"
+      when /Asustek/i
+        return @vendor_fn = "asus"
+      when /Logic3/i
+        return @vendor_fn = "log3"
+      when /Razer/i
+        return @vendor_fn = "razer"
+      when /ZD/i
+        return @vendor_fn = "zd"
+      when /8BitDo/i
+        return @vendor_fn = "8bit"
+      when /SCUF/i
+        return @vendor_fn = "scuf"
+      else
+        @vendor_fn = "kb"
+      end
+    end
+
+    def set_int_gamepad_name
+      case @name
+      when /(PS\d)/i
+        return @int_name = $1.downcase
+      when /Dual Action/i
+        return @int_name = "duact"
+      when /Wolverine/i
+        return @int_name = "wolve"
+      when /Raiju/i
+        return @int_name = "raiju"
+      when /ZD\-?V/i
+        return @int_name = "zdv"
+      else
+        @int_name = "generic"
+      end
+    end
+
+    def internal_name
+      @vendor_fn + "_" + @int_name
+    end
+  end
+
   class KeyBinding
     TYPES = ["Invalid", "Key", "Button", "Axis", "Hat"]
     def initialize
-      @name = ""
-      @value = nil
+      clear_invalid
+    end
+
+    def clear_invalid
       self.type = 0
+      @value = 0
+      @scancode = 0
+      @dir = 0
+      @symbol = nil
+      @name = ""
     end
 
     def type=(tp)
@@ -39,56 +113,70 @@ module Input
     end
 
     def get_value_by_name
-      s = "NumPad" + @name
+      self.type = 1
+      @name = @name.sub(/key/i, "Num")
+      s = @name.sub(/ /, "")
       @symbol = s.to_sym
       @value = BUTTON_CODES[@symbol]
-    end
-
-    def set_invalid_values
-      self.type = 0
-      @value = nil
-      @name = ""
+      @scancode = BUTTON_SCANCODES[@value]
     end
 
     def refresh_type
       if @name.empty?
-        set_invalid_values
+        clear_invalid
         return
-      elsif @name[/(?:\/|Divide)/i]
-        @name = "Divide"
-        get_value_by_name
-        return
-      elsif @name[/(?:\*|Multiply)/i]
-        @name = "Multiply"
-        get_value_by_name
-        return
-      elsif @name[/(?:\-|Minus)/i]
-        @name = "Minus"
-        get_value_by_name
-        return
-      elsif @name[/(?:\*|Plus)/i]
-        @name = "Plus"
-        get_value_by_name
+      elsif @name[/F(\d+)/i]
+        if [1, 12].include?($1.to_i)
+          clear_invalid
+          return
+        end
+        self.type = 1
+        @symbol = @name.to_sym
+        @value = BUTTON_CODES[@symbol]
+        @scancode = BUTTON_SCANCODES[@value]
         return
       elsif @name[/(?:key|num)pad (\d+)/i]
-        self.type = 1
-        s = "NumPad" + $1
-        @symbol = s.to_sym
-        @value = BUTTON_CODES[@symbol]
+        get_value_by_name
         return
       elsif @name[/js (\d+)/i]
         self.type = 2
+        @symbol = nil
         @value = $1.to_i
+        @scancode = 0
         return
       elsif @name[/axis (\d+)(\+|\-)/i]
         self.type = 3
+        @symbol = nil
         @value = $1.to_i
+        @scancode = 0
         @dir = $2 == "+" ? 1 : 0
         return
       elsif @name[/hat (\d+).(\w)/i]
         self.type = 4
+        @symbol = nil
         @value = $1.to_i
+        @scancode = 0
         @dir = get_hat_pos($2)
+        return
+      elsif @name[/(?:\/|Divide)/i]
+        @name = "NumPad Divide"
+        get_value_by_name
+        return
+      elsif @name[/(?:\*|Multiply)/i]
+        @name = "NumPad Multiply"
+        get_value_by_name
+        return
+      elsif @name[/(?:\-|Minus)/i]
+        @name = "NumPad Minus"
+        get_value_by_name
+        return
+      elsif @name[/(?:\*|Plus)/i]
+        @name = "NumPad Plus"
+        get_value_by_name
+        return
+      elsif @name[/(\A[\.]|Dot)/i]
+        @name = "NumPad Dot"
+        get_value_by_name
         return
       elsif @name[/\w+/i]
         self.type = 1
@@ -98,15 +186,17 @@ module Input
         end
         @symbol = s.to_sym
         @value = BUTTON_CODES[@symbol]
+        @scancode = BUTTON_SCANCODES[@value]
         return
       elsif @name[/\d/i]
         self.type = 1
         s = "N" + @name
         @symbol = s.to_sym
         @value = BUTTON_CODES[@symbol]
+        @scancode = BUTTON_SCANCODES[@value]
         return
       else
-        set_invalid_values
+        clear_invalid
       end
     end
 
@@ -115,8 +205,9 @@ module Input
       refresh_type
       @name
     end
-    attr_reader :name, :type, :type_name, :symbol
-    attr_accessor :index, :value, :dir
+    attr_reader :name, :type, :type_name, :symbol, :value, :scancode, :dir
+    attr_accessor :index
+    private :refresh_type
   end
 
   class KeyBindingGroup
@@ -126,15 +217,19 @@ module Input
       @data = Array.new(4) { KeyBinding.new }
     end
 
+    def data
+      @data[0..3]
+    end
+
     def [](n)
       @data[n]
     end
 
     def []=(n, bind)
+      return if n > 3
       @data[n] = bind
     end
     attr_accessor :name, :target
-    attr_reader :data
   end
 
   class KeyBindings
@@ -144,7 +239,12 @@ module Input
       @size = 0
       @list = Array.new(14) { KeyBindingGroup.new }
     end
-    attr_accessor :name, :version, :size, :list
+
+    def list
+      @list[0..14]
+    end
+    attr_accessor :name, :version, :size
+    attr_writer :list
   end
 
   module BindParser
@@ -159,14 +259,15 @@ module Input
     end
   end
   extend self
-  attr_reader :default_bindings, :bindings
-  def self.create_custom_bindings(code)
+  attr_reader :default_bindings, :custom_bindings, :bindings
+  def self.create_default_bindings(code)
     fn = "Input/" + code + ".ini"
     lines = File.readlines(fn)
     heading = lines.shift
     return unless heading[/header/i]
+    name = lines.shift.chomp
     bind = KeyBindings.new
-    bind.name = BindParser.process_number_entry(lines.shift)
+    bind.name = name.sub(/name\s?=\s?/i, "")
     bind.version = Game::RGSS_VERSION
     heading = lines.shift
     return unless heading[/bindings/i]
@@ -189,8 +290,15 @@ module Input
         b.name = names[n]
       end
     end
-    @default_bindings[code] = bind
+    @default_bindings[code.to_sym] = bind
     @success = true
+  end
+
+  def self.load_init_default_bindings(files)
+    files.each do |fn|
+      code = File.basename(fn, "." + Game.data_ext)
+      load_default_bindings(code)
+    end
   end
 
   def self.load_init_custom_bindings(files)
@@ -200,64 +308,134 @@ module Input
     end
   end
 
-  def self.save_bindings(fn)
-    file = Game.bindings_path(fn)
-    save_data(file, @bindings)
+  def self.save_default_bindings(code)
+    file = Game.default_bindings_path(code)
+    save_data(file, @default_bindings[code.to_sym])
   end
 
-  def self.load_bindings(fn)
-    file = Game.bindings_path(fn)
-    @bindings = load_data(file)
-    @default_bindings[KEYBOARD_GENERIC] = @bindings
+  def self.load_default_bindings(code)
+    file = Game.default_bindings_path(code)
+    @default_bindings[code.to_sym] = load_data(file)
   end
 
   def self.save_custom_bindings(code)
     file = Game.bindings_path(code)
-    save_data(file, @default_bindings[code])
+    save_data(file, @custom_bindings[code.to_sym])
   end
 
   def self.load_custom_bindings(code)
     file = Game.bindings_path(code)
-    @default_bindings[code] = load_data(file)
+    @custom_bindings[code.to_sym] = load_data(file)
   end
 
   def self.load_init_bindings
     @default_bindings = {}
-    files = Dir[Game.glob_kb].sort
-    ini = Game.bindings_path(KEYBOARD_GENERIC)
-    unless files.include?(ini)
-      puts "Creating Generic Bindings..."
-      @success = false
-      create_custom_bindings(KEYBOARD_GENERIC)
-      @bindings = @default_bindings[KEYBOARD_GENERIC]
-      if @success
-        puts "Saving Generic Bindings..."
-        save_bindings(KEYBOARD_GENERIC)
-      end
+    @custom_bindings = {}
+    files = Dir[Game.glob_default_kb].sort
+    inis = Dir["Input/*.ini"].sort
+    if files.any? and files.size == inis.size
+      puts "Loading Default Bindings..."
+      load_init_default_bindings(files)
     else
-      puts "Loading Generic Bindings..."
-      load_bindings(KEYBOARD_GENERIC)
-      files.delete(ini)
-    end
-    if files.any?
-      puts "Loading Custom Bindings..."
-      load_init_custom_bindings(files)
-    else
-      puts "Creating Custom Bindings..."
+      puts "Creating Default Bindings..."
       rgx = /\w+\/(.+)\.ini/i
-      ini_files = Dir["Input/*.ini"].sort
-      ini_files.each do |fname|
+      inis.each do |fname|
         fname[/\w+\/(.+)\.ini/i]
         code = $1
         @success = false
-        create_custom_bindings(code)
+        create_default_bindings(code)
         next unless @success
         puts "Saving Basic #{code} Binding..."
-        save_custom_bindings(code)
+        save_default_bindings(code)
+        sym = code.to_sym
+        unless @custom_bindings.has_key?(sym)
+          @custom_bindings[sym] = @default_bindings[sym].dup
+          save_custom_bindings(code)
+        end
+      end
+    end
+    files = Dir[Game.glob_custom_kb].sort
+    if files.any?
+      puts "Loading Custom Bindings..."
+      load_init_custom_bindings(files)
+    end
+    if gamepad?
+      @gamepad_updates << :add
+      setup_gamepad
+    else
+      @gamepad_updates << :remove
+      reset_gamepad
+    end
+  end
+
+  def self.update
+    update_internal
+    update_gamepad_state
+    update_settings_state
+  rescue => e
+    puts e.full_message
+  end
+  private
+  def self.update_gamepad_state
+    state = gamepad_change?
+    return if state == 0
+    @gamepad_updates.pop
+    if state == 2
+      @gamepad_updates << :add
+      setup_gamepad
+    else
+      if gamepad?
+        @gamepad_updates << :add
+        gamepad_open!
+        setup_gamepad
+      else
+        @gamepad_updates << :remove
+        reset_gamepad
       end
     end
   end
-  private
+
+  def update_settings_state
+    return unless gamepad_bindings_change?
+    reset_ruby_bindings
+    code = @gamepad.internal_name.to_sym
+    @custom_bindings[code] = @bindings.dup
+    save_custom_bindings(code.to_s)
+  end
+
+  def self.find_default_binding(code)
+    this_code = code.dup
+    unless @default_bindings.has_key?(this_code)
+      this_code = KEYBOARD_GENERIC.to_sym
+    end
+    @default_bindings[this_code].dup
+  end
+
+  def self.reset_bindings
+    code = @gamepad.internal_name.to_sym
+    unless @custom_bindings[code]
+      @custom_bindings[code] = find_default_binding(code)
+      save_custom_bindings(code.to_s)
+    end
+    @bindings = @custom_bindings[code]
+    @bindings ||= KeyBindings.new
+    gamepad_clear_change
+    reset_sdl_bindings
+  end
+
+  def self.setup_gamepad
+    list = gamepad_basic_values
+    list << true
+    @gamepad = Gamepad.new(*list)
+    reset_bindings
+  end
+
+  def self.reset_gamepad
+    name = Gamepad::DEFAULT_NAME
+    @gamepad = Gamepad.new(name, 0, 0, -1, false, false)
+    reset_bindings
+  end
+
   def self.save_data(fn, obj)
     File.open(fn, "wb") {|f| Marshal.dump(obj, f) }
   end
@@ -267,6 +445,7 @@ module Input
     File.open(fn, "rb") {|f| obj = Marshal.load(f) }
     obj
   end
+  private :reset_sdl_bindings
 end
 
 module Game
@@ -305,8 +484,16 @@ module Game
     DATA_EXT[RGSS_VERSION]
   end
 
-  def self.glob_kb
-    @user_path + "/*." + data_ext
+  def self.glob_default_kb
+    "Input/*." + data_ext
+  end
+
+  def self.glob_custom_kb
+    @user_path + "/Bindings/*." + data_ext
+  end
+
+  def self.default_bindings_path(code)
+    "Input/#{code}." + data_ext
   end
 
   def self.bindings_path(code)
@@ -355,7 +542,7 @@ module Game
     begin
       lines = File.readlines(INI_FILENAME)
     rescue => e
-      puts e.class, e.message, e.backtrace
+      puts e.full_message
       return
     end
     lines.size.times do |n|
@@ -498,7 +685,7 @@ module Game
       Dir.mkdir(@bind_path)
     end
   rescue => e
-    puts e.class, e.message, e.backtrace
+    puts e.full_message
   end
 
   def self.soundfont_index
@@ -584,7 +771,7 @@ begin
   end
   Graphics.show_window
 rescue => e
-  puts e.class, e.message, e.backtrace
+  puts e.full_message
   Game.setup
   Input.load_init_bindings
   Graphics.show_window

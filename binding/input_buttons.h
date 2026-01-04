@@ -6,6 +6,129 @@
 ** Copyright (C) 2018-2026 Kyonides Arkanthes <kyonides@gmail.com>
 */
 
+#include <SDL_scancode.h>
+
+struct
+{
+  Input::ButtonCode button;
+  SDL_Scancode scancode;
+}
+static button_scancodes[] =
+{
+  { Input::Down,           SDL_SCANCODE_DOWN           },          
+  { Input::Left,           SDL_SCANCODE_LEFT           },
+  { Input::Right,          SDL_SCANCODE_RIGHT          },
+  { Input::Up,             SDL_SCANCODE_UP             },
+  { Input::KeyA,           SDL_SCANCODE_A              },
+  { Input::KeyB,           SDL_SCANCODE_B              },
+  { Input::KeyC,           SDL_SCANCODE_C              },
+  { Input::KeyD,           SDL_SCANCODE_D              },
+  { Input::KeyE,           SDL_SCANCODE_E              },
+  { Input::KeyF,           SDL_SCANCODE_F              },
+  { Input::KeyG,           SDL_SCANCODE_G              },
+  { Input::KeyH,           SDL_SCANCODE_H              },
+  { Input::KeyI,           SDL_SCANCODE_I              },
+  { Input::KeyJ,           SDL_SCANCODE_J              },
+  { Input::KeyK,           SDL_SCANCODE_K              },
+  { Input::KeyL,           SDL_SCANCODE_L              },
+  { Input::KeyM,           SDL_SCANCODE_M              },
+  { Input::KeyN,           SDL_SCANCODE_N              },
+  { Input::KeyO,           SDL_SCANCODE_O              },
+  { Input::KeyP,           SDL_SCANCODE_P              },
+  { Input::KeyQ,           SDL_SCANCODE_Q              },
+  { Input::KeyR,           SDL_SCANCODE_R              },
+  { Input::KeyS,           SDL_SCANCODE_S              },
+  { Input::KeyT,           SDL_SCANCODE_T              },
+  { Input::KeyU,           SDL_SCANCODE_U              },
+  { Input::KeyV,           SDL_SCANCODE_V              },
+  { Input::KeyW,           SDL_SCANCODE_W              },
+  { Input::KeyX,           SDL_SCANCODE_X              },
+  { Input::KeyY,           SDL_SCANCODE_Y              },
+  { Input::KeyZ,           SDL_SCANCODE_Z              },
+  { Input::F1,             SDL_SCANCODE_F1             },
+  { Input::F2,             SDL_SCANCODE_F2             },
+  { Input::F3,             SDL_SCANCODE_F3             },
+  { Input::F4,             SDL_SCANCODE_F4             },
+  { Input::F5,             SDL_SCANCODE_F5             },
+  { Input::F6,             SDL_SCANCODE_F6             },
+  { Input::F7,             SDL_SCANCODE_F7             },
+  { Input::F8,             SDL_SCANCODE_F8             },
+  { Input::F9,             SDL_SCANCODE_F9             },
+  { Input::F10,            SDL_SCANCODE_F10            },
+  { Input::F11,            SDL_SCANCODE_F11            },
+  { Input::F12,            SDL_SCANCODE_F12            },
+  { Input::N1,             SDL_SCANCODE_1              },
+  { Input::N2,             SDL_SCANCODE_2              },
+  { Input::N3,             SDL_SCANCODE_3              },
+  { Input::N4,             SDL_SCANCODE_4              },
+  { Input::N5,             SDL_SCANCODE_5              },
+  { Input::N6,             SDL_SCANCODE_6              },
+  { Input::N7,             SDL_SCANCODE_7              },
+  { Input::N8,             SDL_SCANCODE_8              },
+  { Input::N9,             SDL_SCANCODE_9              },
+  { Input::N0,             SDL_SCANCODE_0              },
+  { Input::Return,         SDL_SCANCODE_RETURN         },
+  { Input::Escape,         SDL_SCANCODE_ESCAPE         },
+  { Input::Backspace,      SDL_SCANCODE_BACKSPACE      },
+  { Input::Space,          SDL_SCANCODE_SPACE          },
+  { Input::Tab,            SDL_SCANCODE_TAB            },
+  { Input::Minus,          SDL_SCANCODE_MINUS          },
+  { Input::Equals,         SDL_SCANCODE_EQUALS         },
+  { Input::LeftBracket,    SDL_SCANCODE_LEFTBRACKET    },
+  { Input::RightBracket,   SDL_SCANCODE_RIGHTBRACKET   },
+  { Input::BackSlash,      SDL_SCANCODE_BACKSLASH      },
+  { Input::Semicolon,      SDL_SCANCODE_SEMICOLON      },
+  { Input::Apostrophe,     SDL_SCANCODE_APOSTROPHE     },
+  { Input::Grave,          SDL_SCANCODE_GRAVE          },
+  { Input::Comma,          SDL_SCANCODE_COMMA          },
+  { Input::Period,         SDL_SCANCODE_PERIOD         },
+  { Input::Slash,          SDL_SCANCODE_SLASH          },
+  { Input::CapsLock,       SDL_SCANCODE_CAPSLOCK       },
+  { Input::ScrollLock,     SDL_SCANCODE_SCROLLLOCK     },
+  { Input::Pause,          SDL_SCANCODE_PAUSE          },
+  { Input::Insert,         SDL_SCANCODE_INSERT         },
+  { Input::Home,           SDL_SCANCODE_HOME           },
+  { Input::PageUp,         SDL_SCANCODE_PAGEUP         },
+  { Input::Delete,         SDL_SCANCODE_DELETE         },
+  { Input::End,            SDL_SCANCODE_END            },
+  { Input::PageDown,       SDL_SCANCODE_PAGEDOWN       },
+  { Input::NumPadDivide,   SDL_SCANCODE_KP_DIVIDE      },
+  { Input::NumPadMultiply, SDL_SCANCODE_KP_MULTIPLY    },
+  { Input::NumPadMinus,    SDL_SCANCODE_KP_MINUS       },
+  { Input::NumPadPlus,     SDL_SCANCODE_KP_PLUS        },
+  { Input::Enter,          SDL_SCANCODE_KP_ENTER       },
+  { Input::NumPad1,        SDL_SCANCODE_KP_1           },
+  { Input::NumPad2,        SDL_SCANCODE_KP_2           },
+  { Input::NumPad3,        SDL_SCANCODE_KP_3           },
+  { Input::NumPad4,        SDL_SCANCODE_KP_4           },
+  { Input::NumPad5,        SDL_SCANCODE_KP_5           },
+  { Input::NumPad6,        SDL_SCANCODE_KP_6           },
+  { Input::NumPad7,        SDL_SCANCODE_KP_7           },
+  { Input::NumPad8,        SDL_SCANCODE_KP_8           },
+  { Input::NumPad9,        SDL_SCANCODE_KP_9           },
+  { Input::NumPad0,        SDL_SCANCODE_KP_0           },
+  { Input::NumPadDot,      SDL_SCANCODE_KP_PERIOD      },
+  { Input::LessOrGreater,  SDL_SCANCODE_NONUSBACKSLASH },
+  { Input::APP,            SDL_SCANCODE_APPLICATION    },
+  { Input::NumPadEquals,   SDL_SCANCODE_KP_EQUALS      },
+  { Input::LeftCtrl,       SDL_SCANCODE_LCTRL          },
+  { Input::LeftShift,      SDL_SCANCODE_LSHIFT         },
+  { Input::LeftAlt,        SDL_SCANCODE_LALT           },
+  { Input::LeftMeta,       SDL_SCANCODE_LGUI           },
+  { Input::RightCtrl,      SDL_SCANCODE_RCTRL          },
+  { Input::RightShift,     SDL_SCANCODE_RSHIFT         },
+  { Input::RightAlt,       SDL_SCANCODE_RALT           },
+  { Input::RightMeta,      SDL_SCANCODE_RGUI           },
+  { Input::Web,            SDL_SCANCODE_WWW            },
+  { Input::Mail,           SDL_SCANCODE_MAIL           },
+  { Input::Calculator,     SDL_SCANCODE_CALCULATOR     },
+  { Input::Computer,       SDL_SCANCODE_COMPUTER       },
+  { Input::APP1,           SDL_SCANCODE_APP1           },
+  { Input::APP2,           SDL_SCANCODE_APP2           }
+};
+
+static elementsN(button_scancodes);
+
 struct
 {
   const char *str;
@@ -81,9 +204,10 @@ static buttonCodes[] =
   { "Equals",         Input::Equals         },
   { "LeftBracket",    Input::LeftBracket    },
   { "RightBracket",   Input::RightBracket   },
+  { "BackSlash",      Input::BackSlash      },
   { "Leftbracket",    Input::LeftBracket    },
   { "Rightbracket",   Input::RightBracket   },
-  { "BackSlash",      Input::BackSlash      },
+  { "Backslash",      Input::BackSlash      },
   { "Semicolon",      Input::Semicolon      },
   { "Apostrophe",     Input::Apostrophe     },
   { "Grave",          Input::Grave          },
@@ -122,6 +246,10 @@ static buttonCodes[] =
   { "NumPadMultiply", Input::NumPadMultiply },
   { "NumPadMinus",    Input::NumPadMinus    },
   { "NumPadPlus",     Input::NumPadPlus     },
+  { "KeyPadDivide",   Input::NumPadDivide   },
+  { "KeyPadMultiply", Input::NumPadMultiply },
+  { "KeyPadMinus",    Input::NumPadMinus    },
+  { "KeyPadPlus",     Input::NumPadPlus     },
   { "Enter",          Input::Enter          },
   { "NumPad1",        Input::NumPad1        },
   { "NumPad2",        Input::NumPad2        },
@@ -160,22 +288,23 @@ static buttonCodes[] =
   { "Computer",       Input::Computer       },
   { "APP1",           Input::APP1           },
   { "APP2",           Input::APP2           },
-  { "MOUSELEFT",      Input::MouseLeft      },
-  { "MOUSEMIDDLE",    Input::MouseMiddle    },
-  { "MOUSERIGHT",     Input::MouseRight     },
   { "MouseLeft",      Input::MouseLeft      },
   { "MouseMiddle",    Input::MouseMiddle    },
-  { "MouseRight",     Input::MouseRight     }
+  { "MouseRight",     Input::MouseRight     },
+  { "MOUSELEFT",      Input::MouseLeft      },
+  { "MOUSEMIDDLE",    Input::MouseMiddle    },
+  { "MOUSERIGHT",     Input::MouseRight     }
 };
 
 static elementsN(buttonCodes);
 
-struct
+struct BString
 {
   Input::ButtonCode code;
   const char *str;
-}
-static buttonStrings[] =
+};
+
+static const BString button_strings[] =
 {
   { Input::Left,           0  },
   { Input::Right,          0  },
@@ -239,4 +368,54 @@ static buttonStrings[] =
   { Input::BackSlash,    "\\" }
 };
 
-static elementsN(buttonStrings);
+static elementsN(button_strings);
+
+static const BString other_button_strings[] =
+{
+  { Input::Up,             "Up"         },
+  { Input::Down,           "Down"       },
+  { Input::Left,           "Left"       },
+  { Input::Right,          "Right"      },
+  { Input::Shift,          "Shift"      },
+  { Input::LeftShift,      "Shift"      },
+  { Input::RightShift,     "Shift"      },
+  { Input::Period,         "Period"     },
+  { Input::NumPadDot,      "NumPad Dot" },
+  { Input::NumPad1,        "NumPad 1"   },
+  { Input::NumPad2,        "NumPad 2"   },
+  { Input::NumPad3,        "NumPad 3"   },
+  { Input::NumPad4,        "NumPad 4"   },
+  { Input::NumPad5,        "NumPad 5"   },
+  { Input::NumPad6,        "NumPad 6"   },
+  { Input::NumPad7,        "NumPad 7"   },
+  { Input::NumPad8,        "NumPad 8"   },
+  { Input::NumPad9,        "NumPad 9"   },
+  { Input::NumPad0,        "NumPad 0"   },
+  { Input::LeftBracket,    "L Bracket"  },
+  { Input::RightBracket,   "R Bracket"  },
+  { Input::Slash,          "Slash"      },
+  { Input::BackSlash,      "Backslash"  },
+  { Input::Return,         "Return"     },
+  { Input::Escape,         "Escape"     }
+};
+
+static elementsN(other_button_strings);
+
+static int target_buttons[] = {
+  Input::Up,
+  Input::Down,
+  Input::L,
+  Input::L2,
+  Input::Left,
+  Input::Right,
+  Input::R,
+  Input::R2,
+  Input::A,
+  Input::B,
+  Input::C,
+  Input::X,
+  Input::Y,
+  Input::Z
+};
+
+static elementsN(target_buttons);

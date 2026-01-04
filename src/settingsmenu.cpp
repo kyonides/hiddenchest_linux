@@ -154,7 +154,7 @@ struct BindingWidget : Widget
           vb(vButtons[vbIndex]),
           hoveredCell(-1)
     {}
-  void appendBindings(BDescVec &d) const;
+  void append_all_bindings(BDescVec &d) const;
 
 protected:
   int hoveredCell;
@@ -409,7 +409,7 @@ struct SettingsMenuPrivate
       const BindingDesc &desc = d[i];
       const Input::ButtonCode trg = desc.target;
       size_t j;
-      for (j = 0; j < vButtonsN; ++j) {// std::cout << "Joystick Button " << j << std::endl;
+      for (j = 0; j < vButtonsN; ++j) {
         if (bWidgets[j].vb.code == trg)
           break;
       }
@@ -622,12 +622,11 @@ struct SettingsMenuPrivate
 
   void onAccept()
   {
-    BDescVec binds;
+    BDescVec binds, binds4rb;
     for (size_t i = 0; i < bWidgets.size(); ++i)
-      bWidgets[i].appendBindings(binds);
-    rtData.bindingUpdateMsg.post(binds);
-    // Store the key bindings to disk as well to prevent config loss
-    storeBindings(binds, rtData.config);
+      bWidgets[i].append_all_bindings(binds4rb);
+    rtData.bindingUpdateMsg.post(binds4rb);
+    rtData.modify_settings = true;
     destroyReq = true;
   }
 
@@ -753,30 +752,28 @@ void BindingWidget::clickHandler(int x, int y, uint8_t button)
 
 int BindingWidget::cellIndex(int x, int y) const
 {
-	const int cellW = (rect.w*BW_CELL_R) / 2;
-	const int cellH = rect.h / 2;
-	const int cellOff = (1.0f-BW_CELL_R) * rect.w;
-	if (x < cellOff)
-		return -1;
-	x -= cellOff;
-	if (y < cellH)
-		if (x < cellW)
-			return 0;
-		else
-			return 1;
-	else
-		if (x < cellW)
-			return 2;
-		else
-			return 3;
-	return -1;
+  const int cellW = (rect.w*BW_CELL_R) / 2;
+  const int cellH = rect.h / 2;
+  const int cellOff = (1.0f-BW_CELL_R) * rect.w;
+  if (x < cellOff)
+    return -1;
+  x -= cellOff;
+  if (y < cellH)
+    if (x < cellW)
+      return 0;
+    else
+    return 1;
+  else
+    if (x < cellW)
+      return 2;
+    else
+      return 3;
+  return -1;
 }
 
-void BindingWidget::appendBindings(BDescVec &d) const
+void BindingWidget::append_all_bindings(BDescVec &d) const
 {
   for (size_t i = 0; i < 4; ++i) {
-    if (src[i].type == Invalid)
-      continue;
     BindingDesc desc;
     desc.src = src[i];
     desc.target = vb.code;

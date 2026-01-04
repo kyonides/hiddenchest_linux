@@ -613,16 +613,11 @@ static void mriBindingExecute()
   MsgBoxSpriteBindingInit();
   viewportBindingInit();
   planeBindingInit();
-  audioBindingInit();
   graphicsBindingInit();
   inputBindingInit();
   init_mouse();
-  init_backdrop();
-  init_hiddenchest();
   init_system();
-  init_scripts();
   init_game(shState->rtData().argv0);
-  rb_eval_string(module_rpg_audio);
   state = rb_check_fileutils();
   if (!state)
     state = rb_check_rgss_version();
@@ -632,12 +627,16 @@ static void mriBindingExecute()
     shState->rtData().rqTermAck.set();
     return;
   }
+  audioBindingInit();
+  rb_eval_string(module_rpg_audio);
+  init_scripts();
+  init_backdrop();
+  init_hiddenchest();
   rb_eval_string(scripts);
   set_rgss_default_names();
   sprite_setup_bush_opacity();
   BacktraceData btData;
   mriBindingInit();
-  shState->reset_keybindings_path();
   std::string &customScript = conf.customScript;
   if (!customScript.empty())
     runCustomScript(customScript);

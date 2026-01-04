@@ -41,15 +41,10 @@ A class that handles some game controller data.
 ### New Input's Singleton Methods
 
 [gamepad](#gamepad)  
-[joystick](#gamepad)  
 [gamepad?](#gamepad?)  
-[joystick?](#gamepad?)  
 [total_gamepads](#total_gamepads)  
-[total_joysticks](#total_gamepads)  
 [gamepad_update](#gamepad_update)  
-[joystick_update](#gamepad_update)  
 [gamepad_updates](#gamepad_updates)  
-[joystick_updates](#gamepad_updates)  
 
 ##### **gamepad**
 <a name="gamepad"></a>
@@ -84,6 +79,7 @@ A class that handles some game controller data.
 [rumble](#rumble)  
 [last_rumble](#last_rumble)  
 [set_rumble](#set_rumble)  
+[internal_name](#internal_name)  
 
 ##### **name** 
 <a name="name"></a>
@@ -125,5 +121,9 @@ A class that handles some game controller data.
 <a name="set_rumble"></a>
 > Sends a rumble requests. It returns true if successful, false otherwise.
   _left_frequency_ & _right_frequency_ value range: 0 through 65535.
+
+##### **internal_name**
+<a name="internal_name"></a>
+> Returns a string containing the abbreviated versions of the gamepad's name and vendor.
 
 [Back to top](#top)
