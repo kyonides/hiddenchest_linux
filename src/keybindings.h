@@ -109,13 +109,5 @@ struct BindingDesc
 };
 
 typedef std::vector<BindingDesc> BDescVec;
-struct Config;
-
-BDescVec genDefaultBindings(const Config &conf);
-
-void storeBindings(const BDescVec &d, const Config &conf);
-BDescVec loadBindings(const Config &conf);
-BDescVec load_reset_bindings(const Config &conf);
-BDescVec load_generic_bindings(const Config &conf);
 
 #endif // KEYBINDINGS_H

@@ -243,7 +243,7 @@ class TextScene
       return
     elsif Input.trigger?(Input::Enter) or Input.trigger?(Input::Return)
       @vx_ace ? Sound.play_ok : Sound.play_decision
-      Input.text_input = true
+      Input.text_input = 1
       Input.update
       @stage = :text_input
       @sprite = @text_sprites[@index]
@@ -297,7 +297,7 @@ class TextScene
   end
 
   def process_text_box_cancel
-    Input.text_input = false
+    Input.text_input = 0
     Input.clear_text_input
     Input.update
     @sprite.reset_cursor

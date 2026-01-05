@@ -21,7 +21,6 @@ end
 module Input
   KEYBOARD_GENERIC = "kb_generic"
   KEYBOARD_GENERIC_INI = "Input/#{KEYBOARD_GENERIC}.ini"
-
   class Gamepad
     attr_reader :vendor_fn, :int_name
     def initialize(name, vendor_id, kind, level, state1, state2)
@@ -108,17 +107,10 @@ module Input
       @type = tp
     end
 
-    def get_hat_pos(s)
-      s =~ /u/i ? 1 : s =~ /r/i ? 2 : s =~ /d/i ? 4 : s =~ /l/i ? 8 : 0
-    end
-
-    def get_value_by_name
-      self.type = 1
-      @name = @name.sub(/key/i, "Num")
-      s = @name.sub(/ /, "")
-      @symbol = s.to_sym
-      @value = BUTTON_CODES[@symbol]
-      @scancode = BUTTON_SCANCODES[@value]
+    def name=(text)
+      @name = text.chomp
+      refresh_type
+      @name
     end
 
     def refresh_type
@@ -143,6 +135,7 @@ module Input
         @symbol = nil
         @value = $1.to_i
         @scancode = 0
+        @dir = 0
         return
       elsif @name[/axis (\d+)(\+|\-)/i]
         self.type = 3
@@ -187,6 +180,7 @@ module Input
         @symbol = s.to_sym
         @value = BUTTON_CODES[@symbol]
         @scancode = BUTTON_SCANCODES[@value]
+        @dir = 0
         return
       elsif @name[/\d/i]
         self.type = 1
@@ -194,16 +188,67 @@ module Input
         @symbol = s.to_sym
         @value = BUTTON_CODES[@symbol]
         @scancode = BUTTON_SCANCODES[@value]
+        @dir = 0
         return
       else
         clear_invalid
       end
     end
 
-    def name=(text)
-      @name = text.chomp
-      refresh_type
-      @name
+    def get_value_by_name
+      self.type = 1
+      @name = @name.sub(/key/i, "Num")
+      s = @name.sub(/ /, "")
+      @symbol = s.to_sym
+      @value = BUTTON_CODES[@symbol]
+      @scancode = BUTTON_SCANCODES[@value]
+      @dir = 0
+    end
+
+    def get_hat_pos(s)
+      s =~ /u/i ? 1 : s =~ /r/i ? 2 : s =~ /d/i ? 4 : s =~ /l/i ? 8 : 0
+    end
+
+    def value=(n)
+      if n == 0
+        Input.trigger_gp_clear
+        clear_invalid
+        return
+      end
+      @value = n
+      self.type = Input.trigger_type
+      case @type
+      when 1
+        @name = KEY2NAME[@value]
+        @symbol = BUTTON_CODES.key(@value)
+        @scancode = BUTTON_SCANCODES[@value]
+        @dir = 0
+        return
+      when 2
+        @name = "JS #{@value}"
+        @symbol = nil
+        @scancode = 0
+        @dir = 0
+        return
+      when 3
+        @symbol = nil
+        @scancode = 0
+        @dir = Input.trigger_gp_dir
+        sym = @dir == 0 ? "-" : "+"
+        @name = @type_name + " #{@value}" + sym
+        return
+      when 4
+        @symbol = nil
+        @scancode = 0
+        @dir = Input.trigger_gp_dir
+        str = get_hat_dir(@dir)
+        @name = @type_name + " #{@dir}:" + str
+      end
+      Input.trigger_gp_clear
+    end
+
+    def get_hat_dir(s)
+      s == 1 ? "U" : s == 2 ? "R" : s == 4 ? "D" : s == 8 ? "L" : ""
     end
     attr_reader :name, :type, :type_name, :symbol, :value, :scancode, :dir
     attr_accessor :index
@@ -247,17 +292,11 @@ module Input
     attr_writer :list
   end
 
-  module BindParser
-    def self.process_number_entry(line)
-      line[/(\d+)/]
-      $1.to_i
-    end
-
-    def self.process_target_button(line)
-      line.sub!(/(\w+)\s?=\s?/i, "")
-      $1
-    end
+  def self.process_target_button(line)
+    line.sub!(/(\w+)\s?=\s?/i, "")
+    $1
   end
+
   extend self
   attr_reader :default_bindings, :custom_bindings, :bindings
   def self.create_default_bindings(code)
@@ -277,7 +316,7 @@ module Input
       line = lines.shift
       group = bind.list[n]
       group.target = n
-      group.name = BindParser.process_target_button(line)
+      group.name = process_target_button(line)
       line.sub!(/(\s?=\s?)/i, "")
       names = line.split(",")
       names = names.take(slot_max)
@@ -368,6 +407,11 @@ module Input
     end
   end
 
+  def self.save_key_bindings
+    reset_sdl_bindings
+    save_new_bindings
+  end
+
   def self.update
     update_internal
     update_gamepad_state
@@ -375,6 +419,7 @@ module Input
   rescue => e
     puts e.full_message
   end
+
   private
   def self.update_gamepad_state
     state = gamepad_change?
@@ -395,9 +440,13 @@ module Input
     end
   end
 
-  def update_settings_state
+  def self.update_settings_state
     return unless gamepad_bindings_change?
     reset_ruby_bindings
+    save_new_bindings
+  end
+
+  def self.save_new_bindings
     code = @gamepad.internal_name.to_sym
     @custom_bindings[code] = @bindings.dup
     save_custom_bindings(code.to_s)
@@ -445,7 +494,6 @@ module Input
     File.open(fn, "rb") {|f| obj = Marshal.load(f) }
     obj
   end
-  private :reset_sdl_bindings
 end
 
 module Game

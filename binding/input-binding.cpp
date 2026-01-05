@@ -349,6 +349,52 @@ static VALUE input_trigger_double(VALUE self, VALUE number)
   return shState->input().is_triggered_double(num) ? Qtrue : Qfalse;
 }
 
+static VALUE input_trigger_exclude(int size, VALUE* buttons, VALUE self)
+{
+  if (size == 1 && ARRAY_TYPE_P(buttons[0])) {
+    size = RARRAY_LEN(buttons[0]);
+    buttons = RARRAY_PTR(buttons[0]);
+  }
+  if (!shState->input().is_triggered_any())
+    return Qfalse;
+  for (int n = 0; n < size; n++) {
+    int num = getButtonArg(self, buttons[n]);
+    if (shState->input().isTriggered(num))
+      return Qfalse;
+  }
+  return Qtrue;
+}
+
+static VALUE input_trigger_kind(VALUE self)
+{
+  int num = shState->input().triggered_kind();
+  return RB_INT2FIX(num);
+}
+
+static VALUE input_trigger_gp_value(VALUE self)
+{
+  int num = shState->input().triggered_js_value();
+  return RB_INT2FIX(num);
+}
+
+static VALUE input_trigger_gp_axis(VALUE self)
+{
+  int num = shState->input().triggered_js_axis();
+  return RB_INT2FIX(num);
+}
+
+static VALUE input_trigger_gp_dir(VALUE self)
+{
+  int num = shState->input().triggered_js_dir();
+  return RB_INT2FIX(num);
+}
+
+static VALUE input_trigger_gp_clear(VALUE self)
+{
+  shState->input().triggered_bind_clear();
+  return ZERO;
+}
+
 static VALUE input_trigger_last(VALUE self)
 {
   int num = shState->input().triggered_last();
@@ -520,16 +566,20 @@ static VALUE input_text_input(VALUE self)
   return rb_iv_get(self, "text_input");
 }
 
-static VALUE input_text_input_set(VALUE self, VALUE state)
+static VALUE input_text_input_set(VALUE self, VALUE number)
 {
-  shState->input().set_text_input(state == Qtrue);
-  return rb_iv_set(self, "text_input", state);
+  if (!FIXNUM_P(number))
+    return rb_iv_get(self, "text_input");
+  int n = RB_FIX2INT(number);
+  Debug() << "Text Input Mode:" << n;
+  shState->input().set_text_input(n);
+  return rb_iv_set(self, "text_input", number);
 }
 
 static VALUE input_text_input_clear(VALUE self)
 {
   input_last_key_clear(self);
-  return input_text_input_set(self, Qfalse);
+  return input_text_input_set(self, ZERO);
 }
 
 static VALUE input_gamepad(VALUE self)
@@ -685,7 +735,7 @@ void inputBindingInit()
   rb_define_method(gamepad, "buttons", RMF(input_gamepad_number_buttons), 0);
   rb_define_method(gamepad, "set_rumble", RMF(input_gamepad_set_rumble), 3);
   input_create_gamepad_types(gamepad);
-  rb_iv_set(input, "text_input", Qfalse);
+  rb_iv_set(input, "text_input", ZERO);
   rb_iv_set(input, "default_trigger_timer", RB_INT2FIX(TRIGGER_TIMER));
   rb_iv_set(input, "@gamepad_updates", rb_ary_new());
   module_func(input, "trigger_timer", input_trigger_timer, 0);
@@ -711,6 +761,12 @@ void inputBindingInit()
   module_func(input, "trigger_buttons?", input_are_triggered, -1);
   module_func(input, "trigger_up_down?", input_trigger_up_down, 0);
   module_func(input, "trigger_left_right?", input_trigger_left_right, 0);
+  module_func(input, "trigger_exclude?", input_trigger_exclude, -1);
+  module_func(input, "trigger_type", input_trigger_kind, 0);
+  module_func(input, "trigger_gp_value", input_trigger_gp_value, 0);
+  module_func(input, "trigger_gp_axis", input_trigger_gp_axis, 0);
+  module_func(input, "trigger_gp_dir", input_trigger_gp_dir, 0);
+  module_func(input, "trigger_gp_clear", input_trigger_gp_clear, 0);
   module_func(input, "trigger_last", input_trigger_last, 0);
   module_func(input, "trigger_old", input_trigger_old, 0);
   module_func(input, "repeat?", inputRepeat, 1);

@@ -56,89 +56,64 @@ struct SharedMidiState;
 
 struct SharedState
 {
-	void check_encrypted_game_files(std::vector<std::string> &game_fn);
-	void check_soundfont_dir(const char *sf_dir);
-	void reset_keybindings_path();
-	void *bindingData() const;
-	void setBindingData(void *data);
-
-	SDL_Window *sdlWindow() const;
-
-	Scene *screen() const;
-	void setScreen(Scene &screen);
-
-	FileSystem &fileSystem() const;
-
-	EventThread &eThread() const;
-	RGSSThreadData &rtData() const;
-	Config &config() const;
-
-	Graphics &graphics() const;
-	Input &input() const;
-	Audio &audio() const;
-
-	GLState &_glState() const;
-
-	ShaderSet &shaders() const;
-
-	TexPool &texPool() const;
-
-	SharedFontState &fontState() const;
-	Font &defaultFont() const;
-
-	SharedMidiState &midiState() const;
-
-	sigc::signal<void> prepareDraw;
-
-	unsigned int genTimeStamp();
-  
+  void check_encrypted_game_files(std::vector<std::string> &game_fn);
+  void check_soundfont_dir(const char *sf_dir);
+  void *bindingData() const;
+  void setBindingData(void *data);
+  SDL_Window *sdlWindow() const;
+  Scene *screen() const;
+  void setScreen(Scene &screen);
+  FileSystem &fileSystem() const;
+  EventThread &eThread() const;
+  RGSSThreadData &rtData() const;
+  Config &config() const;
+  Graphics &graphics() const;
+  Input &input() const;
+  Audio &audio() const;
+  GLState &_glState() const;
+  ShaderSet &shaders() const;
+  TexPool &texPool() const;
+  SharedFontState &fontState() const;
+  Font &defaultFont() const;
+  SharedMidiState &midiState() const;
+  sigc::signal<void> prepareDraw;
+  unsigned int genTimeStamp();
   // Returns time since SharedState was constructed in microseconds
   unsigned long long runTime();
-
-	/* Returns global quad IBO, and ensures it has indices
-	 * for at least minSize quads */
-	void ensureQuadIBO(size_t minSize);
-	GlobalIBO &globalIBO();
-
-	/* Global general purpose texture */
-	void bindTex();
-	void ensureTexSize(int minW, int minH, Vec2i &currentSizeOut);
-
-	TEXFBO &gpTexFBO(int minW, int minH);
-
-	Quad &gpQuad() const;
-
-	/* Basically just a simple "TexPool"
-	 * replacement for Tilemap atlas use */
-	void requestAtlasTex(int w, int h, TEXFBO &out);
-	void releaseAtlasTex(TEXFBO &tex);
-
-	/* Checks EventThread's shutdown request flag and if set,
-	 * requests the binding to terminate. In this case, this
-	 * function will most likely not return */
-	void checkShutdown();
-	void checkReset();
-
-	void init_size(int w, int h);
-	void reset_config(int rgss, const char *version,
-										const char *scripts, std::vector<std::string> &rtps);
-  
+  // Returns global quad IBO, and ensures it has indices
+  // for at least minSize quads
+  void ensureQuadIBO(size_t minSize);
+  GlobalIBO &globalIBO();
+  // Global general purpose texture
+  void bindTex();
+  void ensureTexSize(int minW, int minH, Vec2i &currentSizeOut);
+  TEXFBO &gpTexFBO(int minW, int minH);
+  Quad &gpQuad() const;
+  // Basically just a simple "TexPool" replacement for Tilemap atlas use
+  void requestAtlasTex(int w, int h, TEXFBO &out);
+  void releaseAtlasTex(TEXFBO &tex);
+  // Checks EventThread's shutdown request flag and if set,
+  // requests the binding to terminate. In this case, this
+  // function will most likely not return
+  void checkShutdown();
+  void checkReset();
+  void init_size(int w, int h);
+  void reset_config(int rgss, const char *version,
+                    const char *scripts, std::vector<std::string> &rtps);
   const char* get_title();
   void set_title(const char *title);
-
-	static SharedState *instance;
-	static int rgssVersion;
-
-	/* This function will throw an Exception instance
-	 * on initialization error */
-	static void initInstance(RGSSThreadData *threadData);
-	static void finiInstance();
+  static SharedState *instance;
+  static int rgssVersion;
+  // This function will throw an Exception instance
+  // on initialization error */
+  static void initInstance(RGSSThreadData *threadData);
+  static void finiInstance();
 
 private:
-	SharedState(RGSSThreadData *threadData);
-	~SharedState();
+  SharedState(RGSSThreadData *threadData);
+  ~SharedState();
 
-	SharedStatePrivate *p;
+  SharedStatePrivate *p;
 };
 
 #endif // SHAREDSTATE_H

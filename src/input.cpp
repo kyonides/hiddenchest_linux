@@ -36,7 +36,6 @@
 #include <assert.h>
 #include <math.h>
 #include "debugwriter.h"
-#define BUTTON_CODE_COUNT 24
 
 struct ButtonState
 {
@@ -57,31 +56,40 @@ struct KbBindingData
 struct Binding
 {
   Binding(Input::ButtonCode target = Input::None)
-  : target(target)
+  : target(target),
+    type(0),
+    value(0),
+    extra(0)
   {}
   virtual bool sourceActive() const = 0;
   virtual bool sourceRepeatable() const = 0;
 
   Input::ButtonCode target;
+  unsigned int type;
+  unsigned int value;
+  unsigned int extra;
 };
 
-/* Keyboard binding */
+// Keyboard binding
 struct KbBinding : public Binding
 {
   KbBinding() {}
   KbBinding(const KbBindingData &data)
   : Binding(data.target),
     source(data.source)
-  {}
+  {
+    type = 1;
+    value = data.source;
+  }
 
   bool sourceActive() const
-  { /* Special case aliases */
+  { // Special case aliases
     /*if (source == SDL_SCANCODE_LSHIFT)
       return EventThread::keyStates[source]
              || EventThread::keyStates[SDL_SCANCODE_RSHIFT];*/
     if (source == SDL_SCANCODE_RETURN)
-      return EventThread::keyStates[source]
-             || EventThread::keyStates[SDL_SCANCODE_KP_ENTER];
+      return EventThread::keyStates[source] ||
+             EventThread::keyStates[SDL_SCANCODE_KP_ENTER];
     return EventThread::keyStates[source];
   }
 
@@ -98,10 +106,10 @@ struct KbBinding : public Binding
   SDL_Scancode source;
 };
 
-/* Joystick button binding */
+// Joystick button binding
 struct JsButtonBinding : public Binding
 {
-  JsButtonBinding() {}
+  JsButtonBinding() { type = 2; }
 
   bool sourceActive() const
   {
@@ -116,7 +124,7 @@ struct JsButtonBinding : public Binding
   uint8_t source;
 };
 
-/* Joystick axis binding */
+// Joystick axis binding
 struct JsAxisBinding : public Binding
 {
   JsAxisBinding() {}
@@ -126,7 +134,11 @@ struct JsAxisBinding : public Binding
       : Binding(target),
         source(source),
         dir(dir)
-  {}
+  {
+    type = 3;
+    value = source;
+    extra = dir;
+  }
 
   bool sourceActive() const
   {
@@ -143,7 +155,7 @@ struct JsAxisBinding : public Binding
   AxisDir dir;
 };
 
-/* Joystick hat binding */
+// Joystick hat binding
 struct JsHatBinding : public Binding
 {
   JsHatBinding() {}
@@ -153,7 +165,11 @@ struct JsHatBinding : public Binding
   : Binding(target),
     source(source),
     pos(pos)
-  {}
+  {
+    type = 4;
+    value = source;
+    extra = pos;
+  }
 
   bool sourceActive() const
   { // For a diagonal input accept it as an input for both the axes
@@ -187,6 +203,14 @@ struct MsBinding : public Binding
   }
 
   int index;
+};
+
+static const KbBindingData kb_dir4_bindings[] =
+{
+  { SDL_SCANCODE_DOWN,           Input::Down  },
+  { SDL_SCANCODE_LEFT,           Input::Left  },
+  { SDL_SCANCODE_RIGHT,          Input::Right },
+  { SDL_SCANCODE_UP,             Input::Up    }
 };
 
 // Not rebindable
@@ -421,6 +445,7 @@ struct InputPrivate
   std::vector<KbBinding> kbStatBindings;
   std::vector<KbBinding> kbBindings;
   std::vector<KbBinding> min_kb_bindings;
+  std::vector<KbBinding> dir4_kb_bindings;
   std::vector<JsAxisBinding> jsABindings;
   std::vector<JsHatBinding> jsHBindings;
   std::vector<JsButtonBinding> jsBBindings;
@@ -428,11 +453,14 @@ struct InputPrivate
   // Collective binding array
   std::vector<Binding*> bindings;
   std::vector<Binding*> text_bindings;
+  std::vector<Binding*> bind_bindings;
   ButtonState stateArray[520 * 2]; // stateArray[BUTTON_CODE_COUNT*2];
   ButtonState *states;
   ButtonState *statesOld;
   ButtonState *text_states;
   ButtonState *text_states_old;
+  ButtonState *bind_states;
+  ButtonState *bind_states_old;
   Input::ButtonCode btn;
   Input::ButtonCode repeating;
   Input::ButtonCode trigger_old;
@@ -456,7 +484,11 @@ struct InputPrivate
   int scroll_factor;
   int scroll_remainder;
   int trigger_now;
-  bool text_input;
+  int text_input;
+  unsigned int trigger_kind;
+  unsigned int trigger_js_value;
+  unsigned int trigger_js_axis;
+  unsigned int trigger_js_dir;
   bool same_mouse_pos;
   bool press_any = false;
   bool trigger_any = false;
@@ -475,7 +507,7 @@ struct InputPrivate
   InputPrivate(const RGSSThreadData &rtData, Input *parent)
   {
     input = parent;
-    text_input = false;
+    text_input = 0;
     same_mouse_pos = false;
     init_char_kb_bindings();
     initStaticKbBindings();
@@ -486,6 +518,8 @@ struct InputPrivate
     statesOld = stateArray + 520; // + BUTTON_CODE_COUNT;
     text_states     = stateArray;
     text_states_old = stateArray + 520;
+    bind_states = stateArray;
+    bind_states_old = stateArray + 520;
     scroll_factor = SCROLL_FACTOR;
     // Clear buffers
     clearBuffer();
@@ -494,9 +528,16 @@ struct InputPrivate
     clear_text_buffer();
     swap_text_buffers();
     clear_text_buffer();
+    clear_bind_buffer();
+    swap_bind_buffers();
+    clear_bind_buffer();
     trigger_now = 0;
     trigger_old = Input::None;
     trigger_new = Input::None;
+    trigger_kind = 0;
+    trigger_js_value = 0;
+    trigger_js_axis = 0;
+    trigger_js_dir = 0;
     repeating = Input::None;
     repeatCount = 0;
     ox = 8;
@@ -564,9 +605,46 @@ struct InputPrivate
     trigger_any = false;
   }
 
+  inline ButtonState &get_bind_state_check(int code)
+  {
+    return (code < 0 ? bind_states[0] : bind_states[code]);
+  }
+
+  inline ButtonState &get_bind_state(Input::ButtonCode code)
+  {
+    return (code < 0 ? bind_states[0] : bind_states[code]);
+  }
+
+  inline ButtonState &get_bind_old_state(Input::ButtonCode code)
+  {
+    return (code < 0 ? bind_states[0] : bind_states_old[code]);
+  }
+  
+  void swap_bind_buffers()
+  {
+    ButtonState *tmp = bind_states;
+    bind_states = bind_states_old;
+    bind_states_old = tmp;
+  }
+
+  void clear_bind_buffer()
+  {
+    memset(bind_states, 0, 300 * 2);
+    press_any = false;
+    trigger_any = false;
+  }
+
   inline ButtonState &get_this_state_check(int code)
   {
-    return text_input ? get_text_state_check(code) : getStateCheck(code);
+    switch (text_input)
+    {
+    case 0:
+      return getStateCheck(code);
+    case 1:
+      return get_text_state_check(code);
+    default:
+      return get_bind_state_check(code);
+    }
   }
 
   void checkBindingChange(const RGSSThreadData &rtData)
@@ -598,6 +676,13 @@ struct InputPrivate
       text_bindings.push_back(&bind[i]);
   }
 
+  template<class B>
+  void append_bind_bindings(std::vector<B> &bind)
+  {
+    for (size_t i = 0; i < bind.size(); ++i)
+      bind_bindings.push_back(&bind[i]);
+  }
+
   void applyBindingDesc(const BDescVec &d)
   {
     kbBindings.clear();
@@ -624,8 +709,11 @@ struct InputPrivate
       case JAxis :
       {
         JsAxisBinding bind;
+        bind.type = 3;
+        bind.value = src.d.ja.axis;
         bind.source = src.d.ja.axis;
         bind.dir = src.d.ja.dir;
+        bind.extra = src.d.ja.dir;
         bind.target = desc.target;
         jsABindings.push_back(bind);
         break;
@@ -633,8 +721,11 @@ struct InputPrivate
       case JHat :
       {
         JsHatBinding bind;
+        bind.type = 4;
+        bind.value = src.d.jh.hat;
         bind.source = src.d.jh.hat;
         bind.pos = src.d.jh.pos;
+        bind.extra = src.d.jh.pos;
         bind.target = desc.target;
         jsHBindings.push_back(bind);
         break;
@@ -642,6 +733,7 @@ struct InputPrivate
       case JButton :
       {
         JsButtonBinding bind;
+        bind.value = src.d.jb;
         bind.source = src.d.jb;
         bind.target = desc.target;
         jsBBindings.push_back(bind);
@@ -661,6 +753,13 @@ struct InputPrivate
     text_bindings.clear();
     append_text_bindings(min_kb_bindings);
     append_text_bindings(msBindings);
+    bind_bindings.clear();
+    append_bind_bindings(dir4_kb_bindings);
+    append_bind_bindings(kbStatBindings);
+    append_bind_bindings(msBindings);
+    append_bind_bindings(jsABindings);
+    append_bind_bindings(jsHBindings);
+    append_bind_bindings(jsBBindings);
   }
 
   void init_char_kb_bindings()
@@ -668,8 +767,11 @@ struct InputPrivate
     trigger_base_timer = TRIGGER_TIMER;
     trigger_timer = 0;
     min_kb_bindings.clear();
+    dir4_kb_bindings.clear();
     for (size_t i = 0; i < char_kb_bindingsN; ++i)
       min_kb_bindings.push_back(KbBinding(char_kb_bindings[i]));
+    for (size_t i = 0; i < 4; ++i)
+      dir4_kb_bindings.push_back(KbBinding(kb_dir4_bindings[i]));
   }
 
   void initStaticKbBindings()
@@ -821,6 +923,56 @@ struct InputPrivate
       repeat_btn = btn;
   }
 
+  void poll_bindings4bind()
+  {
+    for (size_t i = 0; i < bind_bindings.size(); ++i)
+      poll_binding_bind_priv(*bind_bindings[i]);
+  }
+
+  void poll_binding_bind_priv(const Binding &b)
+  {
+    if (!b.sourceActive())
+      return;
+    btn = b.target;
+    if (btn == Input::None)
+      return;
+    ButtonState &state = get_bind_state(btn);
+    ButtonState &state_old = get_bind_old_state(btn);
+    state.pressed = true;
+    press_any = true;
+    // Must have been released before to trigger it
+    if (!state_old.pressed) {
+      state.triggered = true;
+      trigger_any = true;
+      trigger_old = trigger_new;
+      trigger_new = btn;
+      trigger_now = btn;
+      trigger_kind = b.type;
+      Debug() << "Type: " << b.type << " Button:" << btn;
+      Debug() << "Value:" << b.value << " Extra:" << b.extra;
+      if (trigger_kind > 1)
+        trigger_js_value = b.value;
+      if (trigger_kind > 2)
+        trigger_js_dir = b.extra;
+      if (trigger_old == btn && trigger_timer == 0)
+        trigger_old = Input::None;
+      if (trigger_old != btn)
+        trigger_timer = trigger_base_timer;
+      // Double Click Check
+      if (btn == Input::MouseLeft || btn == Input::MouseRight) {
+        clicks = (btn == double_target)? 2 : 1;
+        if (clicks == 1) {
+          set_click(btn);
+        } else if (clicks == 2) {
+          click_timer = 0;
+          same_mouse_pos = (input->mouseX() == last_mx && input->mouseY() == last_my);
+        }
+      } else {
+        clear_unused_clicks();
+      }
+    }
+  }
+
   void set_click(Input::ButtonCode button)
   {
     click_timer = click_base_timer;
@@ -964,10 +1116,18 @@ void Input::update()
 {
   shState->checkShutdown();
   p->checkBindingChange(shState->rtData());
-  if (!p->text_input)
+  switch (p->text_input)
+  {
+  case 0:
     main_update();
-  else
+    return;
+  case 1:
     text_update();
+    return;
+  default:
+    bind_update();
+    return;
+  }
 }
 
 void Input::main_update()
@@ -1020,6 +1180,15 @@ void Input::text_update()
     return;
   }
   p->repeating = None;
+}
+
+void Input::bind_update()
+{
+  p->swap_bind_buffers();
+  p->clear_bind_buffer();
+  p->update_timers();
+  // Poll all bindings
+  p->poll_bindings4bind();
 }
 
 int Input::trigger_timer() const
@@ -1209,14 +1378,14 @@ bool Input::is_last_key()
   return k != Backspace && k != Delete && k != Enter && k != Return && k != Shift;
 }
 
-bool Input::text_input()
+int Input::text_input()
 {
   return p->text_input;
 }
 
-void Input::set_text_input(bool state)
+void Input::set_text_input(int value)
 {
-  p->text_input = state;
+  p->text_input = clamp(0, value, 2);
 }
 
 int Input::last_key()
@@ -1227,6 +1396,33 @@ int Input::last_key()
 void Input::last_key_clear()
 {
   p->trigger_now = 0;
+}
+
+void Input::triggered_bind_clear()
+{
+  p->trigger_kind = 0;
+  p->trigger_js_value = 0;
+  p->trigger_js_dir = 0;
+}
+
+int Input::triggered_kind()
+{
+  return p->trigger_kind;
+}
+
+int Input::triggered_js_value()
+{
+  return p->trigger_js_value;
+}
+
+int Input::triggered_js_axis()
+{
+  return p->trigger_js_axis;
+}
+
+int Input::triggered_js_dir()
+{
+  return p->trigger_js_dir;
 }
 
 int Input::triggered_last()
@@ -1390,26 +1586,6 @@ bool Input::joystick_has_rumble()
 int Input::joystick_set_rumble(int lfr, int rfr, int ms)
 {
   return SDL_JoystickRumble(shState->rtData().joystick, lfr, rfr, ms);
-}
-
-int Input::joystick_change()
-{
-  return shState->rtData().joystick_change;
-}
-
-void Input::reset_joystick_change()
-{
-  shState->rtData().joystick_change = 0;
-}
-
-bool Input::close_joystick()
-{
-  return EventThread::close_joystick();
-}
-
-bool Input::open_joystick()
-{
-  return EventThread::open_joystick();
 }
 
 Input::~Input()

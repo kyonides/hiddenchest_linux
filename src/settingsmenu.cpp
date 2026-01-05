@@ -458,51 +458,51 @@ struct SettingsMenuPrivate
 		}
 
 		dupWarnLabel.setVisible(haveDup);
-	}
+  }
 
-	void redraw()
-	{
-		fillSurface(winSurf, cBgNorm);
-		for (size_t i = 0; i < widgets.size(); ++i)
-			widgets[i]->draw(winSurf);
-		if (state == AwaitingInput) {
-			char buf[64];
-			snprintf(buf, sizeof(buf), "Press key or joystick button for \"%s\"", captureName);
-			drawOff = Vec2i();
-			SDL_Surface *dark = createSurface(winSize.x, winSize.y);
-			fillSurface(dark, 0);
-			SDL_SetSurfaceAlphaMod(dark, 128);
-			SDL_SetSurfaceBlendMode(dark, SDL_BLENDMODE_BLEND);
-			SDL_Surface *txt = createTextSurface(buf, false);
-			SDL_BlitSurface(dark, 0, winSurf, 0);
-			SDL_Rect fill;
-			fill.x = (winSize.x - txt->w - 20) / 2;
-			fill.y = (winSize.y - txt->h - 20) / 2;
-			fill.w = txt->w + 20;
-			fill.h = txt->h + 20;
-			fillRect(winSurf, cBgNorm, fill.x, fill.y, fill.w, fill.h);
-			strokeRectInner(winSurf, cLine, fill.x, fill.y, fill.w, fill.h, 2);
-			fill.x += 10;
-			fill.y += 10;
-			fill.w = txt->w;
-			fill.h = txt->h;
-			SDL_BlitSurface(txt, 0, winSurf, &fill);
-			SDL_FreeSurface(txt);
-			SDL_FreeSurface(dark);
-		}
+  void redraw()
+  {
+    fillSurface(winSurf, cBgNorm);
+    for (size_t i = 0; i < widgets.size(); ++i)
+      widgets[i]->draw(winSurf);
+    if (state == AwaitingInput) {
+      char buf[64];
+      snprintf(buf, sizeof(buf), "Press key or joystick button for \"%s\"", captureName);
+      drawOff = Vec2i();
+      SDL_Surface *dark = createSurface(winSize.x, winSize.y);
+      fillSurface(dark, 0);
+      SDL_SetSurfaceAlphaMod(dark, 128);
+      SDL_SetSurfaceBlendMode(dark, SDL_BLENDMODE_BLEND);
+      SDL_Surface *txt = createTextSurface(buf, false);
+      SDL_BlitSurface(dark, 0, winSurf, 0);
+      SDL_Rect fill;
+      fill.x = (winSize.x - txt->w - 20) / 2;
+      fill.y = (winSize.y - txt->h - 20) / 2;
+      fill.w = txt->w + 20;
+      fill.h = txt->h + 20;
+      fillRect(winSurf, cBgNorm, fill.x, fill.y, fill.w, fill.h);
+      strokeRectInner(winSurf, cLine, fill.x, fill.y, fill.w, fill.h, 2);
+      fill.x += 10;
+      fill.y += 10;
+      fill.w = txt->w;
+      fill.h = txt->h;
+      SDL_BlitSurface(txt, 0, winSurf, &fill);
+      SDL_FreeSurface(txt);
+      SDL_FreeSurface(dark);
+    }
     SDL_UpdateWindowSurface(window);
   }
 
-	Widget *findWidget(int x, int y)
-	{
-		Widget *w = 0;
-		for (size_t i = 0; i < widgets.size(); ++i)
-			if (widgets[i]->hit(x, y)) {
-				w = widgets[i];
-				break;
-			}
-		return w;
-	}
+  Widget *findWidget(int x, int y)
+  {
+    Widget *w = 0;
+    for (size_t i = 0; i < widgets.size(); ++i)
+      if (widgets[i]->hit(x, y)) {
+        w = widgets[i];
+        break;
+      }
+    return w;
+  }
 
   void onClick(const SDL_MouseButtonEvent &e)
   {
@@ -518,19 +518,19 @@ struct SettingsMenuPrivate
       w->click(e.x, e.y, e.button);
   }
 
-	void onMotion(const SDL_MouseMotionEvent &e)
-	{
-		if (state == AwaitingInput)
-			return;
-		Widget *w = findWidget(e.x, e.y);
-		if (w != hovered) {
-			if (hovered)
-				hovered->leave();
-			hovered = w;
-		}
-		if (hovered)
-			hovered->motion(e.x, e.y);
-	}
+  void onMotion(const SDL_MouseMotionEvent &e)
+  {
+    if (state == AwaitingInput)
+      return;
+    Widget *w = findWidget(e.x, e.y);
+    if (w != hovered) {
+      if (hovered)
+        hovered->leave();
+      hovered = w;
+    }
+    if (hovered)
+      hovered->motion(e.x, e.y);
+  }
 
 	bool onCaptureInputEvent(const SDL_Event &event)
 	{
@@ -595,27 +595,28 @@ struct SettingsMenuPrivate
 		return true;
 	}
 
-	void onBWidgetCellClicked(SourceDesc &desc, const char *str, uint8_t button)
-	{
-		if (state != Idle)
-			return;
-		if (button == SDL_BUTTON_LEFT) {
-			captureDesc = &desc;
-			captureName = str;
-			state = AwaitingInput;
-		}
-		else /* e.button == SDL_BUTTON_RIGHT */
-		{
-			/* Clear binding */
-			desc.type = Invalid;
-		}
-		updateDuplicateStatus();
-		redraw();
-	}
+  void onBWidgetCellClicked(SourceDesc &desc, const char *str, uint8_t button)
+  {
+    if (state != Idle)
+      return;
+    if (button == SDL_BUTTON_LEFT) {
+      captureDesc = &desc;
+      captureName = str;
+      state = AwaitingInput;
+    }
+    else // e.button == SDL_BUTTON_RIGHT
+    { // Clear binding
+      desc.type = Invalid;
+    }
+    updateDuplicateStatus();
+    redraw();
+  }
 
   void onResetToDefault()
   {
-    setupBindingData(genDefaultBindings(rtData.config));
+    BDescVec binds;
+    rtData.bindingUpdateMsg.get(binds);
+    setupBindingData(binds);
     updateDuplicateStatus();
     redraw();
   }

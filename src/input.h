@@ -66,8 +66,6 @@ public:
     MouseLeft = 130, MouseMiddle = 131, MouseRight = 132,
   };
   void update();
-  void main_update();
-  void text_update();
   int timer() const;
   int trigger_timer() const;
   int trigger_base_timer() const;
@@ -98,10 +96,15 @@ public:
   bool is_triggered_any();
   bool is_triggered_double(int button);
   bool is_last_key();
-  bool text_input();
-  void set_text_input(bool state);
+  int text_input();
+  void set_text_input(int value);
   int last_key();
   void last_key_clear();
+  void triggered_bind_clear();
+  int triggered_kind();
+  int triggered_js_value();
+  int triggered_js_axis();
+  int triggered_js_dir();
   int triggered_last();
   int triggered_old();
   int dir4Value();
@@ -130,13 +133,13 @@ public:
   bool joystick_has_rumble();
   int joystick_set_rumble(int lfr, int rfr, int ms);
   int joystick_change();
-  void reset_joystick_change();
-  bool close_joystick();
-  bool open_joystick();
 
 private:
   Input(const RGSSThreadData &rtData);
   ~Input();
+  void main_update();
+  void text_update();
+  void bind_update();
   friend struct SharedStatePrivate;
   InputPrivate *p;
 };
