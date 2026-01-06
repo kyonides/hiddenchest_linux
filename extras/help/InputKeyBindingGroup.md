@@ -22,6 +22,11 @@ It might include keys, gamepad buttons, axis or hats.
 <a name="name"></a>
 > The current key binding group's name (A, X or Left).
 
+#### **target**
+<a name="target"></a>
+> The numerical value of the target button as seen by RGSS.  
+The corresponding SDL's values are totally different.
+
 ##### **data**
 <a name="data"></a>
 > Returns all 4 Input::KeyBinding objects it contains.

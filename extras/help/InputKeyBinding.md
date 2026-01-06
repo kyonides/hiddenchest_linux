@@ -1,6 +1,6 @@
 <a name="top"></a>
 # Input::KeyBinding
-A class that handles 1 of 5 types of key bindings.
+A class that handles 1 out of 5 types of key bindings.
 
 ### Superclass
 **Object**
@@ -24,6 +24,7 @@ A class that handles 1 of 5 types of key bindings.
 [type_name](#type_name)  
 [symbol](#symbol)  
 [value](#value)  
+[value=](#set_value)  
 [scancode](#scancode)  
 [dir](#dir)  
 [index](#index)  
@@ -34,8 +35,9 @@ A class that handles 1 of 5 types of key bindings.
 
 ##### **name=**
 <a name="set_name"></a>
-> Set the current name of the key, button, axis or hat.  
-This will also call the internal refresh_type method that will extract all the other values from this new name.
+> Sets the current name of the key, button, axis or hat.  
+This will also call the internal refresh_type method that will extract all the other values from this new name.  
+It is your best option for parsing INI files.
 
 ##### **type**
 <a name="type"></a>
@@ -52,7 +54,13 @@ Used internally when you change the binding's contents by changing the button's 
 
 ##### **value**
 <a name="value"></a>
-> Returns RGSS or HiddenChest internal value of a key, button, axis or hat.
+> Returns the RGSS or HiddenChest internal value of a key, button, axis or hat.
+
+##### **value=**
+<a name="set_value"></a>
+> Sets the RGSS or HiddenChest internal value of a key, button, axis or hat.  
+It also updates all of the other variables accordingly.  
+It is your best option for setting buttons' new values using some RGSS GUI.
 
 ##### **scancode**
 <a name="scancode"></a>
