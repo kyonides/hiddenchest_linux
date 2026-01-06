@@ -1,6 +1,8 @@
 # * KEnterText HC for XP * #
 #   Scripter : Kyonides
-#   2025-12-18
+#   2026-01-05
+
+# This scripts depends on HiddenChest version 1.2.04 or higher.
 
 # $scene = KEnter::TextScene.new
 

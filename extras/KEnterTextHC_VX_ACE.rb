@@ -1,10 +1,11 @@
 # * KEnterText HC for VX + ACE * #
 #   Scripter : Kyonides
-#   2025-12-18
+#   2026-01-05
+
+# This scripts depends on HiddenChest version 1.2.04 or higher.
 
 # For VX:
 # $scene = KEnter::TextScene.new
-
 # For VX ACE:
 # SceneManager.call(KEnter::TextScene)
 
@@ -262,11 +263,11 @@ class TextScene
   def update_text_input
     update_blink
     if Input.trigger?(Input::Left)
-      $game_system.se_play($data_system.cursor_se)
+      Sound.play_cursor
       @sprite.move_back
       return
     elsif Input.trigger?(Input::Right)
-      $game_system.se_play($data_system.cursor_se)
+      Sound.play_cursor
       @sprite.move_forward
       return
     elsif Input.trigger?(Input::Escape)
@@ -283,7 +284,7 @@ class TextScene
       @sprite.delete_char
       return
     elsif Input.repeat?(Input::Delete)
-      $game_system.se_play($data_system.buzzer_se)
+      Sound.play_buzzer
       @sprite.delete_next_char
       return
     elsif Input.trigger_any? and Input.last_key?

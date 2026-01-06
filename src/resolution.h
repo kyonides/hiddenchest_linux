@@ -1,4 +1,4 @@
-#define SET_RES_OPTION 2
+#define SET_RES_OPTION 1
 #define SPLASH_WIDTH 544
 #define SPLASH_HEIGHT 416
 #define TILE_WIDTH_MAX 61

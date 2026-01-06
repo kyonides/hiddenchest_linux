@@ -1,11 +1,13 @@
-# * KChangeKeys HC for XP * #
+# * KChangeKeys HC for VX + ACE * #
 #   Scripter : Kyonides
 #   2026-01-05
 
 # This scripts depends on HiddenChest version 1.2.04 or higher.
 
-# * Script Call * #
+# For VX:
 # $scene = KChangeKeys::Scene.new
+# For VX ACE:
+# SceneManager.call(KChangeKeys::Scene)
 
 module KChangeKeys
   BACKDROP = "dwarven mine"
@@ -19,6 +21,7 @@ module KChangeKeys
 
 class Scene
   def main
+    @vx_ace = Game::RGSS_VERSION == 3
     Font.default_outline = true
     @stage = :main
     @index = 0
@@ -59,14 +62,14 @@ class Scene
 
   def create_sprites
     @backdrop = Sprite.new
-    @backdrop.bitmap = RPG::Cache.title(BACKDROP).dup
+    @backdrop.bitmap = Cache.system(BACKDROP).dup
     b = Bitmap.new(Graphics.width, 48)
     b.font.size = 32
     b.draw_text(b.rect, HEADING, 1)
     @heading = Sprite.new
     @heading.y = 4
     @heading.bitmap = b
-    b = RPG::Cache.picture(HELP_BAR)
+    b = Cache.picture(HELP_BAR)
     bx = (Graphics.width - b.width) / 2
     @help_backdrop = Sprite.new
     @help_backdrop.set_xy(bx, 60)
@@ -80,8 +83,8 @@ class Scene
     @help.bitmap = @help_bit
     @cursor = Sprite.new
     @cursor.z = 10
-    @cursor.bitmap = RPG::Cache.picture(CURSOR)
-    b = RPG::Cache.picture(TARGET_BOX)
+    @cursor.bitmap = Cache.picture(CURSOR)
+    b = Cache.picture(TARGET_BOX)
     @key_max = TARGETS.size
     @key_max.times do |n|
       sx = 6 + n % 3 * 206
@@ -115,7 +118,7 @@ class Scene
 
   def update_main
     if Input.trigger?(:B)
-      $game_system.se_play($data_system.cancel_se)
+      Sound.play_cancel
       $scene = Scene_Map.new
       return @stage = nil
     elsif Input.trigger?(:Left)
@@ -125,7 +128,7 @@ class Scene
       update_cursor(1)
       return
     elsif Input.trigger?(:Delete)
-      $game_system.se_play($data_system.buzzer_se)
+      Sound.play_buzzer
       bind = @binds[@index]
       bind.value = 0
       @key_names[@index] = ""
@@ -135,7 +138,7 @@ class Scene
       @changes[@index] = true
       return
     elsif Input.trigger?(:C)
-      $game_system.se_play($data_system.decision_se)
+      @vx_ace ? Sound.play_ok : Sound.play_decision
       Input.text_input = 2
       Input.update
       @bind = @binds[@index]
@@ -148,7 +151,7 @@ class Scene
   end
 
   def update_cursor(n)
-    $game_system.se_play($data_system.cursor_se)
+    Sound.play_cursor
     @index = (@index + n) % @key_max
     s = @bind_names[@index]
     @cursor.set_xy(s.x - 4, s.y - 2)
@@ -165,13 +168,13 @@ class Scene
 
   def update_key
     if Input.trigger?(:MouseRight)
-      $game_system.se_play($data_system.cancel_se)
+      Sound.play_cancel
       name = @key_names[@index]
       @bind_bit.draw_text(@bind_bit.rect, name, 1)
       reset_help
       return
     elsif Input.trigger_any?
-      $game_system.se_play($data_system.decision_se)
+      @vx_ace ? Sound.play_ok : Sound.play_decision
       case Input.trigger_type
       when 0
         @bind.value = 0
