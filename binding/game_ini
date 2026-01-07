@@ -172,6 +172,7 @@ module Input
         get_value_by_name
         return
       elsif @name[/\w+/i]
+        @name = "LeftShift" if @name[/\Ashift/i]
         self.type = 1
         s = @name.dup
         if s.size == 1 and s[/[a-z]/i]
@@ -299,6 +300,33 @@ module Input
 
   extend self
   attr_reader :default_bindings, :custom_bindings, :bindings
+  def self.create_basic_binding(bname, bsymbol)
+    names = %w{Up Down L L2 Left Right R R2 A B C X Y Z}
+    target1 = %w{Up Down Q R Left Right W T Shift Escape Space B S D}
+    target2 = Array.new(14) { "" }
+    target2[8, 3] = %w{Z X Return}
+    binds = KeyBindings.new
+    binds.name = bname
+    list = binds.list
+    14.times do |n|
+      group = list[n]
+      group.target = n
+      group.name = names[n]
+      4.times do |m|
+        b = group[m]
+        b.index = m
+        b.name = m == 0 ? target1[n] : m == 1 ? target2[n] : ""
+      end
+    end
+    sym = bsymbol
+    @bindings = binds
+    @default_bindings[sym] = binds
+    @custom_bindings[sym] = binds
+    code = sym.to_s
+    save_default_bindings(code)
+    save_custom_bindings(code)
+  end
+
   def self.create_default_bindings(code)
     fn = "Input/" + code + ".ini"
     lines = File.readlines(fn)
@@ -323,10 +351,10 @@ module Input
       while names.size < slot_max
         names << ""
       end
-      slot_max.times do |n|
-        b = group[n]
-        b.index = n
-        b.name = names[n]
+      slot_max.times do |m|
+        b = group[m]
+        b.index = m
+        b.name = names[m]
       end
     end
     @default_bindings[code.to_sym] = bind
@@ -367,31 +395,34 @@ module Input
     @custom_bindings[code.to_sym] = load_data(file)
   end
 
+  def self.parse_default_binding(rgx)
+    fname[rgx]
+    code = $1
+    @success = false
+    create_default_bindings(code)
+    return unless @success
+    puts "Saving Basic #{code} Binding..."
+    save_default_bindings(code)
+    sym = code.to_sym
+    return if @custom_bindings.has_key?(sym)
+    @custom_bindings[sym] = @default_bindings[sym].dup
+    save_custom_bindings(code)
+  end
+
   def self.load_init_bindings
     @default_bindings = {}
     @custom_bindings = {}
     files = Dir[Game.glob_default_kb].sort
     inis = Dir["Input/*.ini"].sort
-    if files.any? and files.size == inis.size
+    if files.empty?
+      create_basic_binding(KEYBOARD_GENERIC, :kb_generic)
+    elsif files.size == inis.size
       puts "Loading Default Bindings..."
       load_init_default_bindings(files)
     else
       puts "Creating Default Bindings..."
       rgx = /\w+\/(.+)\.ini/i
-      inis.each do |fname|
-        fname[/\w+\/(.+)\.ini/i]
-        code = $1
-        @success = false
-        create_default_bindings(code)
-        next unless @success
-        puts "Saving Basic #{code} Binding..."
-        save_default_bindings(code)
-        sym = code.to_sym
-        unless @custom_bindings.has_key?(sym)
-          @custom_bindings[sym] = @default_bindings[sym].dup
-          save_custom_bindings(code)
-        end
-      end
+      inis.each {|fname| parse_default_binding(rgx) }
     end
     files = Dir[Game.glob_custom_kb].sort
     if files.any?
@@ -467,7 +498,14 @@ module Input
       save_custom_bindings(code.to_s)
     end
     @bindings = @custom_bindings[code]
-    @bindings ||= KeyBindings.new
+    unless @bindings
+      name = @gamepad.name
+      vendor = @gamepad.vendor
+      unless name[/#{vendor}/i]
+        name = vendor + " " + name
+      end
+      create_basic_binding(name, code)
+    end
     gamepad_clear_change
     reset_sdl_bindings
   end

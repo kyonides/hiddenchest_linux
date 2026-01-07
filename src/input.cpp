@@ -35,7 +35,6 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
-#include "debugwriter.h"
 
 struct ButtonState
 {
@@ -55,8 +54,9 @@ struct KbBindingData
 
 struct Binding
 {
-  Binding(Input::ButtonCode target = Input::None)
+  Binding(Input::ButtonCode target = Input::None, uint16_t source = 0)
   : target(target),
+    source(source),
     type(0),
     value(0),
     extra(0)
@@ -68,6 +68,7 @@ struct Binding
   unsigned int type;
   unsigned int value;
   unsigned int extra;
+  uint16_t source;
 };
 
 // Keyboard binding
@@ -75,11 +76,9 @@ struct KbBinding : public Binding
 {
   KbBinding() {}
   KbBinding(const KbBindingData &data)
-  : Binding(data.target),
-    source(data.source)
+  : Binding(data.target, data.source)
   {
     type = 1;
-    value = data.source;
   }
 
   bool sourceActive() const
@@ -103,7 +102,6 @@ struct KbBinding : public Binding
             source == Input::RightAlt || source == Input::RightCtrl ||
             source == Input::RightShift);
   }
-  SDL_Scancode source;
 };
 
 // Joystick button binding
@@ -120,23 +118,19 @@ struct JsButtonBinding : public Binding
   {
     return true;
   }
-
-  uint8_t source;
 };
 
 // Joystick axis binding
 struct JsAxisBinding : public Binding
 {
   JsAxisBinding() {}
-  JsAxisBinding(uint8_t source,
+  JsAxisBinding(uint16_t source,
                 AxisDir dir,
                 Input::ButtonCode target)
-      : Binding(target),
-        source(source),
+      : Binding(target, source),
         dir(dir)
   {
     type = 3;
-    value = source;
     extra = dir;
   }
 
@@ -150,8 +144,6 @@ struct JsAxisBinding : public Binding
   {
     return true;
   }
-
-  uint8_t source;
   AxisDir dir;
 };
 
@@ -159,11 +151,10 @@ struct JsAxisBinding : public Binding
 struct JsHatBinding : public Binding
 {
   JsHatBinding() {}
-  JsHatBinding(uint8_t source,
+  JsHatBinding(uint16_t source,
                uint8_t pos,
                Input::ButtonCode target)
-  : Binding(target),
-    source(source),
+  : Binding(target, source),
     pos(pos)
   {
     type = 4;
@@ -180,8 +171,6 @@ struct JsHatBinding : public Binding
   {
     return true;
   }
-
-  uint8_t source;
   uint8_t pos;
 };
 
@@ -710,7 +699,6 @@ struct InputPrivate
       {
         JsAxisBinding bind;
         bind.type = 3;
-        bind.value = src.d.ja.axis;
         bind.source = src.d.ja.axis;
         bind.dir = src.d.ja.dir;
         bind.extra = src.d.ja.dir;
@@ -722,7 +710,6 @@ struct InputPrivate
       {
         JsHatBinding bind;
         bind.type = 4;
-        bind.value = src.d.jh.hat;
         bind.source = src.d.jh.hat;
         bind.pos = src.d.jh.pos;
         bind.extra = src.d.jh.pos;
@@ -733,7 +720,6 @@ struct InputPrivate
       case JButton :
       {
         JsButtonBinding bind;
-        bind.value = src.d.jb;
         bind.source = src.d.jb;
         bind.target = desc.target;
         jsBBindings.push_back(bind);
@@ -948,10 +934,8 @@ struct InputPrivate
       trigger_new = btn;
       trigger_now = btn;
       trigger_kind = b.type;
-      Debug() << "Type: " << b.type << " Button:" << btn;
-      Debug() << "Value:" << b.value << " Extra:" << b.extra;
       if (trigger_kind > 1)
-        trigger_js_value = b.value;
+        trigger_js_value = b.source;
       if (trigger_kind > 2)
         trigger_js_dir = b.extra;
       if (trigger_old == btn && trigger_timer == 0)
