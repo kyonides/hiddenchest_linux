@@ -308,7 +308,7 @@ static int getButtonArg(VALUE input, VALUE number)
 {
   if (FIXNUM_P(number))
     return RB_FIX2INT(number);
-  if (SYMBOL_P(number)) {// && rgssVer == 3
+  if (SYMBOL_P(number)) {
     VALUE sym_hash = rb_const_get(input, rb_intern("BUTTON_CODES"));
     return RB_FIX2INT(rb_hash_aref(sym_hash, number));
   }

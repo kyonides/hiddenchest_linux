@@ -530,9 +530,9 @@ struct GraphicsPrivate
   IntruList<Disposable> dispList;
 
   GraphicsPrivate(RGSSThreadData *rtData)
-  : scRes(SPLASH_WIDTH, SPLASH_HEIGHT),// scRes(WIDTH_MAX, HEIGHT_MAX),
+  : scRes(WIDTH_MAX, HEIGHT_MAX),
     scSize(scRes),
-    winSize(SPLASH_WIDTH, SPLASH_HEIGHT),
+    winSize(WIDTH_MAX, HEIGHT_MAX),
     screen(scRes.x, scRes.y),
     threadData(rtData),
     glCtx(SDL_GL_GetCurrentContext()),

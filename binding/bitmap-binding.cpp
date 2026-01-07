@@ -19,6 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "hcextras.h"
 #include "bitmap.h"
 #include "font.h"
 #include "exception.h"
@@ -26,6 +27,7 @@
 #include "disposable-binding.h"
 #include "binding-util.h"
 #include "binding-types.h"
+#include "debugwriter.h"
 
 DEF_TYPE(Bitmap);
 
@@ -51,17 +53,19 @@ static VALUE bitmapInitialize(int argc, VALUE* argv, VALUE self)
   if (argc == 0) {
     GUARD_EXC( b = new Bitmap(1); )
   } else if (argc == 1) {
-    GUARD_EXC( b = new Bitmap(StringValueCStr(argv[0])); )
+    GUARD_EXC( b = new Bitmap(RSTRING_PTR(argv[0])); )
   } else {
     if (RB_NIL_P(argv[1])) {
-      GUARD_EXC( b = new Bitmap(StringValueCStr(argv[0]), 0); )
+      GUARD_EXC( b = new Bitmap(RSTRING_PTR(argv[0]), 0); )
     } else {
-      int width = RB_FIX2INT(argv[0]), height = RB_FIX2INT(argv[1]);
+      int width = RB_FIX2INT(argv[0]);
+      int height = RB_FIX2INT(argv[1]);
       GUARD_EXC( b = new Bitmap(width, height); )
     }
   }
   RTYPEDDATA_DATA(self) = b;
   bitmapInitProps(b, self);
+  rb_iv_set(self, "disposed", Qfalse);
   return self;
 }
 
@@ -77,6 +81,7 @@ static VALUE bitmapInitializeCopy(int argc, VALUE* argv, VALUE self)
   bitmapInitProps(b, self);
   b->setFont(orig->getFont());
   setPrivateData(self, b);
+  rb_iv_set(self, "disposed", Qfalse);
   return self;
 }
 
@@ -92,22 +97,23 @@ inline void bitmapDisposeChildren(VALUE disp)
 
 static VALUE bitmapDispose(VALUE self)
 {
+  if (rb_iv_get(self, "disposed") == Qtrue) {
+    Debug() << "Already disposed!";
+    return Qnil;
+  }
   Bitmap *b = getPrivateData<Bitmap>(self);
   if (!b)
-    return Qnil;
-  if (b->isDisposed())
     return Qnil;
   if (shState->rgssVersion == 1)
     bitmapDisposeChildren(self);
   b->dispose();
+  rb_iv_set(self, "disposed", Qtrue);
   return Qnil;
 }
 
-static VALUE bitmapIsDisposed(VALUE self)
+static VALUE bitmap_is_disposed(VALUE self)
 {
-  Bitmap *b = getPrivateData<Bitmap>(self);
-  if (!b) return Qtrue;
-  return b->isDisposed() ? Qtrue : Qfalse;
+  return rb_iv_get(self, "disposed");
 }
 
 static VALUE bitmapWidth(VALUE self)
@@ -133,6 +139,14 @@ static VALUE bitmapRect(VALUE self)
   GUARD_EXC( rect = b->rect(); );
   Rect *r = new Rect(rect);
   return wrapObject(r, RectType);
+}
+
+Rect* bitmap_c_rect(VALUE self)
+{
+  Bitmap *b = getPrivateData<Bitmap>(self);
+  Rect *r;
+  GUARD_EXC( r = new Rect(b->rect()); );
+  return r;
 }
 
 RB_METHOD(bitmapBlt)
@@ -168,22 +182,25 @@ RB_METHOD(bitmapStretchBlt)
   return self;
 }
 
-static VALUE bitmapFillRect(int argc, VALUE* argv, VALUE self)
+static VALUE bitmap_fill_rect(int argc, VALUE* argv, VALUE self)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
-  VALUE colorObj;
+  VALUE rbcolor;
   Color *color;
   if (argc == 2) {
-    VALUE rectObj;
     Rect *rect;
-    rb_get_args(argc, argv, "oo", &rectObj, &colorObj RB_ARG_END);
-    rect = getPrivateDataCheck<Rect>(rectObj, RectType);
-    color = getPrivateDataCheck<Color>(colorObj, ColorType);
+    rbcolor = argv[1];
+    VALUE rbrect = argv[0];
+    if (rbrect == hc_sym("rect"))
+      rect = bitmap_c_rect(self);
+    else
+      rect = getPrivateDataCheck<Rect>(rbrect, RectType);
+    color = getPrivateDataCheck<Color>(rbcolor, ColorType);
     GUARD_EXC( b->fillRect(rect->toIntRect(), color->norm); );
   } else {
     int x, y, width, height;
-    rb_get_args(argc, argv, "iiiio", &x, &y, &width, &height, &colorObj RB_ARG_END);
-    color = getPrivateDataCheck<Color>(colorObj, ColorType);
+    rb_get_args(argc, argv, "iiiio", &x, &y, &width, &height, &rbcolor RB_ARG_END);
+    color = getPrivateDataCheck<Color>(rbcolor, ColorType);
     GUARD_EXC( b->fillRect(x, y, width, height, color->norm); );
   }
   return self;
@@ -253,32 +270,32 @@ static VALUE bitmap_invert(VALUE self)
   return self;
 }
 
-RB_METHOD(bitmapDrawText)
+static VALUE bitmap_draw_text(int argc, VALUE* argv, VALUE self)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
-  const char *str;
   int align = Bitmap::Left;
+  int s_pos = argc < 4 ? 1 : 4;
+  VALUE rbstr = argv[s_pos];
+  rb_check_type(rbstr, T_STRING);
+  const char *str = RSTRING_PTR(rbstr);
   if (argc == 2 || argc == 3) {
-    VALUE rectObj;
     Rect *rect;
-    if (shState->rgssVersion >= 2) {
-      VALUE strObj;
-      rb_get_args(argc, argv, "oo|i", &rectObj, &strObj, &align RB_ARG_END);
-      str = objAsStringPtr(strObj);
-    } else {
-      rb_get_args(argc, argv, "oz|i", &rectObj, &str, &align RB_ARG_END);
-    }
-    rect = getPrivateDataCheck<Rect>(rectObj, RectType);
+    VALUE rbrect = argv[0];
+    if (rbrect == hc_sym("rect"))
+      rect = bitmap_c_rect(self);
+    else
+      rect = getPrivateDataCheck<Rect>(rbrect, RectType);
+    if (argc == 3)
+      align = RB_FIX2INT(argv[2]);
     GUARD_EXC( b->drawText(rect->toIntRect(), str, align); );
   } else {
     int x, y, width, height;
-    if (shState->rgssVersion >= 2) {
-      VALUE strObj;
-      rb_get_args(argc, argv, "iiiio|i", &x, &y, &width, &height, &strObj, &align RB_ARG_END);
-      str = objAsStringPtr(strObj);
-    } else {
-      rb_get_args(argc, argv, "iiiiz|i", &x, &y, &width, &height, &str, &align RB_ARG_END);
-    }
+    x = RB_FIX2INT(argv[0]);
+    y = RB_FIX2INT(argv[1]);
+    width = RB_FIX2INT(argv[2]);
+    height = RB_FIX2INT(argv[3]);
+    if (argc == 6)
+      align = RB_FIX2INT(argv[5]);
     GUARD_EXC( b->drawText(x, y, width, height, str, align); );
   }
   return self;
@@ -458,14 +475,16 @@ static VALUE bitmap_write(int argc, VALUE* argv, VALUE self)
   Bitmap *b = getPrivateData<Bitmap>(self);
   if (!b || argc == 0)
     return Qfalse;
+  rb_check_type(argv[0], T_STRING);
   const char *ext;
-  const char *str = objAsStringPtr(argv[0]);
+  const char *str = RSTRING_PTR(argv[0]);
   if (argc == 1) {
     VALUE settings = rb_define_module("Setup");
     VALUE fmt = rb_iv_get(settings, "@shot_format");
-    ext = objAsStringPtr(fmt);
+    ext = RSTRING_PTR(fmt);
   } else if (argc == 2) {
-    ext = objAsStringPtr(argv[1]);
+    rb_check_type(argv[1], T_STRING);
+    ext = RSTRING_PTR(argv[1]);
   }
   bool result = false;
   try {
@@ -482,7 +501,7 @@ void bitmapBindingInit()
 {
   VALUE klass = rb_define_class("Bitmap", rb_cObject);
   rb_define_alloc_func(klass, classAllocate<&BitmapType>);
-  rb_define_method(klass, "disposed?", RMF(bitmapIsDisposed), 0);
+  rb_define_method(klass, "disposed?", RMF(bitmap_is_disposed), 0);
   rb_define_method(klass, "dispose", RMF(bitmapDispose), 0);
   if (rgssVer == 1)
     rb_define_alias(klass, "_HC_dispose_alias", "dispose");
@@ -493,7 +512,7 @@ void bitmapBindingInit()
   rb_define_method(klass, "rect", RMF(bitmapRect), 0);
   rb_define_method(klass, "blt", RMF(bitmapBlt), -1);
   rb_define_method(klass, "stretch_blt", RMF(bitmapStretchBlt), -1);
-  rb_define_method(klass, "fill_rect", RMF(bitmapFillRect), -1);
+  rb_define_method(klass, "fill_rect", RMF(bitmap_fill_rect), -1);
   rb_define_method(klass, "clear", RMF(bitmapClear), 0);
   rb_define_method(klass, "alpha_pixel?", RMF(bitmap_is_alpha_pixel), 2);
   rb_define_method(klass, "get_pixel", RMF(bitmapGetPixel), 2);
@@ -502,7 +521,7 @@ void bitmapBindingInit()
   rb_define_method(klass, "gray_out", RMF(bitmap_gray_out), 0),
   rb_define_method(klass, "turn_sepia", RMF(bitmap_turn_sepia), 0);
   rb_define_method(klass, "invert!", RMF(bitmap_invert), 0);
-  rb_define_method(klass, "draw_text", RMF(bitmapDrawText), -1);
+  rb_define_method(klass, "draw_text", RMF(bitmap_draw_text), -1);
   rb_define_method(klass, "text_size", RMF(bitmapTextSize), -1);
   rb_define_method(klass, "text_width", RMF(bitmapTextWidth), -1);
   rb_define_method(klass, "text_height", RMF(bitmapTextHeight), -1);

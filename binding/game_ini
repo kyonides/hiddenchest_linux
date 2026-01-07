@@ -810,13 +810,11 @@ begin
   Game.window_show_borders = true
   puts "Resize the game window"
   Graphics.resize(Game::WIDTH, Game::HEIGHT)
+  Graphics.wait(4)
+  Graphics.transition(1)
+  Graphics.freeze
   Game.icon = Game::ICON
   Game.title = Game::TITLE
-  if System.windows?
-    Graphics.wait(4)
-    Graphics.transition(1)
-    Graphics.freeze
-  end
   Graphics.show_window
 rescue => e
   puts e.full_message

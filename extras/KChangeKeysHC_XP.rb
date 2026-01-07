@@ -2,7 +2,7 @@
 #   Scripter : Kyonides
 #   2026-01-05
 
-# This scripts depends on HiddenChest version 1.2.04 or higher.
+# This scripts depends on HiddenChest version 1.2.05 or higher.
 
 # * Script Call * #
 # $scene = KChangeKeys::Scene.new
@@ -19,24 +19,7 @@ module KChangeKeys
 
 class Scene
   def main
-    Font.default_outline = true
-    @stage = :main
-    @index = 0
-    @gamepad = Input.gamepad
-    @bindings = Input.bindings
-    @list = @bindings.list
-    @target_names = []
-    @bind_names = []
-    @binds = []
-    @key_names = []
-    @changes = []
-    @list.each do |bg|
-      bind = bg[0]
-      @binds << bind
-      @key_names << bind.name
-    end
-    @init_names = @key_names.dup
-    @target_color = Color.new(255, 200, 80)
+    setup
     create_sprites
     Graphics.transition
     while @stage
@@ -45,16 +28,32 @@ class Scene
       update
     end
     Graphics.freeze
-    @bind_names << @heading << @help << @cursor
-    @bind_names << @help_backdrop << @backdrop
-    list = @target_names + @bind_names
-    list.each do |s|
-      s.bitmap.dispose
-      s.dispose
+    terminate
+  end
+
+  def setup
+    Font.default_outline = true
+    @stage = :main
+    @index = 0
+    @col_index = 0
+    @gamepad = Input.gamepad
+    @bindings = Input.bindings
+    @list = @bindings.list
+    @target_names = []
+    @bind_names = []
+    @binds = []
+    @key_names = []
+    @changes = []
+    @sprites = []
+    @list.each_with_index do |bg, n|
+      bind1, bind2 = bg[0..1]
+      @binds << bind1 << bind2
+      @key_names << bind1.name << bind2.name
     end
-    @changes.compact!
-    return if @changes.empty?
-    Input.save_key_bindings
+    @init_names = @key_names.dup
+    @temp_names = @key_names.dup
+    @back_color = Color.new(0, 0, 0, 120)
+    @target_color = Color.new(255, 200, 80)
   end
 
   def create_sprites
@@ -62,7 +61,7 @@ class Scene
     @backdrop.bitmap = RPG::Cache.title(BACKDROP).dup
     b = Bitmap.new(Graphics.width, 48)
     b.font.size = 32
-    b.draw_text(b.rect, HEADING, 1)
+    b.draw_text(:rect, HEADING, 1)
     @heading = Sprite.new
     @heading.y = 4
     @heading.bitmap = b
@@ -73,7 +72,7 @@ class Scene
     @help_backdrop.bitmap = b
     @help_bit = Bitmap.new(Graphics.width, 32)
     @help_bit.font.size = 24
-    @help_bit.draw_text(@help_bit.rect, CHOOSE_KEY, 1)
+    @help_bit.draw_text(:rect, CHOOSE_KEY, 1)
     @help = Sprite.new
     @help.y = 60
     @help.z = 20
@@ -84,24 +83,44 @@ class Scene
     b = RPG::Cache.picture(TARGET_BOX)
     @key_max = TARGETS.size
     @key_max.times do |n|
-      sx = 6 + n % 3 * 206
-      sy = 108 + n / 3 * 44
+      sx = 12 + n % 3 * 206
+      sy = 108 + n / 3 * 64
       @backdrop.bitmap.blt(sx + 2, sy - 2, b, b.rect)
       s = Sprite.new
       s.set_xyz(sx, sy, 20)
       s.bitmap = Bitmap.new(80, 28)
       s.bitmap.font.color = @target_color
-      s.bitmap.draw_text(s.bitmap.rect, TARGETS[n], 1)
+      s.bitmap.draw_text(:rect, TARGETS[n], 1)
       @target_names << s
-      s = Sprite.new
-      s.set_xyz(sx + 84, sy, 20)
-      s.bitmap = Bitmap.new(104, 28)
-      s.bitmap.draw_text(s.bitmap.rect, @key_names[n], 1)
-      @bind_names << s
+      create_button_box(sx + 84, sy)
+      create_button_box(sx + 84, sy + 32)
     end
     s = @bind_names[0]
     @cursor.set_xy(s.x - 4, s.y - 2)
     b.dispose
+    @sprites += @target_names + @bind_names
+    @sprites += [@heading, @help, @cursor, @help_backdrop, @backdrop]
+    Graphics.screenshot
+  end
+
+  def create_button_box(sx, sy)
+    name = @temp_names.shift
+    s = Sprite.new
+    s.set_xyz(sx, sy, 20)
+    s.bitmap = Bitmap.new(112, 28)
+    s.bitmap.fill_rect(:rect, @back_color)
+    s.bitmap.draw_text(:rect, name, 1)
+    @bind_names << s
+  end
+
+  def terminate
+    @sprites.each do |s|
+      s.bitmap.dispose
+      s.dispose
+    end
+    @changes = @changes.flatten.compact
+    return if @changes.empty?
+    Input.save_key_bindings
   end
 
   def update
@@ -113,61 +132,76 @@ class Scene
     end
   end
 
+  def box_index
+    @index * 2 + @col_index
+  end
+
   def update_main
     if Input.trigger?(:B)
       $game_system.se_play($data_system.cancel_se)
       $scene = Scene_Map.new
       return @stage = nil
+    elsif Input.trigger?(:Up)
+      update_cursor(0, -1)
+      return
+    elsif Input.trigger?(:Down)
+      update_cursor(0, 1)
+      return
     elsif Input.trigger?(:Left)
-      update_cursor(-1)
+      update_cursor(-1, 0)
       return
     elsif Input.trigger?(:Right)
-      update_cursor(1)
+      update_cursor(1, 0)
       return
     elsif Input.trigger?(:Delete)
       $game_system.se_play($data_system.buzzer_se)
-      bind = @binds[@index]
+      n = box_index
+      bind = @binds[n]
       bind.value = 0
-      @key_names[@index] = ""
-      b = @bind_names[@index].bitmap
+      @key_names[n] = ""
+      b = @bind_names[n].bitmap
       b.clear
-      b.draw_text(b.rect, "", 1)
-      @changes[@index] = true
+      b.fill_rect(:rect, @back_color)
+      b.draw_text(:rect, "", 1)
+      @changes[n] = true
       return
     elsif Input.trigger?(:C)
       $game_system.se_play($data_system.decision_se)
       Input.text_input = 2
       Input.update
-      @bind = @binds[@index]
+      n = box_index
+      @bind = @binds[n]
       @help_bit.clear
-      @help_bit.draw_text(@help_bit.rect, ENTER_KEY, 1)
-      @bind_bit = @bind_names[@index].bitmap
+      @help_bit.draw_text(:rect, ENTER_KEY, 1)
+      @bind_bit = @bind_names[n].bitmap
       @bind_bit.clear
       @stage = :key
+      Graphics.screenshot
     end
   end
 
-  def update_cursor(n)
+  def update_cursor(m, n)
     $game_system.se_play($data_system.cursor_se)
-    @index = (@index + n) % @key_max
-    s = @bind_names[@index]
+    @index = (@index + m) % @key_max
+    @col_index = (@col_index + n) % 2
+    s = @bind_names[box_index]
     @cursor.set_xy(s.x - 4, s.y - 2)
   end
 
   def reset_help
     Input.text_input = 0
     Input.update
-    @bind_bit = nil
+    @bind_bit = @bind = nil
     @help_bit.clear
-    @help_bit.draw_text(@help_bit.rect, CHOOSE_KEY, 1)
+    @help_bit.draw_text(:rect, CHOOSE_KEY, 1)
     @stage = :main
   end
 
   def update_key
     if Input.trigger?(:MouseRight)
       $game_system.se_play($data_system.cancel_se)
-      name = @key_names[@index]
-      @bind_bit.draw_text(@bind_bit.rect, name, 1)
+      name = @key_names[box_index]
+      @bind_bit.draw_text(:rect, name, 1)
       reset_help
       return
     elsif Input.trigger_any?
@@ -180,11 +214,12 @@ class Scene
       else
         @bind.value = Input.trigger_gp_value
       end
+      n = box_index
       name = @bind.name
-      @key_names[@index] = name
-      @bind_bit.draw_text(@bind_bit.rect, name, 1)
+      @key_names[n] = name
+      @bind_bit.draw_text(:rect, name, 1)
       reset_help
-      @changes[@index] = true
+      @changes[n] = true
     end
   rescue => e
     puts e.full_message
