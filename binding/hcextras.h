@@ -31,6 +31,9 @@
 
 #define module_func(mod, name, func, args) \
   rb_define_module_function(mod, name, RMF(func), args)
+  
+#define module_pfunc(mod_meta, name, func, args) \
+  rb_define_private_method(mod_meta, name, RMF(func), args)
 
 #define ARRAY_TYPE_P(obj) (!RB_SPECIAL_CONST_P(obj) && \
   RB_BUILTIN_TYPE(obj) == RUBY_T_ARRAY)

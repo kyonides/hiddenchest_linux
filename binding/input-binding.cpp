@@ -563,17 +563,14 @@ static VALUE input_capslock_state(VALUE self)
 
 static VALUE input_text_input(VALUE self)
 {
-  return rb_iv_get(self, "text_input");
+  return rb_iv_get(self, "@text_input");
 }
 
 static VALUE input_text_input_set(VALUE self, VALUE number)
 {
-  if (!FIXNUM_P(number))
-    return rb_iv_get(self, "text_input");
   int n = RB_FIX2INT(number);
-  Debug() << "Text Input Mode:" << n;
   shState->input().set_text_input(n);
-  return rb_iv_set(self, "text_input", number);
+  return rb_iv_set(self, "@text_input", number);
 }
 
 static VALUE input_text_input_clear(VALUE self)
@@ -715,8 +712,9 @@ void input_create_gamepad_types(VALUE pad)
 
 void inputBindingInit()
 {
-  VALUE input;
+  VALUE input, input_meta;
   input = rb_define_module("Input");
+  input_meta = rb_singleton_class(input);
   gamepad = rb_define_class_under(input, "Gamepad", rb_cObject);
   rb_const_set(gamepad, rb_intern("DEFAULT_NAME"), rstr("None"));
   rb_const_set(gamepad, rb_intern("DEFAULT_VENDOR"), rstr("None"));
@@ -798,6 +796,10 @@ void inputBindingInit()
   module_func(input, "dir8", inputDir8, 0);
   module_func(input, "dir4?", input_is_dir4, 0);
   module_func(input, "dir8?", input_is_dir8, 0);
+  module_pfunc(input_meta, "text_input=", input_text_input_set, 1);
+  module_pfunc(input_meta, "gamepad_basic_values", input_gamepad_basic_values, 0);
+  module_pfunc(input_meta, "reset_sdl_bindings", input_reset_sdl_bindings, 0);
+  module_pfunc(input_meta, "reset_ruby_bindings", input_reset_rb_bindings, 0);
   VALUE key, val, hash = rb_hash_new();
   const char *tmp;
   for (size_t i = 0; i < button_scancodesN; ++i) {

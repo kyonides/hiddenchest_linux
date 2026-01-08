@@ -64,6 +64,10 @@ public:
     Web = 124, Mail = 125, Calculator = 126, Computer = 127,
     APP1 = 128, APP2 = 129,
     MouseLeft = 130, MouseMiddle = 131, MouseRight = 132,
+    JS0 = 133, JS1 = 134, JS2 = 135, JS3 = 136, JS4 = 137, JS5 = 138,
+    JS6 = 139, JS7 = 140, JS8 = 141, JS9 = 142, JS10 = 143, JS11 = 144,
+    JS12 = 145, JS13 = 146, JS14 = 147, JS15 = 148, JS16 = 149, JS17 = 150,
+    JS18 = 151, JS19 = 152, JS20 = 153,
   };
   void update();
   int timer() const;

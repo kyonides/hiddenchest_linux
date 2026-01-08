@@ -1,8 +1,12 @@
 # * KChangeKeys HC for XP * #
 #   Scripter : Kyonides
-#   2026-01-05
+#   2026-01-08
 
-# This scripts depends on HiddenChest version 1.2.05 or higher.
+# * This scripts depends on HiddenChest v1.2.05 or higher. * #
+
+# With this scriptlet you are now able to change the keys that are normally
+# mapped to any of RMXP's default buttons like A, B, C, etc. without pressing
+# the F1 button!
 
 # * Script Call * #
 # $scene = KChangeKeys::Scene.new
@@ -100,7 +104,6 @@ class Scene
     b.dispose
     @sprites += @target_names + @bind_names
     @sprites += [@heading, @help, @cursor, @help_backdrop, @backdrop]
-    Graphics.screenshot
   end
 
   def create_button_box(sx, sy)
@@ -167,7 +170,7 @@ class Scene
       return
     elsif Input.trigger?(:C)
       $game_system.se_play($data_system.decision_se)
-      Input.text_input = 2
+      Input.keymap_mode!
       Input.update
       n = box_index
       @bind = @binds[n]
@@ -176,7 +179,6 @@ class Scene
       @bind_bit = @bind_names[n].bitmap
       @bind_bit.clear
       @stage = :key
-      Graphics.screenshot
     end
   end
 
@@ -189,7 +191,7 @@ class Scene
   end
 
   def reset_help
-    Input.text_input = 0
+    Input.play_mode!
     Input.update
     @bind_bit = @bind = nil
     @help_bit.clear
@@ -221,8 +223,6 @@ class Scene
       reset_help
       @changes[n] = true
     end
-  rescue => e
-    puts e.full_message
   end
 end
 

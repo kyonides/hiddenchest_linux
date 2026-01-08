@@ -172,7 +172,6 @@ module Input
         get_value_by_name
         return
       elsif @name[/\w+/i]
-        @name = "LeftShift" if @name[/\Ashift/i]
         self.type = 1
         s = @name.dup
         if s.size == 1 and s[/[a-z]/i]
@@ -211,33 +210,26 @@ module Input
     end
 
     def value=(n)
-      if n == 0
-        Input.trigger_gp_clear
-        clear_invalid
-        return
-      end
       @value = n
       self.type = Input.trigger_type
       case @type
+      when 0
+        clear_invalid
       when 1
         @name = KEY2NAME[@value]
         @symbol = BUTTON_CODES.key(@value)
         @scancode = BUTTON_SCANCODES[@value]
         @dir = 0
-        return
       when 2
         @name = "JS #{@value}"
         @symbol = nil
-        @scancode = 0
-        @dir = 0
-        return
+        @scancode = @dir = 0
       when 3
         @symbol = nil
         @scancode = 0
         @dir = Input.trigger_gp_dir
         sym = @dir == 0 ? "-" : "+"
         @name = @type_name + " #{@value}" + sym
-        return
       when 4
         @symbol = nil
         @scancode = 0
@@ -293,136 +285,34 @@ module Input
     attr_writer :list
   end
 
-  def self.process_target_button(line)
-    line.sub!(/(\w+)\s?=\s?/i, "")
-    $1
-  end
-
   extend self
   attr_reader :default_bindings, :custom_bindings, :bindings
-  def self.create_basic_binding(bname, bsymbol)
-    names = %w{Up Down L L2 Left Right R R2 A B C X Y Z}
-    target1 = %w{Up Down Q R Left Right W T Shift Escape Space B S D}
-    target2 = Array.new(14) { "" }
-    target2[8, 3] = %w{Z X Return}
-    binds = KeyBindings.new
-    binds.name = bname
-    list = binds.list
-    14.times do |n|
-      group = list[n]
-      group.target = n
-      group.name = names[n]
-      4.times do |m|
-        b = group[m]
-        b.index = m
-        b.name = m == 0 ? target1[n] : m == 1 ? target2[n] : ""
-      end
-    end
-    sym = bsymbol
-    @bindings = binds
-    @default_bindings[sym] = binds
-    @custom_bindings[sym] = binds
-    code = sym.to_s
-    save_default_bindings(code)
-    save_custom_bindings(code)
-  end
-
-  def self.create_default_bindings(code)
-    fn = "Input/" + code + ".ini"
-    lines = File.readlines(fn)
-    heading = lines.shift
-    return unless heading[/header/i]
-    name = lines.shift.chomp
-    bind = KeyBindings.new
-    bind.name = name.sub(/name\s?=\s?/i, "")
-    bind.version = Game::RGSS_VERSION
-    heading = lines.shift
-    return unless heading[/bindings/i]
-    puts "Processing #{code} Bindings..."
-    slot_max = 4
-    14.times do |n|
-      line = lines.shift
-      group = bind.list[n]
-      group.target = n
-      group.name = process_target_button(line)
-      line.sub!(/(\s?=\s?)/i, "")
-      names = line.split(",")
-      names = names.take(slot_max)
-      while names.size < slot_max
-        names << ""
-      end
-      slot_max.times do |m|
-        b = group[m]
-        b.index = m
-        b.name = names[m]
-      end
-    end
-    @default_bindings[code.to_sym] = bind
-    @success = true
-  end
-
-  def self.load_init_default_bindings(files)
-    files.each do |fn|
-      code = File.basename(fn, "." + Game.data_ext)
-      load_default_bindings(code)
-    end
-  end
-
-  def self.load_init_custom_bindings(files)
-    files.each do |fn|
-      code = File.basename(fn, "." + Game.data_ext)
-      load_custom_bindings(code)
-    end
-  end
-
-  def self.save_default_bindings(code)
-    file = Game.default_bindings_path(code)
-    save_data(file, @default_bindings[code.to_sym])
-  end
-
-  def self.load_default_bindings(code)
-    file = Game.default_bindings_path(code)
-    @default_bindings[code.to_sym] = load_data(file)
-  end
-
-  def self.save_custom_bindings(code)
-    file = Game.bindings_path(code)
-    save_data(file, @custom_bindings[code.to_sym])
-  end
-
-  def self.load_custom_bindings(code)
-    file = Game.bindings_path(code)
-    @custom_bindings[code.to_sym] = load_data(file)
-  end
-
-  def self.parse_default_binding(rgx)
-    fname[rgx]
-    code = $1
-    @success = false
-    create_default_bindings(code)
-    return unless @success
-    puts "Saving Basic #{code} Binding..."
-    save_default_bindings(code)
-    sym = code.to_sym
-    return if @custom_bindings.has_key?(sym)
-    @custom_bindings[sym] = @default_bindings[sym].dup
-    save_custom_bindings(code)
-  end
-
   def self.load_init_bindings
     @default_bindings = {}
     @custom_bindings = {}
     files = Dir[Game.glob_default_kb].sort
-    inis = Dir["Input/*.ini"].sort
-    if files.empty?
-      create_basic_binding(KEYBOARD_GENERIC, :kb_generic)
-    elsif files.size == inis.size
+    if files.any?
       puts "Loading Default Bindings..."
       load_init_default_bindings(files)
-    else
+    end
+    inis = Dir["Input/*.ini"].sort
+    if inis.any?
       puts "Creating Default Bindings..."
       rgx = /\w+\/(.+)\.ini/i
-      inis.each {|fname| parse_default_binding(rgx) }
+      inis.each_with_index do |fname, n|
+        fname[/\w+\/(.+)\.ini/i]
+        code = $1
+        @success = false
+        create_default_bindings(code)
+        next unless @success
+        puts "Saving Basic #{code} Binding..."
+        save_default_bindings(code)
+        sym = code.to_sym
+        unless @custom_bindings.has_key?(sym)
+          @custom_bindings[sym] = @default_bindings[sym].dup
+          save_custom_bindings(code)
+        end
+      end
     end
     files = Dir[Game.glob_custom_kb].sort
     if files.any?
@@ -435,6 +325,29 @@ module Input
     else
       @gamepad_updates << :remove
       reset_gamepad
+    end
+  end
+
+  def self.play_mode!
+    self.text_input = 0
+  end
+
+  def self.text_mode!
+    self.text_input = 1
+  end
+
+  def self.keymap_mode!
+    self.text_input = 2
+  end
+
+  def self.mode
+    case @text_input
+    when 0
+      "Play Mode"
+    when 1
+      "Text Input Mode"
+    else
+      "Key Mapping Mode"
     end
   end
 
@@ -498,14 +411,7 @@ module Input
       save_custom_bindings(code.to_s)
     end
     @bindings = @custom_bindings[code]
-    unless @bindings
-      name = @gamepad.name
-      vendor = @gamepad.vendor
-      unless name[/#{vendor}/i]
-        name = vendor + " " + name
-      end
-      create_basic_binding(name, code)
-    end
+    @bindings ||= KeyBindings.new
     gamepad_clear_change
     reset_sdl_bindings
   end
@@ -521,6 +427,81 @@ module Input
     name = Gamepad::DEFAULT_NAME
     @gamepad = Gamepad.new(name, 0, 0, -1, false, false)
     reset_bindings
+  end
+
+  def self.process_target_button(line)
+    line.sub!(/(\w+)\s?=\s?/i, "")
+    $1
+  end
+
+  def self.create_default_bindings(code)
+    sym = code.to_sym
+    return if @default_bindings.key?(sym)
+    fn = "Input/" + code + ".ini"
+    lines = File.readlines(fn)
+    heading = lines.shift
+    return unless heading[/header/i]
+    name = lines.shift.chomp
+    bind = KeyBindings.new
+    bind.name = name.sub(/name\s?=\s?/i, "")
+    bind.version = Game::RGSS_VERSION
+    heading = lines.shift
+    return unless heading[/bindings/i]
+    puts "Processing #{code} Bindings..."
+    slot_max = 4
+    14.times do |n|
+      line = lines.shift
+      group = bind.list[n]
+      group.target = n
+      group.name = process_target_button(line)
+      line.sub!(/(\s?=\s?)/i, "")
+      names = line.split(",")
+      names = names.take(slot_max)
+      while names.size < slot_max
+        names << ""
+      end
+      slot_max.times do |n|
+        b = group[n]
+        b.index = n
+        b.name = names[n]
+      end
+    end
+    @default_bindings[sym] = bind
+    @success = true
+  end
+
+  def self.load_init_default_bindings(files)
+    files.each do |fn|
+      code = File.basename(fn, "." + Game.data_ext)
+      load_default_bindings(code)
+    end
+  end
+
+  def self.load_init_custom_bindings(files)
+    files.each do |fn|
+      code = File.basename(fn, "." + Game.data_ext)
+      load_custom_bindings(code)
+    end
+  end
+
+  def self.save_default_bindings(code)
+    file = Game.default_bindings_path(code)
+    save_data(file, @default_bindings[code.to_sym])
+  end
+
+  def self.load_default_bindings(code)
+    file = Game.default_bindings_path(code)
+    @default_bindings[code.to_sym] = load_data(file)
+  end
+
+  def self.save_custom_bindings(code)
+    file = Game.bindings_path(code)
+    save_data(file, @custom_bindings[code.to_sym])
+  end
+
+  def self.load_custom_bindings(code)
+    file = Game.bindings_path(code)
+    @custom_bindings[code.to_sym] = load_data(file)
   end
 
   def self.save_data(fn, obj)
@@ -858,5 +839,10 @@ rescue => e
   puts e.full_message
   Game.setup
   Input.load_init_bindings
+  Game.icon = Game::ICON || ""
+  Game.title = Game::TITLE || ""
+  Graphics.wait(4)
+  Graphics.transition(1)
+  Graphics.freeze
   Graphics.show_window
 end

@@ -141,7 +141,9 @@ static VALUE ary_to_rect(VALUE self)
 
 static VALUE rect_equal(VALUE self, VALUE obj)
 {
-  return (rb_equal(self, obj) == Qtrue);
+  if (!rb_typeddata_is_kind_of(obj, &RectType))
+    return Qfalse;
+  return rb_equal(self, obj);
 }
 
 #define SET_FUN(Klass, param_type, param_t_s, last_param_def) \
