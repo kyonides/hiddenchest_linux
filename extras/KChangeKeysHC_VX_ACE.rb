@@ -222,6 +222,9 @@ class Scene
       n = box_index
       name = @bind.name
       @key_names[n] = name
+      @bind_bit.clear
+      @bind_bit.fill_rect(:rect, @back_color)
+      @bind_bit.draw_text(:rect, "", 1)
       @bind_bit.draw_text(:rect, name, 1)
       reset_help
       @changes[n] = true
