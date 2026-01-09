@@ -275,8 +275,7 @@ static VALUE bitmap_draw_text(int argc, VALUE* argv, VALUE self)
   Bitmap *b = getPrivateData<Bitmap>(self);
   int align = Bitmap::Left;
   int s_pos = argc < 4 ? 1 : 4;
-  VALUE rbstr = argv[s_pos];
-  rb_check_type(rbstr, T_STRING);
+  VALUE rbstr = rb_funcall(argv[s_pos], rb_intern("to_s"), 0);
   const char *str = RSTRING_PTR(rbstr);
   if (argc == 2 || argc == 3) {
     Rect *rect;
@@ -301,50 +300,32 @@ static VALUE bitmap_draw_text(int argc, VALUE* argv, VALUE self)
   return self;
 }
 
-RB_METHOD(bitmapTextSize)
+static VALUE bitmap_text_size(VALUE self, VALUE rbstr)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
-  const char *str;
-  if (shState->rgssVersion >= 2) {
-    VALUE strObj;
-    rb_get_args(argc, argv, "o", &strObj RB_ARG_END);
-    str = objAsStringPtr(strObj);
-  } else {
-    rb_get_args(argc, argv, "z", &str RB_ARG_END);
-  }
+  rbstr = rb_funcall(rbstr, rb_intern("to_s"), 0);
+  const char *str = RSTRING_PTR(rbstr);
   IntRect value;
   GUARD_EXC( value = b->textSize(str); );
   Rect *rect = new Rect(value);
   return wrapObject(rect, RectType);
 }
 
-RB_METHOD(bitmapTextWidth)
+static VALUE bitmap_text_width(VALUE self, VALUE rbstr)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
-  const char *str;
-  if (shState->rgssVersion >= 2) {
-    VALUE strObj;
-    rb_get_args(argc, argv, "o", &strObj RB_ARG_END);
-    str = objAsStringPtr(strObj);
-  } else {
-    rb_get_args(argc, argv, "z", &str RB_ARG_END);
-  }
+  rbstr = rb_funcall(rbstr, rb_intern("to_s"), 0);
+  const char *str = RSTRING_PTR(rbstr);
   int value;
   GUARD_EXC( value = b->textWidth(str); );
   return RB_INT2FIX(value);
 }
 
-RB_METHOD(bitmapTextHeight)
+static VALUE bitmap_text_height(VALUE self, VALUE rbstr)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
-  const char *str;
-  if (shState->rgssVersion >= 2) {
-    VALUE strObj;
-    rb_get_args(argc, argv, "o", &strObj RB_ARG_END);
-    str = objAsStringPtr(strObj);
-  } else {
-    rb_get_args(argc, argv, "z", &str RB_ARG_END);
-  }
+  rbstr = rb_funcall(rbstr, rb_intern("to_s"), 0);
+  const char *str = RSTRING_PTR(rbstr);
   int value;
   GUARD_EXC( value = b->textHeight(str); );
   return RB_INT2FIX(value);
@@ -522,9 +503,9 @@ void bitmapBindingInit()
   rb_define_method(klass, "turn_sepia", RMF(bitmap_turn_sepia), 0);
   rb_define_method(klass, "invert!", RMF(bitmap_invert), 0);
   rb_define_method(klass, "draw_text", RMF(bitmap_draw_text), -1);
-  rb_define_method(klass, "text_size", RMF(bitmapTextSize), -1);
-  rb_define_method(klass, "text_width", RMF(bitmapTextWidth), -1);
-  rb_define_method(klass, "text_height", RMF(bitmapTextHeight), -1);
+  rb_define_method(klass, "text_size", RMF(bitmap_text_size), 1);
+  rb_define_method(klass, "text_width", RMF(bitmap_text_width), 1);
+  rb_define_method(klass, "text_height", RMF(bitmap_text_height), 1);
   rb_define_method(klass, "gradient_fill_rect", RMF(bitmapGradientFillRect), -1);
   rb_define_method(klass, "storm_fill_rect", RMF(bitmapStormFillRect), 1);
   rb_define_method(klass, "snow_fill_rect", RMF(bitmapSnowFillRect), 0);

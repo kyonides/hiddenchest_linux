@@ -82,9 +82,9 @@ struct KbBinding : public Binding
 
   bool sourceActive() const
   { // Special case aliases
-    /*if (source == SDL_SCANCODE_LSHIFT)
+    if (source == SDL_SCANCODE_LSHIFT)
       return EventThread::keyStates[source]
-             || EventThread::keyStates[SDL_SCANCODE_RSHIFT];*/
+             || EventThread::keyStates[SDL_SCANCODE_RSHIFT];
     if (source == SDL_SCANCODE_RETURN)
       return EventThread::keyStates[source] ||
              EventThread::keyStates[SDL_SCANCODE_KP_ENTER];
@@ -1350,6 +1350,15 @@ bool Input::isTriggered(int button)
 
 bool Input::isRepeated(int button)
 {
+  if (button == Ctrl)
+    return p->get_this_state_check(LeftCtrl).repeated ||
+           p->get_this_state_check(RightCtrl).repeated;
+  else if (button == Shift)
+    return p->get_this_state_check(LeftShift).repeated ||
+           p->get_this_state_check(RightShift).repeated;
+  else if (button == Alt)
+    return p->get_this_state_check(LeftAlt).repeated ||
+           p->get_this_state_check(RightAlt).repeated;
   return p->get_this_state_check(button).repeated;
 }
 

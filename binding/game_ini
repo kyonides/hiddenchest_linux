@@ -20,7 +20,6 @@ end
 
 module Input
   KEYBOARD_GENERIC = "kb_generic"
-  KEYBOARD_GENERIC_INI = "Input/#{KEYBOARD_GENERIC}.ini"
   class Gamepad
     attr_reader :vendor_fn, :int_name
     def initialize(name, vendor_id, kind, level, state1, state2)
@@ -197,7 +196,7 @@ module Input
 
     def get_value_by_name
       self.type = 1
-      @name = @name.sub(/key/i, "Num")
+      @name = @name.sub(/(?:key|num)p/i, "NumP")
       s = @name.sub(/ /, "")
       @symbol = s.to_sym
       @value = BUTTON_CODES[@symbol]
@@ -243,6 +242,10 @@ module Input
     def get_hat_dir(s)
       s == 1 ? "U" : s == 2 ? "R" : s == 4 ? "D" : s == 8 ? "L" : ""
     end
+
+    def state
+      @type > 0 ? 1 : 0
+    end
     attr_reader :name, :type, :type_name, :symbol, :value, :scancode, :dir
     attr_accessor :index
     private :refresh_type
@@ -267,57 +270,65 @@ module Input
       return if n > 3
       @data[n] = bind
     end
+
+    def active_bindings
+      @data.inject(0) {|t, b| t + b.state }
+    end
     attr_accessor :name, :target
   end
 
   class KeyBindings
+    DEFAULT = %w{Up Down Q R Left Right W T Shift Escape Return F G H}
     def initialize
       @name = ""
+      @code = ""
       @version = 0
-      @size = 0
-      @list = Array.new(14) { KeyBindingGroup.new }
+      @size = 14
+      @list = Array.new(@size) { KeyBindingGroup.new }
+      @size.times {|n| @list[n].data[0].name = DEFAULT[n] }
     end
 
     def list
       @list[0..14]
     end
-    attr_accessor :name, :version, :size
-    attr_writer :list
+
+    def update_active
+      @size = @list.inject(0) {|t, g| t + g.active_bindings }
+    end
+    attr_accessor :name, :version, :code
+    attr_reader :size
   end
 
   extend self
-  attr_reader :default_bindings, :custom_bindings, :bindings
+  attr_reader :bindings, :all_bindings
   def self.load_init_bindings
-    @default_bindings = {}
-    @custom_bindings = {}
-    files = Dir[Game.glob_default_kb].sort
+    @all_bindings = {}
+    ext = Game.data_ext
+    files = Dir[Game.glob_kb].sort
     if files.any?
-      puts "Loading Default Bindings..."
-      load_init_default_bindings(files)
+      puts "Loading Bindings..."
+      load_all_bindings(files)
+    end
+    codes = @all_bindings.map {|k,v| v.code }
+    files = Dir[Game.glob_init_kb].sort
+    files.each do |file|
+      code = File.basename(file, "." + ext)
+      next if codes.include?(code)
+      fn = "#{code}.#{ext}"
+      puts "Moving #{fn} to User's Game Files Directory..."
+      FileUtils.mv(file, Game.bindings_path(code))
+      load_bindings(code)
+      codes << code
     end
     inis = Dir["Input/*.ini"].sort
     if inis.any?
-      puts "Creating Default Bindings..."
-      rgx = /\w+\/(.+)\.ini/i
-      inis.each_with_index do |fname, n|
-        fname[/\w+\/(.+)\.ini/i]
-        code = $1
-        @success = false
-        create_default_bindings(code)
-        next unless @success
-        puts "Saving Basic #{code} Binding..."
-        save_default_bindings(code)
-        sym = code.to_sym
-        unless @custom_bindings.has_key?(sym)
-          @custom_bindings[sym] = @default_bindings[sym].dup
-          save_custom_bindings(code)
-        end
+      inis.each_with_index do |fn, n|
+        code = File.basename(fn, ".ini")
+        next if codes.include?(code)
+        parse_bindings(fn, code)
+        puts "Saving New #{code} Binding..."
+        save_bindings(code)
       end
-    end
-    files = Dir[Game.glob_custom_kb].sort
-    if files.any?
-      puts "Loading Custom Bindings..."
-      load_init_custom_bindings(files)
     end
     if gamepad?
       @gamepad_updates << :add
@@ -391,29 +402,7 @@ module Input
   end
 
   def self.save_new_bindings
-    code = @gamepad.internal_name.to_sym
-    @custom_bindings[code] = @bindings.dup
-    save_custom_bindings(code.to_s)
-  end
-
-  def self.find_default_binding(code)
-    this_code = code.dup
-    unless @default_bindings.has_key?(this_code)
-      this_code = KEYBOARD_GENERIC.to_sym
-    end
-    @default_bindings[this_code].dup
-  end
-
-  def self.reset_bindings
-    code = @gamepad.internal_name.to_sym
-    unless @custom_bindings[code]
-      @custom_bindings[code] = find_default_binding(code)
-      save_custom_bindings(code.to_s)
-    end
-    @bindings = @custom_bindings[code]
-    @bindings ||= KeyBindings.new
-    gamepad_clear_change
-    reset_sdl_bindings
+    save_bindings(@gamepad.internal_name)
   end
 
   def self.setup_gamepad
@@ -429,32 +418,49 @@ module Input
     reset_bindings
   end
 
+  def self.reset_bindings
+    code = @gamepad.internal_name.to_sym
+    @bindings = @all_bindings[code] || KeyBindings.new
+    gamepad_clear_change
+    reset_sdl_bindings
+  end
+
   def self.process_target_button(line)
     line.sub!(/(\w+)\s?=\s?/i, "")
     $1
   end
 
-  def self.create_default_bindings(code)
-    sym = code.to_sym
-    return if @default_bindings.key?(sym)
-    fn = "Input/" + code + ".ini"
+  def self.parse_bindings(fn, code)
     lines = File.readlines(fn)
     heading = lines.shift
-    return unless heading[/header/i]
+    unless heading[/header/i]
+      parsing_kb_error(code, "missing [Header]")
+      return
+    end
     name = lines.shift.chomp
     bind = KeyBindings.new
-    bind.name = name.sub(/name\s?=\s?/i, "")
+    bind.name = name.sub(/name\s?(=)\s?/i, "")
+    bind.code = code
+    unless $1
+      parsing_kb_error(code, "missing = operator in line #{2}")
+      return
+    end
     bind.version = Game::RGSS_VERSION
     heading = lines.shift
-    return unless heading[/bindings/i]
-    puts "Processing #{code} Bindings..."
+    unless heading[/bindings/i]
+      parsing_kb_error(code, "missing [Bindings]")
+      return
+    end
     slot_max = 4
     14.times do |n|
       line = lines.shift
       group = bind.list[n]
       group.target = n
       group.name = process_target_button(line)
-      line.sub!(/(\s?=\s?)/i, "")
+      if group.name.empty?
+        parsing_kb_error(code, "missing target button name in line #{n + 3}")
+        return
+      end
       names = line.split(",")
       names = names.take(slot_max)
       while names.size < slot_max
@@ -466,42 +472,30 @@ module Input
         b.name = names[n]
       end
     end
-    @default_bindings[sym] = bind
-    @success = true
+    @all_bindings[code.to_sym] = bind
   end
 
-  def self.load_init_default_bindings(files)
+  def self.parsing_kb_error(code, reason)
+    puts "Failed to parse #{code}.ini, reason: #{reason}."
+  end
+
+  def self.load_all_bindings(files)
     files.each do |fn|
       code = File.basename(fn, "." + Game.data_ext)
-      load_default_bindings(code)
+      load_bindings(code)
     end
   end
 
-  def self.load_init_custom_bindings(files)
-    files.each do |fn|
-      code = File.basename(fn, "." + Game.data_ext)
-      load_custom_bindings(code)
-    end
-  end
-
-  def self.save_default_bindings(code)
-    file = Game.default_bindings_path(code)
-    save_data(file, @default_bindings[code.to_sym])
-  end
-
-  def self.load_default_bindings(code)
-    file = Game.default_bindings_path(code)
-    @default_bindings[code.to_sym] = load_data(file)
-  end
-
-  def self.save_custom_bindings(code)
+  def self.save_bindings(code)
     file = Game.bindings_path(code)
-    save_data(file, @custom_bindings[code.to_sym])
+    binds = @all_bindings[code.to_sym]
+    binds.update_active
+    save_data(file, binds)
   end
 
-  def self.load_custom_bindings(code)
+  def self.load_bindings(code)
     file = Game.bindings_path(code)
-    @custom_bindings[code.to_sym] = load_data(file)
+    @all_bindings[code.to_sym] = load_data(file)
   end
 
   def self.save_data(fn, obj)
@@ -514,6 +508,7 @@ module Input
     obj
   end
 end
+
 
 module Game
   SCENE_SCRIPT = "Data/Splash"
@@ -536,7 +531,7 @@ module Game
     @shot_filename = "screenshot"
     @save_dir = "Saves"
     @save_filename = "Save"
-    @bind_dir = "Bindings"
+    @bind_dir = "KeyBindings"
     @env_dir = ""
     @user_dir = ""
     @soundfont = ""
@@ -551,16 +546,12 @@ module Game
     DATA_EXT[RGSS_VERSION]
   end
 
-  def self.glob_default_kb
+  def self.glob_init_kb
     "Input/*." + data_ext
   end
 
-  def self.glob_custom_kb
-    @user_path + "/Bindings/*." + data_ext
-  end
-
-  def self.default_bindings_path(code)
-    "Input/#{code}." + data_ext
+  def self.glob_kb
+    @bind_path + "/*." + data_ext
   end
 
   def self.bindings_path(code)
@@ -641,7 +632,8 @@ module Game
       default = DATA["SoundFontWin"].to_s
       sf_dir = DATA["SoundFontPathWin"].to_s
       sf_dir = sf_dir.gsub(/[\\]/, "/")
-      @env_dir = make_path(ENV["USERPROFILE"], "Documents/My Games")
+      user_profile = ENV["USERPROFILE"].sub!(/[\\]/, "/")
+      @env_dir = make_path(user_profile, "Documents/My Games")
     elsif System.linux?
       default = DATA["SoundFontLnx"].to_s
       sf_dir = DATA["SoundFontPathLnx"].to_s
@@ -735,22 +727,14 @@ module Game
       Dir.mkdir(company_dir)
     end
     @user_path = make_path(@env_dir, @user_dir)
-    unless Dir.exist?(@user_path)
-      Dir.mkdir(@user_path)
-    end
+    Dir.mkdir(@user_path) unless Dir.exist?(@user_path)
     @save_path = make_path(@user_path, @save_dir)
-    unless Dir.exist?(@save_path)
-      Dir.mkdir(@save_path)
-    end
+    Dir.mkdir(@save_path) unless Dir.exist?(@save_path)
     @shot_path = make_path(@user_path, @shot_dir)
-    unless Dir.exist?(@shot_path)
-      Dir.mkdir(@shot_path)
-    end
+    Dir.mkdir(@shot_path) unless Dir.exist?(@shot_path)
     Graphics.screenshot_dir = @shot_path
     @bind_path = make_path(@user_path, @bind_dir)
-    unless Dir.exist?(@bind_path)
-      Dir.mkdir(@bind_path)
-    end
+    Dir.mkdir(@bind_path) unless Dir.exist?(@bind_path)
   rescue => e
     puts e.full_message
   end
@@ -780,7 +764,7 @@ module Game
     create_user_dirs
     set_internal_values
     if System.linux?
-      Graphics.wait(60)
+      Graphics.wait(10)
     end
     $scene = nil
   end
@@ -813,14 +797,11 @@ begin
     lines = Zlib::Inflate.inflate(lines)
     eval lines
   end
-  Graphics.hide_window
   if Game.show_splash
-    Graphics.hide_window
     $scene = Game::SplashScene.new
     while $scene
       $scene.main
     end
-    Graphics.hide_window
   else
     Game.setup
     Input.load_init_bindings

@@ -1,6 +1,6 @@
 # * KChangeKeys HC for XP * #
 #   Scripter : Kyonides
-#   2026-01-08
+#   2026-01-09
 
 # * This scripts depends on HiddenChest v1.2.05 or higher. * #
 
@@ -49,11 +49,18 @@ class Scene
     @key_names = []
     @changes = []
     @sprites = []
-    @list.each_with_index do |bg, n|
-      bind1, bind2 = bg[0..1]
-      @binds << bind1 << bind2
-      @key_names << bind1.name << bind2.name
+    case Graphics.width
+    when 544
+      @rows = 1
+    when 640
+      @rows = 2
+    when 800
+      @rows = 3
+    else
+      @rows = 4
     end
+    @list.each {|bg| @binds += bg.data.take(@rows) }
+    @key_names = @binds.map {|b| b.name || "" }
     @init_names = @key_names.dup
     @temp_names = @key_names.dup
     @back_color = Color.new(0, 0, 0, 120)
@@ -61,20 +68,22 @@ class Scene
   end
 
   def create_sprites
+    gw = Graphics.width
+    fn = BACKDROP + gw.to_s
     @backdrop = Sprite.new
-    @backdrop.bitmap = RPG::Cache.title(BACKDROP).dup
-    b = Bitmap.new(Graphics.width, 48)
+    @backdrop.bitmap = RPG::Cache.title(fn).dup
+    b = Bitmap.new(gw, 48)
     b.font.size = 32
     b.draw_text(:rect, HEADING, 1)
     @heading = Sprite.new
     @heading.y = 4
     @heading.bitmap = b
     b = RPG::Cache.picture(HELP_BAR)
-    bx = (Graphics.width - b.width) / 2
+    bx = (gw - b.width) / 2
     @help_backdrop = Sprite.new
     @help_backdrop.set_xy(bx, 60)
     @help_backdrop.bitmap = b
-    @help_bit = Bitmap.new(Graphics.width, 32)
+    @help_bit = Bitmap.new(gw, 32)
     @help_bit.font.size = 24
     @help_bit.draw_text(:rect, CHOOSE_KEY, 1)
     @help = Sprite.new
@@ -84,11 +93,13 @@ class Scene
     @cursor = Sprite.new
     @cursor.z = 10
     @cursor.bitmap = RPG::Cache.picture(CURSOR)
+    sw = gw / 206
+    ix = (gw - sw * 206) / 2
     b = RPG::Cache.picture(TARGET_BOX)
     @key_max = TARGETS.size
     @key_max.times do |n|
-      sx = 12 + n % 3 * 206
-      sy = 108 + n / 3 * 64
+      sx = ix + n % sw * 206
+      sy = 108 + n / sw * @rows * 32
       @backdrop.bitmap.blt(sx + 2, sy - 2, b, b.rect)
       s = Sprite.new
       s.set_xyz(sx, sy, 20)
@@ -96,8 +107,7 @@ class Scene
       s.bitmap.font.color = @target_color
       s.bitmap.draw_text(:rect, TARGETS[n], 1)
       @target_names << s
-      create_button_box(sx + 84, sy)
-      create_button_box(sx + 84, sy + 32)
+      @rows.times {|i| create_button_box(sx + 84, sy + i * 32) }
     end
     s = @bind_names[0]
     @cursor.set_xy(s.x - 4, s.y - 2)
@@ -110,10 +120,14 @@ class Scene
     name = @temp_names.shift
     s = Sprite.new
     s.set_xyz(sx, sy, 20)
-    s.bitmap = Bitmap.new(112, 28)
-    s.bitmap.fill_rect(:rect, @back_color)
-    s.bitmap.draw_text(:rect, name, 1)
+    b = Bitmap.new(112, 28)
+    b.draw_text(:rect, name, 1)
+    s.bitmap = b
     @bind_names << s
+    rect = b.rect.dup
+    rect.x = sx
+    rect.y = sy
+    @backdrop.bitmap.fill_rect(rect, @back_color)
   end
 
   def terminate
@@ -136,7 +150,7 @@ class Scene
   end
 
   def box_index
-    @index * 2 + @col_index
+    @index * @rows + @col_index
   end
 
   def update_main
@@ -164,7 +178,6 @@ class Scene
       @key_names[n] = ""
       b = @bind_names[n].bitmap
       b.clear
-      b.fill_rect(:rect, @back_color)
       b.draw_text(:rect, "", 1)
       @changes[n] = true
       return
@@ -185,7 +198,7 @@ class Scene
   def update_cursor(m, n)
     $game_system.se_play($data_system.cursor_se)
     @index = (@index + m) % @key_max
-    @col_index = (@col_index + n) % 2
+    @col_index = (@col_index + n) % @rows
     s = @bind_names[box_index]
     @cursor.set_xy(s.x - 4, s.y - 2)
   end
@@ -220,8 +233,6 @@ class Scene
       name = @bind.name
       @key_names[n] = name
       @bind_bit.clear
-      @bind_bit.fill_rect(:rect, @back_color)
-      @bind_bit.draw_text(:rect, "", 1)
       @bind_bit.draw_text(:rect, name, 1)
       reset_help
       @changes[n] = true
