@@ -632,7 +632,7 @@ module Game
       default = DATA["SoundFontWin"].to_s
       sf_dir = DATA["SoundFontPathWin"].to_s
       sf_dir = sf_dir.gsub(/[\\]/, "/")
-      user_profile = ENV["USERPROFILE"].sub!(/[\\]/, "/")
+      user_profile = ENV["USERPROFILE"].gsub(/[\\]/, "/")
       @env_dir = make_path(user_profile, "Documents/My Games")
     elsif System.linux?
       default = DATA["SoundFontLnx"].to_s
