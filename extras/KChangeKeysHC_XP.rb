@@ -1,12 +1,12 @@
 # * KChangeKeys HC for XP * #
 #   Scripter : Kyonides
-#   2026-01-09
+#   2026-01-11
 
-# * This scripts depends on HiddenChest v1.2.05 or higher. * #
+# * This scripts depends on HiddenChest v1.2.06 or higher. * #
 
 # With this scriptlet you are now able to change the keys that are normally
 # mapped to any of RMXP's default buttons like A, B, C, etc. without pressing
-# the F1 button!
+# the F1, F2 & F12 buttons!
 
 # * Script Call * #
 # $scene = KChangeKeys::Scene.new
@@ -19,6 +19,8 @@ module KChangeKeys
   HEADING = "Key Bindings"
   CHOOSE_KEY = "Please select a key to edit"
   ENTER_KEY = "Please enter a key now"
+# These are the default virtual buttons' names the RM editors have always used,
+# but feel free to change them if ever needed.
   TARGETS = %w{Up Down L L2 Left Right R R2 A B C X Y Z}
 
 class Scene
