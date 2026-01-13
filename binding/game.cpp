@@ -23,9 +23,6 @@
 struct SDL_Window;
 VALUE zero = RB_INT2FIX(0);
 
-extern const char module_rpg1[];
-extern const char module_rpg2[];
-extern const char module_rpg3[];
 extern const char win32api_fake[];
 
 void windowBindingInit();

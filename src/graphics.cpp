@@ -520,7 +520,6 @@ struct GraphicsPrivate
   FPSLimiter fpsLimiter;
   bool block_fullscreen;
   bool block_ftwelve;
-  bool block_fone;
   bool frozen;
   TEXFBO frozenScene;
   Quad screenQuad;
@@ -545,8 +544,7 @@ struct GraphicsPrivate
     last_update(0),
     last_avg_update(0),
     block_fullscreen(false),
-    block_ftwelve(false),
-    block_fone(false)
+    block_ftwelve(false)
   {
     recalculateScreenSize(rtData);
     updateScreenResoRatio(rtData);
@@ -1208,16 +1206,6 @@ bool Graphics::get_block_ftwelve() const
 void Graphics::set_block_ftwelve(bool value)
 {
   p->block_ftwelve = value;
-}
-
-bool Graphics::get_block_fone() const
-{
-  return p->block_fone;
-}
-
-void Graphics::set_block_fone(bool value)
-{
-  p->block_fone = value;
 }
 
 bool Graphics::get_show_cursor() const

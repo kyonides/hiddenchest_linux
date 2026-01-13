@@ -1,6 +1,6 @@
 # * ClickableWindow VX * #
 #   Scripter : Kyonides Arkanthes
-#   2024-06-01
+#   2026-01-11
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.
@@ -37,11 +37,11 @@ class Window_Selectable
         return
       end
       if mouse_inside?
-        if Input.mouse_scroll_y?(:UP)
+        if Mouse.scroll_y?(:UP)
           Sound.play_cursor
           self.index = (@index - @column_max) % @item_max
           return
-        elsif Input.mouse_scroll_y?(:DOWN)
+        elsif Mouse.scroll_y?(:DOWN)
           Sound.play_cursor
           self.index = (@index + @column_max) % @item_max
           return

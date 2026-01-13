@@ -1,6 +1,6 @@
 # * ClickableWidget XP * #
 #   Scripter : Kyonides Arkanthes
-#   2024-06-08
+#   2026-01-11
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.

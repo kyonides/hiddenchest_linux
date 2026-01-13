@@ -38,35 +38,6 @@ A class that handles some game controller data.
   @@levels[4]  = "Wired"
   @@levels[5]  = "Maximum"
 
-### New Input's Singleton Methods
-
-[gamepad](#gamepad)  
-[gamepad?](#gamepad?)  
-[total_gamepads](#total_gamepads)  
-[gamepad_update](#gamepad_update)  
-[gamepad_updates](#gamepad_updates)  
-
-##### **gamepad**
-<a name="gamepad"></a>
-> The gamepad's getter method. (Read only)
-
-##### **gamepad?**
-<a name="gamepad?"></a>
-> Returns true if a gamepad could be found, false otherwise.
-
-##### **total_gamepads**
-<a name="total_gamepads"></a>
-> Returns the number of gamepads discovered by the engine.
-
-##### **gamepad_update**
-<a name="gamepad_update"></a>
-> Returns the last gamepad connection or disconnection event or nil.
-  Clears the array automatically.
-
-##### **gamepad_updates**
-<a name="gamepad_updates"></a>
-> Returns the last gamepad connection or disconnection event as an array.
-
 ### Methods (Read Only)
 
 [name](#name)  
@@ -87,7 +58,7 @@ A class that handles some game controller data.
 
 ##### **vendor**
 <a name="vendor"></a>
-> Returns the gamepad's vendor ID.
+> Returns the gamepad vendor's name as a Ruby String.
 
 ##### **type**
 <a name="type"></a>

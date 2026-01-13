@@ -149,7 +149,6 @@ set(MAIN_HEADERS
   src/gl-util.h
   src/util.h
   src/config.h
-  src/settingsmenu.h
   src/keybindings.h
   src/tileatlas.h
   src/sharedstate.h
@@ -198,7 +197,6 @@ set(MAIN_SOURCE
   src/gl-debug.cpp
   src/etc.cpp
   src/config.cpp
-  src/settingsmenu.cpp
   src/keybindings.cpp
   src/tileatlas.cpp
   src/sharedstate.cpp
@@ -277,6 +275,12 @@ set(EMBEDDED_INPUT
   assets/app_logo_s01.png
   assets/app_logo_s02.png
   assets/app_logo_s03.png
+  assets/gamepad_black_add.png
+  assets/gamepad_black_remove.png
+  assets/kb_cursor.png
+  assets/kb_help_bar.png
+  assets/kb_target.png
+  assets/keyboard_black.png
 )
 
 if (RGSS2)

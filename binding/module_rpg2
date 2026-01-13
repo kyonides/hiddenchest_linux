@@ -918,3 +918,60 @@ module RPG
     attr_accessor :edit_map_id
   end
 end
+
+module Cache
+  extend self
+  def load_int_bitmap(filename, pos, hue = 0)
+    @cache ||= {}
+    path = filename
+    if !@cache.include?(path) or @cache[path].disposed?
+      @cache[path] = Bitmap.new(path, pos)
+    end
+    if hue > 0
+      key = [path, hue]
+      if !@cache.include?(key) or @cache[key].disposed?
+        @cache[key] = @cache[path].clone
+        @cache[key].hue_change(hue)
+        path = key
+      end
+    end
+    @cache[path] ||= Bitmap.new(32, 32)
+  end
+
+  def title(filename)
+    load_bitmap("Graphics/Title", filename)
+  end
+
+  def int_picture(filename)
+    pos = FileInt.internal_bitmaps.index(filename)
+    if pos
+      load_int_bitmap(filename, pos)
+    else
+      picture(filename)
+    end
+  end
+
+  def int_system(filename)
+    pos = FileInt.internal_bitmaps.index(filename)
+    if pos
+      load_int_bitmap(filename, pos)
+    else
+      self.system(filename)
+    end
+  end
+
+  def int_title(filename)
+    pos = FileInt.internal_bitmaps.index(filename)
+    if pos
+      load_int_bitmap(filename, pos)
+    else
+      title(filename)
+    end
+  end
+end
+
+module Sound
+  def self.play_ok
+    $data_system.sounds[1].play
+  end
+end

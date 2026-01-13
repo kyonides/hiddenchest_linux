@@ -377,6 +377,11 @@ module Input
 
   private
   def self.update_gamepad_state
+    if trigger?(:F1) and !Graphics.block_f1
+      Sound.play_ok
+      KChangeKeys.open!
+      return
+    end
     state = gamepad_change?
     return if state == 0
     @gamepad_updates.pop
@@ -508,7 +513,6 @@ module Input
     obj
   end
 end
-
 
 module Game
   SCENE_SCRIPT = "Data/Splash"

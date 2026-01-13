@@ -2,10 +2,20 @@ module RPG
   module Cache
     @cache = {}
     def self.load_bitmap(folder_name, filename, hue = 0)
-      path = folder_name + filename
+      int_files = FileInt.internal_bitmaps
+      pos = int_files.index(filename)
+      if pos
+        path = filename
+      else
+        path = folder_name + filename
+      end
       if not @cache.include?(path) or @cache[path].disposed?
         if filename != ""
-          @cache[path] = Bitmap.new(path)
+          if pos
+            @cache[path] = Bitmap.new(path, pos)
+          else
+            @cache[path] = Bitmap.new(path)
+          end
         else
           @cache[path] = Bitmap.new(32, 32)
         end
@@ -1564,5 +1574,56 @@ module RPG
     attr_accessor :battler_name
     attr_accessor :battler_hue
     attr_accessor :edit_map_id
+  end
+end
+
+module Sound
+  $data_system = load_data("Data/System.rxdata")
+  extend self
+  def play_se(se)
+    return if !se or se.name.empty?
+    Audio.se_play("Audio/SE/" + se.name, se.volume, se.pitch)
+  end
+  def play_cursor
+    play_se($data_system.cursor_se)
+  end
+  def play_decision
+    play_se($data_system.decision_se)
+  end
+  def play_ok
+    play_se($data_system.decision_se)
+  end
+  def play_cancel
+    play_se($data_system.cancel_se)
+  end
+  def play_cursor
+    play_se($data_system.cursor_se)
+  end
+  def play_buzzer
+    play_se($data_system.buzzer_se)
+  end
+  def play_equip
+    play_se($data_system.equip_se)
+  end
+  def play_shop
+    play_se($data_system.shop_se)
+  end
+  def play_save
+    play_se($data_system.save_se)
+  end
+  def play_load
+    play_se($data_system.load_se)
+  end
+  def play_battle_start
+    play_se($data_system.battle_start_se)
+  end
+  def play_escape
+    play_se($data_system.escape_se)
+  end
+  def play_actor_collapse
+    play_se($data_system.actor_collapse_se)
+  end
+  def play_enemy_collapse
+    play_se($data_system.enemy_collapse_se)
   end
 end

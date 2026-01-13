@@ -47,6 +47,7 @@ extern const char module_rpg_audio[];
 extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
+extern const char kchangekeys[];
 extern const char win32api_fake[];
 extern const char scene_hc[];
 extern const char module_hc[];
@@ -373,17 +374,23 @@ static bool file_exist(VALUE name, const char* ext)
   return shState->fileSystem().exists(fn);
 }
 
-static int rb_check_fileutils()
+static void rb_load_fileutils()
 {
   int state;
   rb_eval_string_protect(fileutils, &state);
-  return state;
 }
 
 static int rb_check_rgss_version()
 {
   int state;
   rb_eval_string_protect(game_ini, &state);
+  return state;
+}
+
+static int rb_load_kchangekeys()
+{
+  int state;
+  rb_eval_string_protect(kchangekeys, &state);
   return state;
 }
 
@@ -618,9 +625,15 @@ static void mriBindingExecute()
   init_mouse();
   init_system();
   init_game(shState->rtData().argv0);
-  state = rb_check_fileutils();
-  if (!state)
-    state = rb_check_rgss_version();
+  rb_load_fileutils();
+  state = rb_check_rgss_version();
+  if (state) {
+    rb_p(rb_errinfo());
+    ruby_cleanup(0);
+    shState->rtData().rqTermAck.set();
+    return;
+  }
+  state = rb_load_kchangekeys();
   if (state) {
     rb_p(rb_errinfo());
     ruby_cleanup(0);

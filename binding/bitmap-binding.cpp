@@ -50,16 +50,25 @@ void bitmapInitProps(Bitmap *b, VALUE self)
 static VALUE bitmapInitialize(int argc, VALUE* argv, VALUE self)
 {
   Bitmap *b = 0;
-  if (argc == 0) {
+  switch (argc)
+  {
+  case 0:
     GUARD_EXC( b = new Bitmap(1); )
-  } else if (argc == 1) {
+    break;
+  case 1:
     GUARD_EXC( b = new Bitmap(RSTRING_PTR(argv[0])); )
-  } else {
-    if (RB_NIL_P(argv[1])) {
-      GUARD_EXC( b = new Bitmap(RSTRING_PTR(argv[0]), 0); )
+    break;
+  default:
+    VALUE arg1 = argv[0];
+    VALUE arg2 = argv[1];
+    if (RB_NIL_P(arg2)) {
+      GUARD_EXC( b = new Bitmap(RSTRING_PTR(arg1), -1); )
+    } else if (!FIXNUM_P(arg1) && FIXNUM_P(arg2)) {
+      int pos = RB_FIX2INT(arg2);
+      GUARD_EXC( b = new Bitmap(RSTRING_PTR(arg1), pos); )
     } else {
-      int width = RB_FIX2INT(argv[0]);
-      int height = RB_FIX2INT(argv[1]);
+      int width = RB_FIX2INT(arg1);
+      int height = RB_FIX2INT(arg2);
       GUARD_EXC( b = new Bitmap(width, height); )
     }
   }

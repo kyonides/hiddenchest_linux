@@ -104,8 +104,16 @@ static VALUE fileIntBinmode(VALUE self)
 static VALUE fileInt_exist(VALUE self, VALUE name)
 {
   name = rb_funcall(name, rb_intern("to_s"), 0);
+  VALUE files = rb_iv_get(self, "internal_bitmaps");
+  if (rb_ary_includes(files, name) == Qtrue)
+    return Qtrue;
   const char* fn = RSTRING_PTR(name);
   return shState->fileSystem().exists_ext(fn) ? Qtrue : Qfalse;
+}
+
+static VALUE fileInt_internal_bitmaps(VALUE self)
+{
+  return rb_iv_get(self, "internal_bitmaps");
 }
 
 static bool file_do_exist(const char *fname)
@@ -177,7 +185,20 @@ RB_METHOD(_marshalLoad)
 
 void fileIntBindingInit()
 {
-  VALUE klass = rb_define_class("FileInt", rb_cIO);
+  VALUE ary, str, marshal, klass;
+  const char *names[] = {
+    "app_logo_s01", "app_logo_s02", "app_logo_s03",
+    "app_logo", "gamepad_black_add", "gamepad_black_remove",
+    "kb_cursor", "kb_help_bar", "kb_target", "keyboard_black"
+  };
+  ary = rb_ary_new();
+  for (int n = 0; n < 10; n++) {
+    str = rstr(names[n]);
+    rb_ary_push(ary, str);
+  }
+  klass = rb_define_class("FileInt", rb_cIO);
+  rb_iv_set(klass, "internal_bitmaps", ary);
+  module_func(klass, "internal_bitmaps", fileInt_internal_bitmaps, 0);
   rb_define_alloc_func(klass, classAllocate<&FileIntType>);
   rb_define_method(klass, "read", RMF(fileIntRead), -1);
   rb_define_method(klass, "getbyte", RMF(fileIntGetByte), 0);
@@ -189,7 +210,7 @@ void fileIntBindingInit()
   module_func(rb_mKernel, "save_data", kernelSaveData, 2);
   /* We overload the built-in 'Marshal::load()' function to silently
    * insert our utf8proc that ensures all read strings will be UTF-8 encoded */
-  VALUE marshal = rb_const_get(rb_cObject, rb_intern("Marshal"));
+  marshal = rb_const_get(rb_cObject, rb_intern("Marshal"));
   rb_define_alias(rb_singleton_class(marshal), "_HC_load_alias", "load");
   module_func(marshal, "load", _marshalLoad, -1);
 }

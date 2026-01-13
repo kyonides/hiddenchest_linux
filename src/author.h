@@ -1,6 +1,6 @@
 #define HIDDENAUTHOR "Kyonides Arkanthes"
-#define HIDDENVERSION "1.2.06"
-#define HIDDENDATE "2026-01-09"
+#define HIDDENVERSION "1.2.07"
+#define HIDDENDATE "2026-01-13"
 #define CODENAME "KeyMaster"
 #define SYSTEM_STRING "linux"
 #define SYSTEM_REAL_STRING "Linux"

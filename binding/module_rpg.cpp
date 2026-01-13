@@ -8,3 +8,4 @@
 #include "module_rpg1.xxd"
 #include "module_rpg2.xxd"
 #include "module_rpg3.xxd"
+#include "kchangekeys.xxd"

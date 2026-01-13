@@ -546,13 +546,15 @@ bool has_fn_ext(const char *filename) {
 
 bool FileSystem::exists_ext(const char *filename)
 {
-  if (has_fn_ext(filename)) return PHYSFS_exists(filename);
+  if (has_fn_ext(filename))
+    return PHYSFS_exists(filename);
   std::string fn_ext = filename;
-  const char* extensions[] = { ".png", ".jpg", ".jpeg", ".bmp" };
+  const char* ext[] = { ".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp" };
   for (int n = 0; n < 4; n++) {
-    fn_ext = std::string(filename) + std::string(extensions[n]);
+    fn_ext = std::string(filename) + std::string(ext[n]);
     bool exist = PHYSFS_exists(fn_ext.c_str());
-    if (exist) return true;
+    if (exist)
+      return true;
   }
   return false;
 }

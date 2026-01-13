@@ -32,7 +32,6 @@
 #include <alext.h>
 #include "sharedstate.h"
 #include "graphics.h"
-#include "settingsmenu.h"
 #include "al-util.h"
 #include "debugwriter.h"
 #include <iostream>
@@ -141,21 +140,13 @@ void EventThread::process(RGSSThreadData &rtData)
   uint32_t selection_len;
   int winW, winH, i;
   SDL_GetWindowSize(win, &winW, &winH);
-  SettingsMenu *sMenu = 0;
   while (true)
   {
     if (!SDL_WaitEvent(&event)) {
       Debug() << "EventThread: Event error";
       break;
     }
-    if (sMenu && sMenu->onEvent(event)) {
-      if (sMenu->destroyReq()) {
-        delete sMenu;
-        sMenu = 0;
-        updateCursorState(cursorInWindow && windowFocused, gameScreen);
-      }
-      continue;
-    }// Preselect and discard unwanted events here
+    // Preselect and discard unwanted events here
     rtData.mouse_moved = false;
     rtData.any_char_found = false;
     reset_scroll_xy();
@@ -188,23 +179,23 @@ void EventThread::process(RGSSThreadData &rtData)
       case SDL_WINDOWEVENT_ENTER :
         cursorInWindow = true;
         mouseState.inWindow = true;
-        updateCursorState(cursorInWindow && windowFocused && !sMenu, gameScreen);
+        updateCursorState(cursorInWindow && windowFocused, gameScreen);
         break;
       case SDL_WINDOWEVENT_LEAVE :
         cursorInWindow = false;
         mouseState.inWindow = false;
-        updateCursorState(cursorInWindow && windowFocused && !sMenu, gameScreen);
+        updateCursorState(cursorInWindow && windowFocused, gameScreen);
         break;
       case SDL_WINDOWEVENT_CLOSE :
         terminate = true;
         break;
       case SDL_WINDOWEVENT_FOCUS_GAINED :
         windowFocused = true;
-        updateCursorState(cursorInWindow && windowFocused && !sMenu, gameScreen);
+        updateCursorState(cursorInWindow && windowFocused, gameScreen);
         break;
       case SDL_WINDOWEVENT_FOCUS_LOST :
         windowFocused = false;
-        updateCursorState(cursorInWindow && windowFocused && !sMenu, gameScreen);
+        updateCursorState(cursorInWindow && windowFocused, gameScreen);
         resetInputStates();
         break;
       }
@@ -225,15 +216,6 @@ void EventThread::process(RGSSThreadData &rtData)
           havePendingTitle = false;
         }
         break;
-      }
-      if (event.key.keysym.scancode == SDL_SCANCODE_F1) {
-        if (shState->graphics().get_block_fone())
-          break;
-        if (!sMenu) {
-          sMenu = new SettingsMenu(rtData);
-          updateCursorState(false, gameScreen);
-        }
-        sMenu->raise();
       }
       if (event.key.keysym.scancode == SDL_SCANCODE_F2) {
         if (!displayingFPS) {
@@ -389,7 +371,6 @@ void EventThread::process(RGSSThreadData &rtData)
   rtData.syncPoint.resumeThreads();
   if (SDL_JoystickGetAttached(js))
     SDL_JoystickClose(js);
-  delete sMenu;
 }
 
 int EventThread::eventFilter(void *data, SDL_Event *event)

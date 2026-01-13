@@ -45,6 +45,12 @@
 #include "app_logo_s01.png.xxd"
 #include "app_logo_s02.png.xxd"
 #include "app_logo_s03.png.xxd"
+#include "gamepad_black_add.png.xxd"
+#include "gamepad_black_remove.png.xxd"
+#include "kb_cursor.png.xxd"
+#include "kb_help_bar.png.xxd"
+#include "kb_target.png.xxd"
+#include "keyboard_black.png.xxd"
 
 /*ifdef GLES2_HEADER// I added these lines
 include <SDL_opengles2.h>
@@ -73,6 +79,12 @@ static IntBitmap assets[] =
   { "app_logo_s02", assets_app_logo_s02_png, assets_app_logo_s02_png_len },
   { "app_logo_s03", assets_app_logo_s03_png, assets_app_logo_s03_png_len },
   { "app_logo",     assets_app_logo_png,     assets_app_logo_png_len     },
+  { "gamepad_black_add", assets_gamepad_black_add_png, assets_gamepad_black_add_png_len },
+  { "gamepad_black_remove", assets_gamepad_black_remove_png, assets_gamepad_black_remove_png_len },
+  { "kb_cursor", assets_kb_cursor_png, assets_kb_cursor_png_len },
+  { "kb_help_bar", assets_kb_help_bar_png, assets_kb_help_bar_png_len },
+  { "kb_target",  assets_kb_target_png, assets_kb_target_png_len },
+  { "keyboard_black", assets_keyboard_black_png, assets_keyboard_black_png_len }
 };
 
 // Normalize (= ensure width and height are positive)
@@ -271,10 +283,14 @@ Bitmap::Bitmap(const char *filename)
 Bitmap::Bitmap(const char *filename, int none)
 {
   IntBitmap ib;
-  for (int n = 0; n < 4; n++) {
-    ib = assets[n];
-    if (!strcmp(ib.name, filename))
-      break;
+  if (none < 0) {
+    for (int n = 0; n < 10; n++) {
+      ib = assets[n];
+      if (!strcmp(ib.name, filename))
+        break;
+    }
+  } else {
+    ib = assets[none];
   }
   SDL_RWops *src = SDL_RWFromConstMem(ib.mem, ib.size);
   if (!src)

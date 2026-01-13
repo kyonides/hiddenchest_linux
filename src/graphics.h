@@ -80,12 +80,10 @@ public:
   bool get_fullscreen() const;
   bool get_block_fullscreen() const;
   bool get_block_ftwelve() const;
-  bool get_block_fone() const;
   bool get_show_cursor() const;
   void set_fullscreen(bool value);
   void set_block_fullscreen(bool value);
   void set_block_ftwelve(bool value);
-  void set_block_fone(bool value);
   void set_show_cursor(bool value);
   /* <internal> */
   Scene *getScreen() const;

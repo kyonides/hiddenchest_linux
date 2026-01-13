@@ -273,7 +273,6 @@ static VALUE graphics_get_block_fone(VALUE self)
 
 static VALUE graphics_set_block_fone(VALUE self, VALUE boolean)
 {
-  shState->graphics().set_block_fone(boolean == Qtrue);
   return rb_iv_set(self, "@block_f1", boolean);
 }
 

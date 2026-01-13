@@ -2,7 +2,7 @@
 #   Scripter : Kyonides
 #   2026-01-11
 
-# * This scripts depends on HiddenChest v1.2.06 or higher. * #
+# * This scripts depends on HiddenChest v1.2.06 exclusively. * #
 
 # With this scriptlet you are now able to change the keys that are normally
 # mapped to any of RMXP's default buttons like A, B, C, etc. without pressing

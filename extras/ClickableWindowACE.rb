@@ -1,6 +1,6 @@
 # * ClickableWindow ACE * #
 #   Scripter : Kyonides Arkanthes
-#   2024-06-02
+#   2025-01-11
 
 # This is a script demo that shows you how it is now possible to click once on
 # a menu window to choose an option while ignoring the surrounding area.
@@ -55,7 +55,7 @@ end
 class Window_MenuCommand
   def select_last
     select_symbol(@@last_command_symbol)
-    Input.mouse_set_xy(80, 20 + @index * 24)
+    Mouse.set_xy(80, 20 + @index * 24)
   end
 end
 
