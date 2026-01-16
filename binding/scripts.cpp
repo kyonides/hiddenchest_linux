@@ -98,12 +98,22 @@ static VALUE scripts_main_name_set(VALUE self, VALUE name)
   return rb_iv_set(self, "@main_name", name);
 }
 
+static VALUE scripts_int_script_name_get(VALUE self)
+{
+  return rb_iv_get(self, "@int_script_name");
+}
+
+static VALUE scripts_int_script_name_set(VALUE self, VALUE name)
+{
+  return rb_iv_set(self, "@int_script_name", name);
+}
+
 void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
 {
   rb_iv_set(mod, "@show_backdrop", Qtrue);
   rb_iv_set(mod, "@error_type", klass);
   rb_iv_set(mod, "@error_msg", msg);
-  VALUE names, fn, file, writable, hidden;
+  VALUE names, fn, file, hidden;
   names = rb_gv_get("$RGSS_SCRIPTS");
   try {
     file = rb_file_open("error.log", "w");
@@ -121,7 +131,7 @@ void scripts_open_log(VALUE mod, VALUE klass, VALUE msg, VALUE bt)
   Debug() << "Backtrace Lines:" << max;
   VALUE btr[max + 2];
   btr[0] = rb_str_plus(rstr("Error Type: "), klass);
-  btr[1] = rb_str_plus(msg, rstr("\n"));
+  btr[1] = rb_str_plus(msg, rb_default_rs);
   rb_io_write(file, btr[0]);
   rb_io_write(file, rb_default_rs);
   rb_io_write(file, btr[1]);
@@ -205,6 +215,7 @@ void init_scripts()
   rb_iv_set(scripts, "@pack", rb_hash_new());
   rb_iv_set(scripts, "@main_name", rstr("Main"));
   rb_iv_set(scripts, "@main_index", RB_INT2FIX(0));
+  rb_iv_set(scripts, "@int_script_name", rstr(""));
   module_func(scripts, "sections", scripts_sections, 0);
   module_func(scripts, "list", scripts_list, 0);
   module_func(scripts, "names", scripts_names, 0);
@@ -216,6 +227,8 @@ void init_scripts()
   module_func(scripts, "main_index=", scripts_main_index_set, 1);
   module_func(scripts, "main_name", scripts_main_name_get, 0);
   module_func(scripts, "main_name=", scripts_main_name_set, 1);
+  module_func(scripts, "int_script_name", scripts_int_script_name_get, 0);
+  module_func(scripts, "int_script_name=", scripts_int_script_name_set, 1);
   module_func(scripts, "scene", scripts_scene_get, 0);
   module_func(scripts, "scene=", scripts_scene_set, 1);
   module_func(scripts, "error_handling", scripts_error_handling_rb, 0);

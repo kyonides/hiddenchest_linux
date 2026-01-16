@@ -1,5 +1,5 @@
 # * KChangeKeys HC * #
-#   v1.0.0 - 2026-01-13
+#   v1.0.7 - 2026-01-15
 
 module KChangeKeys
   RGSS = Game::RGSS_VERSION
@@ -14,18 +14,9 @@ module KChangeKeys
   @style = nil
 
 class Style
-  attr_accessor :backdrop, :cursor, :gamepad
-  attr_accessor :help, :keyboard, :target
+  attr_accessor :backdrop, :cursor, :gamepad, :help
+  attr_accessor :keyboard, :target
 end
-
-  default = Style.new
-  default.backdrop = "kb_backdrop"
-  default.gamepad  = "gamepad_black_add"
-  default.keyboard = "keyboard_black"
-  default.help     = "kb_help_bar"
-  default.target   = "kb_target"
-  default.cursor   = "kb_cursor"
-  STYLES[nil] = default
 
   extend self
   attr_writer :style
@@ -59,12 +50,21 @@ end
   def style
     STYLES[@style]
   end
+
+  default = Style.new
+  default.backdrop = "kb_backdrop"
+  default.gamepad  = "gamepad_black_add"
+  default.keyboard = "keyboard_black"
+  default.help     = "kb_help_bar"
+  default.target   = "kb_target"
+  default.cursor   = "kb_cursor"
+  STYLES[nil] = default
 end
 
 module Cache
   extend self
-  def kb_backdrop(filename, version)
-    case version
+  def kb_backdrop(filename)
+    case Game::RGSS_VERSION
     when 1
       RPG::Cache.title(filename)
     when 2
@@ -74,8 +74,8 @@ module Cache
     end
   end
 
-  def kb_picture(filename, version)
-    if version == 1
+  def kb_picture(filename)
+    if Game::RGSS_VERSION == 1
       RPG::Cache.picture(filename)
     else
       int_picture(filename)
@@ -86,22 +86,11 @@ end
 module KChangeKeys
 
 class Scene
-  def main
-    setup
-    create_sprites
-    Graphics.transition
-    while @stage
-      Graphics.update
-      Input.update
-      update
-    end
-    Graphics.freeze
-    terminate
-  end
-
-  def setup
-    Graphics.block_f1 = true
+  def initialize
+    Scripts.int_script_name = "KChangeKeys::Scene"
     Font.default_outline = true
+    Graphics.block_f1 = true
+    @gw = Graphics.width
     @stage = :main
     @index = 0
     @col_index = 0
@@ -109,6 +98,11 @@ class Scene
     @bindings = Input.bindings
     @list = @bindings.list
     @style = KChangeKeys.style
+    @target_names = []
+    @bind_names = []
+    @binds = []
+    @key_names = []
+    @sprites = []
     if Input.gamepad?
       @picture = @style.gamepad
       vendor_name = @gamepad.vendor.sub(/(?:inc\.|corp\.)/i, "")
@@ -117,102 +111,146 @@ class Scene
       @picture = @style.keyboard
       @name = KEYBOARD
     end
-    @target_names = []
-    @bind_names = []
-    @binds = []
-    @key_names = []
-    @changes = []
-    @sprites = []
-    case Graphics.width
-    when 544
-      @rows = 1
-    when 640
-      @rows = 2
-    when 800
-      @rows = 3
-    else
-      @rows = 4
-    end
+    set_box_rows
+    set_box_offset_y
     @list.each {|bg| @binds += bg.data.take(@rows) }
     @key_names = @binds.map {|b| b.name || "" }
     @init_names = @key_names.dup
     @temp_names = @key_names.dup
+    @backdrop_color = Color.new(0, 0, 120)
     @back_color = Color.new(0, 0, 0, 120)
     @target_color = Color.new(255, 200, 80)
   end
 
-  def create_backdrop(fn)
-    case RGSS
-    when 1
-      dir = "Titles"
-    when 2
-      dir = "System"
-    else
-      dir = "Titles1"
+  def main
+    create_backdrop
+    create_heading
+    create_help
+    create_cursor
+    create_targets
+    place_cursor
+    setup_sprite_array
+    Graphics.transition
+    while @stage
+      Graphics.update
+      Input.update
+      update
     end
-    file = Dir["Graphics/#{dir}/#{fn}.*"][0]
-    fn = "" unless FileInt.exist?(file)
-    if fn.empty?
-      @backdrop.bitmap = Bitmap.new(Graphics.width, Graphics.height)
+    Graphics.freeze
+    terminate
+    process_key_bindings
+  end
+
+  def set_box_rows
+    case Graphics.height
+    when 416
+      @rows = 1
+    when 480..608
+      @rows = 2
+    when 720
+      @rows = 3
     else
-      @backdrop.bitmap = Cache.kb_backdrop(fn, RGSS).dup
+      @rows = 4
     end
   end
 
-  def create_sprites
-    gw = Graphics.width
+  def set_box_offset_y
+    case Graphics.height
+    when 480..500
+      @row_height = 36
+    else
+      @row_height = 40
+    end
+  end
+
+  def file_exist?(file)
+    File.exist?(file) or FileInt.exist?(file)
+  end
+
+  def create_backdrop
     @backdrop = Sprite.new
-    bd = @style.backdrop || ""
-    fn = bd + gw.to_s
-    create_backdrop(fn)
+    fn = @style.backdrop
+    b = Cache.kb_backdrop(fn).dup
+    if b.stub?
+      b.set_wh(*Graphics.dimensions)
+      b.fill_rect(:rect, @backdrop_color)
+    elsif Graphics.width > b.width or Graphics.height > b.height
+      temp = Bitmap.new(*Graphics.dimensions)
+      temp.stretch_blt(:rect, b, :rect)
+      b.dispose
+      b = temp
+    end
+    @backdrop.bitmap = b
+  end
+
+  def create_heading
     name = @name + " - " + HEADING
-    b = Cache.kb_picture(@picture, RGSS).dup
-    gb = Bitmap.new(gw - 16, 44)
-    gb.font.size = 32
-    gb.draw_text(54, 4, gb.width - 54, 36, name)
-    gb.blt(0, 0, b, b.rect)
+    b = Cache.kb_picture(@picture).dup
+    gb = Bitmap.new(@gw, 44)
+    gb.font.size = 34
+    gb.font.outline_size = 2
+    nw = gb.text_width(name) + 2
+    bx = (@gw - b.width - nw - 4) / 2
+    gb.draw_text(bx + 54, 4, nw, 36, name)
+    gb.blt(bx, 0, b, b.rect)
     @gp_label = Sprite.new
-    @gp_label.set_xy(8, 6)
+    @gp_label.y = 8
     @gp_label.bitmap = gb
+  end
+
+  def create_help
     help = @style.help
-    b = Cache.kb_picture(help, RGSS).dup
-    bx = (gw - b.width) / 2
+    b = Cache.kb_picture(help).dup
+    bx = (@gw - b.width) / 2
     @help_backdrop = Sprite.new
     @help_backdrop.set_xy(bx, 60)
     @help_backdrop.bitmap = b
-    @help_bit = Bitmap.new(gw, 32)
+    @help_bit = Bitmap.new(@gw, 32)
     @help_bit.font.size = 24
     @help_bit.draw_text(:rect, CHOOSE_KEY, 1)
     @help = Sprite.new
     @help.y = 60
     @help.z = 20
     @help.bitmap = @help_bit
+  end
+
+  def create_cursor
     @cursor = Sprite.new
     @cursor.z = 10
     cursor = @style.cursor
-    @cursor.bitmap = Cache.kb_picture(cursor, RGSS).dup
-    sw = gw / 206
-    ix = (gw - sw * 206) / 2
+    @cursor.bitmap = Cache.kb_picture(cursor).dup
+  end
+
+  def create_targets
     target = @style.target
-    b = Cache.kb_picture(target, RGSS).dup
+    tb = Cache.kb_picture(target).dup
+    kbw = 122
+    if @gw > 640
+      kbw = 126
+      temp = Bitmap.new(96, tb.height)
+      temp.stretch_blt(:rect, tb, :rect)
+      tb.dispose
+      tb = temp
+    end
+    tbw = tb.width
+    cw = tbw + kbw
+    sw = @gw / cw
+    sw = sw.clamp(2, 8)
+    ix = (@gw - sw * cw) / 2
     @key_max = TARGETS.size
     @key_max.times do |n|
-      sx = ix + n % sw * 206
-      sy = 108 + n / sw * @rows * 32
-      @backdrop.bitmap.blt(sx + 2, sy - 2, b, b.rect)
+      sx = ix + n % sw * cw
+      sy = 108 + n / sw * @rows * @row_height
+      @backdrop.bitmap.blt(sx + 2, sy - 2, tb, tb.rect)
       s = Sprite.new
       s.set_xyz(sx, sy, 20)
-      s.bitmap = Bitmap.new(80, 28)
+      s.bitmap = Bitmap.new(tbw, 28)
       s.bitmap.font.color = @target_color
       s.bitmap.draw_text(:rect, TARGETS[n], 1)
       @target_names << s
-      @rows.times {|i| create_button_box(sx + 84, sy + i * 32) }
+      @rows.times {|i| create_button_box(sx + tbw + 8, sy + i * @row_height) }
     end
-    s = @bind_names[0]
-    @cursor.set_xy(s.x - 4, s.y - 2)
-    b.dispose
-    @sprites += @target_names + @bind_names
-    @sprites += [@gp_label, @help, @cursor, @help_backdrop, @backdrop]
+    tb.dispose
   end
 
   def create_button_box(sx, sy)
@@ -229,20 +267,32 @@ class Scene
     @backdrop.bitmap.fill_rect(rect, @back_color)
   end
 
+  def place_cursor
+    s = @bind_names[0]
+    @cursor.set_xy(s.x - 4, s.y - 2)
+  end
+
+  def setup_sprite_array
+    @sprites += @target_names + @bind_names
+    @sprites += [@gp_label, @help, @cursor, @help_backdrop, @backdrop]
+  end
+
   def terminate
     @sprites.each do |s|
       s.bitmap.dispose
       s.dispose
     end
+  end
+
+  def process_key_bindings
     Graphics.block_f1 = false
-    @changes = @changes.flatten.compact
-    Input.save_key_bindings if @changes.empty?
+    Scripts.int_script_name = ""
+    Input.save_key_bindings if @changed
   end
 
   def update
     if Input.gamepad_updates.any?
       Input.gamepad_update
-      @changes.clear
       KChangeKeys.reset!
       return @stage = nil
     end
@@ -275,8 +325,9 @@ class Scene
     elsif Input.trigger?(:Right)
       update_cursor(1, 0)
       return
-    elsif Input.trigger?(:Delete)
+    elsif Input.trigger?(:Delete) or Input.trigger?(:A)
       Sound.play_buzzer
+      @gamepad.set_rumble(300, 300, 150)
       n = box_index
       bind = @binds[n]
       bind.value = 0
@@ -284,8 +335,7 @@ class Scene
       b = @bind_names[n].bitmap
       b.clear
       b.draw_text(:rect, "", 1)
-      @changes[n] = true
-      return
+      return @changed = true
     elsif Input.trigger?(:C)
       Sound.play_ok
       Input.keymap_mode!
@@ -327,6 +377,8 @@ class Scene
       return
     elsif Input.trigger_any?
       Sound.play_ok
+      @gamepad.set_rumble(300, 300, 150)
+      @changed = true
       case Input.trigger_type
       when 0
         @bind.value = 0
@@ -341,7 +393,6 @@ class Scene
       @bind_bit.clear
       @bind_bit.draw_text(:rect, name, 1)
       reset_help
-      @changes[n] = true
     end
   end
 end

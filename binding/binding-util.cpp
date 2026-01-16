@@ -21,7 +21,6 @@
 
 #include "binding-util.h"
 #include "sharedstate.h"
-#include "exception.h"
 #include "util.h"
 #include <stdarg.h>
 #include <string.h>
@@ -75,6 +74,32 @@ void raiseRbExc(const Exception &exc)
   RbData *data = getRbData();
   VALUE excClass = data->exc[excToRbExc[exc.type]];
   rb_raise(excClass, "%s", exc.msg.c_str());
+}
+
+void bitmap_exc(const Exception &exc)
+{
+  const char *msg = exc.msg.c_str();
+  RbData *data = getRbData();
+  VALUE hidden, scripts, str, klass, message, ary;
+  scripts = rb_define_module("Scripts");
+  scripts = rb_iv_get(scripts, "@int_script_name");
+  message = rb_str_new_cstr(msg);
+  klass = data->exc[excToRbExc[exc.type]];
+  klass = rb_funcall(klass, rb_intern("to_s"), 0);
+  hidden = rb_define_module("HiddenChest");
+  ary = rb_iv_get(hidden, "bitmap_error");
+  hidden = rb_str_new_cstr("Bitmap Error Type: ");
+  klass = rb_str_plus(hidden, klass);
+  str = rb_str_new_cstr("missing_bitmaps.log");
+  rb_ary_push(ary, str);
+  int n = RSTRING_LEN(scripts);
+  if (n > 0) {
+    str = rb_str_new_cstr("In Hidden Script ");
+    scripts = rb_str_plus(str, scripts);
+    rb_ary_push(ary, scripts);
+  }
+  rb_ary_push(ary, klass);
+  rb_ary_push(ary, message);
 }
 
 void raiseDisposedAccess(VALUE self)

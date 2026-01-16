@@ -254,9 +254,11 @@ Bitmap::Bitmap(const char *filename)
   BitmapOpenHandler handler;
   shState->fileSystem().openRead(handler, filename);
   SDL_Surface *imgSurf = handler.surf;
-  if (!imgSurf)
+  if (!imgSurf) {
+    SDL_FreeSurface(imgSurf);
     throw Exception(Exception::SDLError, "Error loading image '%s': %s",
                     filename, SDL_GetError());
+  }
   p->ensureFormat(imgSurf, SDL_PIXELFORMAT_ABGR8888);
   if (imgSurf->w > glState.caps.maxTexSize || imgSurf->h > glState.caps.maxTexSize) {
     // Mega surface

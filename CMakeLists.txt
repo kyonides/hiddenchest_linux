@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "-w -O0")
@@ -340,6 +340,7 @@ if (BINDING STREQUAL "MRI")
   set(BINDING_SOURCE
     binding/rgss.cpp
     binding/binding-util.cpp
+    binding/hcextras.cpp
     binding/game.cpp
     binding/table-binding.cpp
     binding/etc-binding.cpp

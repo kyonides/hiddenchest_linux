@@ -107,7 +107,7 @@ module Input
     end
 
     def name=(text)
-      @name = text.chomp
+      @name = text.capitalize.chomp
       refresh_type
       @name
     end
@@ -117,12 +117,12 @@ module Input
         clear_invalid
         return
       elsif @name[/F(\d+)/i]
-        if [1, 12].include?($1.to_i)
+        if [1, 2, 12].include?($1.to_i)
           clear_invalid
           return
         end
         self.type = 1
-        @symbol = @name.to_sym
+        @symbol = @name.capitalize.to_sym
         @value = BUTTON_CODES[@symbol]
         @scancode = BUTTON_SCANCODES[@value]
         return
@@ -131,6 +131,7 @@ module Input
         return
       elsif @name[/js (\d+)/i]
         self.type = 2
+        @name = @name.upcase
         @symbol = nil
         @value = $1.to_i
         @scancode = 0
@@ -280,8 +281,8 @@ module Input
   class KeyBindings
     DEFAULT = %w{Up Down Q R Left Right W T Shift Escape Return F G H}
     def initialize
-      @name = ""
-      @code = ""
+      @name = "Keyboard"
+      @code = KEYBOARD_GENERIC
       @version = 0
       @size = 14
       @list = Array.new(@size) { KeyBindingGroup.new }
@@ -301,12 +302,12 @@ module Input
 
   extend self
   attr_reader :bindings, :all_bindings
-  def self.load_init_bindings
+  def load_init_bindings
     @all_bindings = {}
     ext = Game.data_ext
     files = Dir[Game.glob_kb].sort
+    puts "Loading Bindings..."
     if files.any?
-      puts "Loading Bindings..."
       load_all_bindings(files)
     end
     codes = @all_bindings.map {|k,v| v.code }
@@ -315,7 +316,6 @@ module Input
       code = File.basename(file, "." + ext)
       next if codes.include?(code)
       fn = "#{code}.#{ext}"
-      puts "Moving #{fn} to User's Game Files Directory..."
       FileUtils.mv(file, Game.bindings_path(code))
       load_bindings(code)
       codes << code
@@ -326,7 +326,6 @@ module Input
         code = File.basename(fn, ".ini")
         next if codes.include?(code)
         parse_bindings(fn, code)
-        puts "Saving New #{code} Binding..."
         save_bindings(code)
       end
     end
@@ -339,19 +338,19 @@ module Input
     end
   end
 
-  def self.play_mode!
+  def play_mode!
     self.text_input = 0
   end
 
-  def self.text_mode!
+  def text_mode!
     self.text_input = 1
   end
 
-  def self.keymap_mode!
+  def keymap_mode!
     self.text_input = 2
   end
 
-  def self.mode
+  def mode
     case @text_input
     when 0
       "Play Mode"
@@ -362,21 +361,20 @@ module Input
     end
   end
 
-  def self.save_key_bindings
+  def save_key_bindings
     reset_sdl_bindings
     save_new_bindings
   end
 
-  def self.update
+  def update
     update_internal
     update_gamepad_state
-    update_settings_state
   rescue => e
     puts e.full_message
   end
 
   private
-  def self.update_gamepad_state
+  def update_gamepad_state
     if trigger?(:F1) and !Graphics.block_f1
       Sound.play_ok
       KChangeKeys.open!
@@ -400,42 +398,36 @@ module Input
     end
   end
 
-  def self.update_settings_state
-    return unless gamepad_bindings_change?
-    reset_ruby_bindings
-    save_new_bindings
-  end
-
-  def self.save_new_bindings
+  def save_new_bindings
     save_bindings(@gamepad.internal_name)
   end
 
-  def self.setup_gamepad
+  def setup_gamepad
     list = gamepad_basic_values
     list << true
     @gamepad = Gamepad.new(*list)
     reset_bindings
   end
 
-  def self.reset_gamepad
+  def reset_gamepad
     name = Gamepad::DEFAULT_NAME
     @gamepad = Gamepad.new(name, 0, 0, -1, false, false)
     reset_bindings
   end
 
-  def self.reset_bindings
+  def reset_bindings
     code = @gamepad.internal_name.to_sym
-    @bindings = @all_bindings[code] || KeyBindings.new
+    @bindings = @all_bindings[code]
     gamepad_clear_change
     reset_sdl_bindings
   end
 
-  def self.process_target_button(line)
+  def process_target_button(line)
     line.sub!(/(\w+)\s?=\s?/i, "")
     $1
   end
 
-  def self.parse_bindings(fn, code)
+  def parse_bindings(fn, code)
     lines = File.readlines(fn)
     heading = lines.shift
     unless heading[/header/i]
@@ -468,9 +460,7 @@ module Input
       end
       names = line.split(",")
       names = names.take(slot_max)
-      while names.size < slot_max
-        names << ""
-      end
+      names << "" while names.size < slot_max
       slot_max.times do |n|
         b = group[n]
         b.index = n
@@ -480,37 +470,33 @@ module Input
     @all_bindings[code.to_sym] = bind
   end
 
-  def self.parsing_kb_error(code, reason)
+  def parsing_kb_error(code, reason)
     puts "Failed to parse #{code}.ini, reason: #{reason}."
   end
 
-  def self.load_all_bindings(files)
+  def load_all_bindings(files)
     files.each do |fn|
       code = File.basename(fn, "." + Game.data_ext)
       load_bindings(code)
     end
   end
 
-  def self.save_bindings(code)
+  def save_bindings(code)
     file = Game.bindings_path(code)
-    binds = @all_bindings[code.to_sym]
+    sym = code.to_sym
+    if @all_bindings.key?(sym)
+      binds = @all_bindings[sym]
+    else
+      binds = @bindings || KeyBindings.new
+      @all_bindings[sym] = binds
+    end
     binds.update_active
-    save_data(file, binds)
+    Game.save_data(file, binds)
   end
 
-  def self.load_bindings(code)
+  def load_bindings(code)
     file = Game.bindings_path(code)
-    @all_bindings[code.to_sym] = load_data(file)
-  end
-
-  def self.save_data(fn, obj)
-    File.open(fn, "wb") {|f| Marshal.dump(obj, f) }
-  end
-
-  def self.load_data(fn)
-    obj = nil
-    File.open(fn, "rb") {|f| obj = Marshal.load(f) }
-    obj
+    @all_bindings[code.to_sym] = Game.load_data(file)
   end
 end
 
@@ -528,7 +514,7 @@ module Game
   attr_reader :soundfont, :soundfonts, :env_dir, :user_dir, :user_path
   attr_reader :bind_dir, :bind_path
   attr_accessor :save_filename, :setup_screen
-  def self.clear
+  def clear
     @shot_formats = ["jpg", "png"]
     @shot_format = "jpg"
     @shot_dir = "Screenshots"
@@ -542,44 +528,44 @@ module Game
     @show_splash = false
   end
 
-  def self.make_path(*args)
+  def make_path(*args)
     args.join("/")
   end
 
-  def self.data_ext
+  def data_ext
     DATA_EXT[RGSS_VERSION]
   end
 
-  def self.glob_init_kb
+  def glob_init_kb
     "Input/*." + data_ext
   end
 
-  def self.glob_kb
+  def glob_kb
     @bind_path + "/*." + data_ext
   end
 
-  def self.bindings_path(code)
+  def bindings_path(code)
     @bind_path + "/#{code}." + data_ext
   end
 
-  def self.save_dir=(dir)
+  def save_dir=(dir)
     @save_path = make_path(@user_path, dir)
     @save_dir = dir
   end
 
-  def self.init_size
+  def init_size
     [WIDTH, HEIGHT]
   end
 
-  def self.normal_size?
+  def normal_size?
     (WIDTH >= 320 && HEIGHT >= 240)
   end
 
-  def self.change_size?
+  def change_size?
     (WIDTH != START_WIDTH || HEIGHT != START_HEIGHT)
   end
 
-  def self.process_exe_name(list)
+  def process_exe_name(list)
     version = 0
     5.times do |n|
       if File.exist?(EXE_BASE_NAME + "." + list[n])
@@ -589,18 +575,18 @@ module Game
     return version
   end
 
-  def self.find_encrypted_ext(ext)
+  def find_encrypted_ext(ext)
     File.exist?(EXE_BASE_NAME + "." + ext)? 4 : 0
   end
 
-  def self.set_exe_ini_names
+  def set_exe_ini_names
     exe_name = RAW_EXE_NAME.gsub(/\.\//, "")
     const_set("EXE_NAME", exe_name)
     const_set("EXE_BASE_NAME", exe_name.sub(/\.\w*/i, ""))
     const_set("INI_FILENAME", EXE_BASE_NAME + ".ini")
   end
     
-  def self.process_main_ini
+  def process_main_ini
     begin
       lines = File.readlines(INI_FILENAME)
     rescue => e
@@ -609,29 +595,24 @@ module Game
     end
     lines.size.times do |n|
       line = lines.shift
-      if line[0, 1] == ";"
-        next
-      end
+      next if line[0, 1] == ";"
       key, value = line.split(/[\s]{0,}=[\s]{0,}/i)
-      if !key
-        next
-      end
+      next unless key
       value = !value ? "" : value.chomp
       if key[/RTP/i] != nil
-        if value.size > 1
-          RTP << value
-        end
+        RTP << value.chomp
       else
         DATA[key] = value
       end
     end
+    RTP.delete("")
   end
 
-  def self.add_soundfonts(dir)
+  def add_soundfonts(dir)
     @soundfonts += Dir[dir + SOUNDFONT_REGEX].sort
   end
 
-  def self.set_basic_values
+  def set_basic_values
     if System.windows?
       default = DATA["SoundFontWin"].to_s
       sf_dir = DATA["SoundFontPathWin"].to_s
@@ -724,7 +705,7 @@ module Game
     Font.solid_fonts = DATA["SolidFonts"].to_s[/true/i] != nil
   end
 
-  def self.create_user_dirs
+  def create_user_dirs
     company = DATA["Company"].gsub(" ", "")
     company_dir = make_path(@env_dir, company)
     if !company.empty? and !Dir.exist?(company_dir)
@@ -743,15 +724,15 @@ module Game
     puts e.full_message
   end
 
-  def self.soundfont_index
+  def soundfont_index
     @soundfonts.index(@soundfont)
   end
 
-  def self.custom_scene_file
+  def custom_scene_file
     SCENE_SCRIPT + SCENE_SCRIPT_EXT
   end
 
-  def self.setup_custom_scene
+  def setup_custom_scene
     @show_splash = DATA.delete("ShowSplash").to_s[/true/i] != nil
     if FileInt.exist?(SCENE_SCRIPT + ".rb")
       lines = File.binread(SCENE_SCRIPT + ".rb")
@@ -761,7 +742,7 @@ module Game
     end
   end
 
-  def self.setup
+  def setup
     set_exe_ini_names
     process_main_ini
     set_basic_values
@@ -771,6 +752,16 @@ module Game
       Graphics.wait(10)
     end
     $scene = nil
+  end
+
+  def save_data(fn, obj)
+    File.open(fn, "wb") {|f| Marshal.dump(obj, f) }
+  end
+
+  def load_data(fn)
+    obj = nil
+    File.open(fn, "rb") {|f| obj = Marshal.load(f) }
+    obj
   end
 
 class SplashScene

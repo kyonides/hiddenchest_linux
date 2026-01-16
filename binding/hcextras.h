@@ -50,41 +50,11 @@ static VALUE hc_sym2(VALUE str)
   return rb_id2sym(rb_intern_str(str));
 }
 
-static VALUE print_out(int total, ...)
-{
-  VALUE line;
-  va_list list;
-  va_start(list, total);
-  try {
-    for (int n = 0; n < total; n++) {
-      const char* cstr = va_arg(list, const char*);
-      line = rb_str_new_cstr(cstr);
-      rb_io_write(rb_stdout, line);
-      rb_io_write(rb_stdout, rb_default_rs);
-    }
-  } catch (Exception &e) {
-    raiseRbExc(e);
-  }
-  va_end(list);
-  return Qnil;
-}
+VALUE print_out(int total, ...);
 
-static void rb_print(int total, ...)
-{
-  VALUE line;
-  va_list list;
-  va_start(list, total);
-  try {
-    for (int n = 0; n < total; n++) {
-      line = va_arg(list, VALUE);
-      rb_io_write(rb_stdout, line);
-      rb_io_write(rb_stdout, rb_default_rs);
-    }
-  } catch (Exception &e) {
-    raiseRbExc(e);
-  }
-  va_end(list);
-}
+void rb_print(int total, ...);
+
+void print_file(int size, VALUE error);
 
 void safe_mkdir(VALUE dir);
 

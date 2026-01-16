@@ -29,6 +29,8 @@
 #include "binding-types.h"
 #include "debugwriter.h"
 
+VALUE hidden;
+
 DEF_TYPE(Bitmap);
 
 static const char *objAsStringPtr(VALUE obj)
@@ -49,28 +51,36 @@ void bitmapInitProps(Bitmap *b, VALUE self)
 
 static VALUE bitmapInitialize(int argc, VALUE* argv, VALUE self)
 {
+  rb_iv_set(self, "stub", Qfalse);
   Bitmap *b = 0;
   switch (argc)
   {
   case 0:
-    GUARD_EXC( b = new Bitmap(1); )
+    bitmap_try( b = new Bitmap(1); );
     break;
   case 1:
-    GUARD_EXC( b = new Bitmap(RSTRING_PTR(argv[0])); )
+    bitmap_try( b = new Bitmap(RSTRING_PTR(argv[0])); );
     break;
   default:
     VALUE arg1 = argv[0];
     VALUE arg2 = argv[1];
     if (RB_NIL_P(arg2)) {
-      GUARD_EXC( b = new Bitmap(RSTRING_PTR(arg1), -1); )
+      bitmap_try( b = new Bitmap(RSTRING_PTR(arg1), -1); );
     } else if (!FIXNUM_P(arg1) && FIXNUM_P(arg2)) {
       int pos = RB_FIX2INT(arg2);
-      GUARD_EXC( b = new Bitmap(RSTRING_PTR(arg1), pos); )
+      bitmap_try( b = new Bitmap(RSTRING_PTR(arg1), pos); );
     } else {
       int width = RB_FIX2INT(arg1);
       int height = RB_FIX2INT(arg2);
-      GUARD_EXC( b = new Bitmap(width, height); )
+      bitmap_try( b = new Bitmap(width, height););
     }
+  }
+  VALUE error = rb_iv_get(hidden, "bitmap_error");
+  int n = RARRAY_LEN(error);
+  if (n > 0) {
+    print_file(n, error);
+    rb_iv_set(self, "stub", Qtrue);
+    bitmap_try( b = new Bitmap(32, 32); );
   }
   RTYPEDDATA_DATA(self) = b;
   bitmapInitProps(b, self);
@@ -92,6 +102,11 @@ static VALUE bitmapInitializeCopy(int argc, VALUE* argv, VALUE self)
   setPrivateData(self, b);
   rb_iv_set(self, "disposed", Qfalse);
   return self;
+}
+
+static VALUE bitmap_is_stub(VALUE self)
+{
+  return rb_iv_get(self, "stub");
 }
 
 inline void bitmapDisposeChildren(VALUE disp)
@@ -141,6 +156,15 @@ static VALUE bitmapHeight(VALUE self)
   return RB_INT2FIX(value);
 }
 
+static VALUE bitmap_set_wh(VALUE self, VALUE bw, VALUE bh)
+{
+  VALUE bitmap, argv[1];
+  bitmap = rb_define_class("Bitmap", rb_cObject);
+  argv[0] = rb_funcall(bitmap, rb_intern("new"), 2, bw, bh);
+  bitmapInitializeCopy(1, argv, self);
+  return self;
+}
+
 static VALUE bitmapRect(VALUE self)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
@@ -174,19 +198,24 @@ RB_METHOD(bitmapBlt)
   return self;
 }
 
-RB_METHOD(bitmapStretchBlt)
+static VALUE bitmap_stretch_blt(int argc, VALUE* argv, VALUE self)
 {
+  if (argc < 3)
+    return self;
+  int opacity = argc == 4 ? argv[3] : 255;
+  VALUE drect = argv[0], bsrc = argv[1], srect = argv[2];
+  VALUE rectsym = hc_sym("rect");
   Bitmap *b = getPrivateData<Bitmap>(self);
-  VALUE destRectObj;
-  VALUE srcObj;
-  VALUE srcRectObj;
-  int opacity = 255;
-  Bitmap *src;
+  Bitmap *src = getPrivateDataCheck<Bitmap>(bsrc, BitmapType);
   Rect *destRect, *srcRect;
-  rb_get_args(argc, argv, "ooo|i", &destRectObj, &srcObj, &srcRectObj, &opacity RB_ARG_END);
-  src = getPrivateDataCheck<Bitmap>(srcObj, BitmapType);
-  destRect = getPrivateDataCheck<Rect>(destRectObj, RectType);
-  srcRect = getPrivateDataCheck<Rect>(srcRectObj, RectType);
+  if (drect == rectsym)
+    destRect = bitmap_c_rect(self);
+  else
+    destRect = getPrivateDataCheck<Rect>(drect, RectType);
+  if (srect == rectsym)
+    srcRect = bitmap_c_rect(bsrc);
+  else
+    srcRect = getPrivateDataCheck<Rect>(srect, RectType);
   GUARD_EXC( b->stretchBlt(destRect->toIntRect(), *src, srcRect->toIntRect(), opacity); );
   return self;
 }
@@ -489,7 +518,11 @@ static VALUE bitmap_write(int argc, VALUE* argv, VALUE self)
 
 void bitmapBindingInit()
 {
-  VALUE klass = rb_define_class("Bitmap", rb_cObject);
+  VALUE error, klass;
+  hidden = rb_define_module("HiddenChest");
+  error = rb_ary_new();
+  rb_iv_set(hidden, "bitmap_error", error);
+  klass = rb_define_class("Bitmap", rb_cObject);
   rb_define_alloc_func(klass, classAllocate<&BitmapType>);
   rb_define_method(klass, "disposed?", RMF(bitmap_is_disposed), 0);
   rb_define_method(klass, "dispose", RMF(bitmapDispose), 0);
@@ -497,11 +530,13 @@ void bitmapBindingInit()
     rb_define_alias(klass, "_HC_dispose_alias", "dispose");
   rb_define_method(klass, "initialize", RMF(bitmapInitialize), -1);
   rb_define_method(klass, "initialize_copy", RMF(bitmapInitializeCopy), -1);
+  rb_define_method(klass, "stub?", RMF(bitmap_is_stub), 0);
   rb_define_method(klass, "width", RMF(bitmapWidth), 0);
   rb_define_method(klass, "height", RMF(bitmapHeight), 0);
+  rb_define_method(klass, "set_wh", RMF(bitmap_set_wh), 2);
   rb_define_method(klass, "rect", RMF(bitmapRect), 0);
   rb_define_method(klass, "blt", RMF(bitmapBlt), -1);
-  rb_define_method(klass, "stretch_blt", RMF(bitmapStretchBlt), -1);
+  rb_define_method(klass, "stretch_blt", RMF(bitmap_stretch_blt), -1);
   rb_define_method(klass, "fill_rect", RMF(bitmap_fill_rect), -1);
   rb_define_method(klass, "clear", RMF(bitmapClear), 0);
   rb_define_method(klass, "alpha_pixel?", RMF(bitmap_is_alpha_pixel), 2);

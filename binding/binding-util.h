@@ -53,6 +53,7 @@ RbData *getRbData();
 struct Exception;
 
 void raiseRbExc(const Exception &exc);
+void bitmap_exc(const Exception &exc);
 
 #define DECL_TYPE(Klass) \
 	extern rb_data_type_t Klass##Type
@@ -169,6 +170,9 @@ _rb_define_module_function(VALUE module, const char *name, RubyMethod func)
 
 #define GUARD_EXC(exp) \
 { try { exp } catch (const Exception &exc) { raiseRbExc(exc); } }
+
+#define bitmap_try(exp) \
+{ try { exp } catch (const Exception &exc) { bitmap_exc(exc); } }
 
 template<class C>
 static inline VALUE

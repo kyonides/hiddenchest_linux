@@ -135,105 +135,6 @@ static void gamepad_set_sdl_bound_values(VALUE list, int total, BDescVec &bind)
   }
 }
 
-static int get_target_button_index(int target)
-{
-  int n = -1;
-  for (; n < target_buttonsN; ++n)
-    if (target_buttons[n] == target)
-      break;
-  return n;
-}
-
-static void gamepad_set_rb_bound_values(VALUE input, VALUE list,
-                                        int total, BDescVec &bind)
-{
-  BindingDesc b;
-  AxisDir ad;
-  SDL_Scancode s;
-  int type, o, old_target, target = -1, pos = 0;
-  VALUE bg, data, kb, cb, sb, sc, kn, key, name, sym, fix, val;
-  cb = rb_const_get(input, rb_intern("CODE_BUTTONS"));
-  sb = rb_const_get(input, rb_intern("SCANCODE_BUTTONS"));
-  kn = rb_const_get(input, rb_intern("KEY2NAME"));
-  for (int n = 0; n < total; n++) {
-    b = bind.at(n);
-    old_target = target;
-    target = b.target;
-    bg = rb_ary_entry(list, n / 4);
-    data = rb_iv_get(bg, "@data");
-    pos = (target == old_target)? pos + 1 : 0;
-    kb = rb_ary_entry(data, pos);
-    type = b.src.type;
-    rb_funcall(kb, rb_intern("type="), 1, RB_INT2FIX(type));
-    switch (type)
-    {
-    case Invalid:
-      rb_funcall(kb, rb_intern("clear_invalid"), 0);
-      continue;
-    case Key:
-      s = b.src.d.scan;
-      sc = RB_INT2FIX(s);
-      key = rb_hash_aref(sb, sc);
-      name = rb_hash_aref(kn, key);
-      sym = rb_funcall(name, rb_intern("sub"), 2, rstr(" "), rstr(""));
-      sym = rb_any_to_s(sym);
-      val = rb_hash_aref(sb, sc);
-      rb_iv_set(kb, "@name", name);
-      rb_iv_set(kb, "@symbol", sym);
-      rb_iv_set(kb, "@value", val);
-      rb_iv_set(kb, "@scancode", sc);
-      rb_iv_set(kb, "@dir", ZERO);
-      continue;
-    case JButton:
-      o = b.src.d.jb;
-      sc = RB_INT2FIX(o);
-      fix = rb_funcall(sc, rb_intern("to_s"), 0);
-      name = rstr("JS ");
-      name = rb_str_plus(name, fix);
-      rb_iv_set(kb, "@name", name);
-      rb_iv_set(kb, "@symbol", Qnil);
-      rb_iv_set(kb, "@value", sc);
-      rb_iv_set(kb, "@scancode", ZERO);
-      continue;
-    case JAxis:
-      ad = b.src.d.ja.dir;
-      val = ad == Positive ? ONE : ZERO;
-      sc = RB_INT2FIX(b.src.d.ja.axis);
-      fix = rb_funcall(sc, rb_intern("to_s"), 0);
-      name = rstr("Axis ");
-      name = rb_str_plus(name, fix);
-      fix = ad == Positive ? rstr("+") : rstr("-");
-      name = rb_str_plus(name, fix);
-      rb_iv_set(kb, "@name", name);
-      rb_iv_set(kb, "@symbol", Qnil);
-      rb_iv_set(kb, "@value", sc);
-      rb_iv_set(kb, "@dir", val);
-      continue;
-    case JHat:
-      sc = RB_INT2FIX(b.src.d.jh.hat);
-      fix = rb_funcall(sc, rb_intern("to_s"), 0);
-      name = rstr("Hat ");
-      name = rb_str_plus(name, fix);
-      name = rb_str_plus(name, rstr(":"));
-      o = b.src.d.jh.pos;
-      if (o == 1)
-        fix = rstr("U");
-      else if (o == 2)
-        fix = rstr("R");
-      else if (o == 4)
-        fix = rstr("D");
-      else
-        fix = rstr("L");
-      name = rb_str_plus(name, fix);
-      rb_iv_set(kb, "@name", name);
-      rb_iv_set(kb, "@symbol", Qnil);
-      rb_iv_set(kb, "@value", sc);
-      rb_iv_set(kb, "@dir", val);
-      continue;
-    }
-  }
-}
-
 static VALUE input_reset_sdl_bindings(VALUE self)
 {
   BDescVec bind;
@@ -243,19 +144,6 @@ static VALUE input_reset_sdl_bindings(VALUE self)
   int total = RARRAY_LEN(list);
   gamepad_set_sdl_bound_values(list, total, bind);
   shState->rtData().bindingUpdateMsg.post(bind);
-  return Qtrue;
-}
-
-static VALUE input_reset_rb_bindings(VALUE self)
-{
-  VALUE list;
-  BDescVec bind;
-  shState->rtData().bindingUpdateMsg.get(bind);
-  int total = bind.size();
-  list = rb_iv_get(self, "@bindings");
-  list = rb_iv_get(list, "@list");
-  gamepad_set_rb_bound_values(self, list, total, bind);
-  shState->rtData().modify_settings = false;
   return Qtrue;
 }
 
@@ -605,11 +493,6 @@ static VALUE input_gamepad_clear_change(VALUE self)
   return ZERO;
 }
 
-static VALUE input_sdl_bindings_change()
-{
-  return shState->rtData().modify_settings ? Qtrue : Qfalse;
-}
-
 static VALUE input_gamepad_update(VALUE self)
 {
   VALUE state = rb_iv_get(self, "@gamepad_updates");
@@ -783,7 +666,6 @@ void inputBindingInit()
   module_func(input, "total_gamepads", input_total_gamepads, 0);
   module_func(input, "gamepad_change?", input_gamepad_change, 0);
   module_func(input, "gamepad_clear_change", input_gamepad_clear_change, 0);
-  module_func(input, "gamepad_bindings_change?", input_sdl_bindings_change, 0);
   module_func(input, "gamepad_update", input_gamepad_update, 0);
   module_func(input, "gamepad_updates", input_gamepad_updates, 0);
   module_func(input, "gamepad_close!", input_gamepad_close, 0);
@@ -791,7 +673,6 @@ void inputBindingInit()
   module_func(input, "gamepad_reset!", input_gamepad_reset, 0);
   module_func(input, "gamepad_basic_values", input_gamepad_basic_values, 0);
   module_func(input, "reset_sdl_bindings", input_reset_sdl_bindings, 0);
-  module_func(input, "reset_ruby_bindings", input_reset_rb_bindings, 0);
   module_func(input, "dir4", inputDir4, 0);
   module_func(input, "dir8", inputDir8, 0);
   module_func(input, "dir4?", input_is_dir4, 0);
@@ -799,7 +680,6 @@ void inputBindingInit()
   module_pfunc(input_meta, "text_input=", input_text_input_set, 1);
   module_pfunc(input_meta, "gamepad_basic_values", input_gamepad_basic_values, 0);
   module_pfunc(input_meta, "reset_sdl_bindings", input_reset_sdl_bindings, 0);
-  module_pfunc(input_meta, "reset_ruby_bindings", input_reset_rb_bindings, 0);
   VALUE key, val, hash = rb_hash_new();
   const char *tmp;
   for (size_t i = 0; i < button_scancodesN; ++i) {
