@@ -426,6 +426,7 @@ static const BString other_button_strings[] =
   { Input::Shift,          "Shift"      },
   { Input::LeftShift,      "Shift"      },
   { Input::RightShift,     "Shift"      },
+  { Input::Space,          "Space"      },
   { Input::Period,         "Period"     },
   { Input::NumPadDot,      "NumPad Dot" },
   { Input::NumPad1,        "NumPad 1"   },
