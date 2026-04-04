@@ -254,7 +254,6 @@ module Input
 
   class KeyBindingGroup
     def initialize
-      @name = "?"
       @target = 0
       @data = Array.new(4) { KeyBinding.new }
     end
@@ -275,7 +274,7 @@ module Input
     def active_bindings
       @data.inject(0) {|t, b| t + b.state }
     end
-    attr_accessor :name, :target
+    attr_accessor :target
   end
 
   class KeyBindings
@@ -286,11 +285,10 @@ module Input
       @version = 0
       @size = 14
       @list = Array.new(@size) { KeyBindingGroup.new }
-      @size.times {|n| @list[n].data[0].name = DEFAULT[n] }
     end
 
     def list
-      @list[0..14]
+      @list[0...14]
     end
 
     def update_active
@@ -393,7 +391,11 @@ module Input
         setup_gamepad
       else
         @gamepad_updates << :remove
-        reset_gamepad
+        begin
+          reset_gamepad
+        rescue => e
+          puts e.full_message
+        end
       end
     end
   end
@@ -453,11 +455,6 @@ module Input
       line = lines.shift
       group = bind.list[n]
       group.target = n
-      group.name = process_target_button(line)
-      if group.name.empty?
-        parsing_kb_error(code, "missing target button name in line #{n + 3}")
-        return
-      end
       names = line.split(",")
       names = names.take(slot_max)
       names << "" while names.size < slot_max

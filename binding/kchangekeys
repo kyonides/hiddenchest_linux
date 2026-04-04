@@ -1,9 +1,9 @@
 # * KChangeKeys HC * #
-#   v1.0.7 - 2026-01-15
+#   v1.0.8 - 2026-04-03
 
 module KChangeKeys
   RGSS = Game::RGSS_VERSION
-  MIN_VERSION = "HiddenChest 1.2.07+"
+  MIN_VERSION = "HiddenChest 1.2.09+"
   KEYBOARD = "Keyboard"
   HEADING = "Key Bindings"
   CHOOSE_KEY = "Please select a key to edit"
@@ -14,8 +14,11 @@ module KChangeKeys
   @style = nil
 
 class Style
+  def initialize
+    @key_names = TARGETS.dup
+  end
   attr_accessor :backdrop, :cursor, :gamepad, :help
-  attr_accessor :keyboard, :target
+  attr_accessor :keyboard, :key_names, :target
 end
 
   extend self
@@ -52,12 +55,12 @@ end
   end
 
   default = Style.new
-  default.backdrop = "kb_backdrop"
-  default.gamepad  = "gamepad_black_add"
-  default.keyboard = "keyboard_black"
-  default.help     = "kb_help_bar"
-  default.target   = "kb_target"
-  default.cursor   = "kb_cursor"
+  default.backdrop  = "kb_backdrop"
+  default.gamepad   = "gamepad_black_add"
+  default.keyboard  = "keyboard_black"
+  default.help      = "kb_help_bar"
+  default.target    = "kb_target"
+  default.cursor    = "kb_cursor"
   STYLES[nil] = default
 end
 
@@ -237,6 +240,7 @@ class Scene
     sw = @gw / cw
     sw = sw.clamp(2, 8)
     ix = (@gw - sw * cw) / 2
+    names = @style.key_names
     @key_max = TARGETS.size
     @key_max.times do |n|
       sx = ix + n % sw * cw
@@ -246,7 +250,7 @@ class Scene
       s.set_xyz(sx, sy, 20)
       s.bitmap = Bitmap.new(tbw, 28)
       s.bitmap.font.color = @target_color
-      s.bitmap.draw_text(:rect, TARGETS[n], 1)
+      s.bitmap.draw_text(:rect, names[n], 1)
       @target_names << s
       @rows.times {|i| create_button_box(sx + tbw + 8, sy + i * @row_height) }
     end

@@ -138,7 +138,7 @@ static void gamepad_set_sdl_bound_values(VALUE list, int total, BDescVec &bind)
 static VALUE input_reset_sdl_bindings(VALUE self)
 {
   BDescVec bind;
-  VALUE list, rgss, kb_gen_code;
+  VALUE list;
   list = rb_iv_get(self, "@bindings");
   list = rb_iv_get(list, "@list");
   int total = RARRAY_LEN(list);
