@@ -71,6 +71,9 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
   Vec2 aniOffset;
   FlashMap flashMap;
   uint8_t flashAlphaIdx;
+  int tile_zoom;
+  int tsize;
+  int autotiles_speed;
   bool atlasDirty;
   bool buffersDirty;
   bool mapViewportDirty;
@@ -105,6 +108,8 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
     aboveQuads(0),
     frameIdx(0),
     flashAlphaIdx(0),
+    tile_zoom(100),
+    tsize(32),
     atlasDirty(true),
     buffersDirty(false),
     mapViewportDirty(false),
@@ -159,16 +164,16 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
     IntRect newMvp;
     const Vec2i combOrigin = origin + sceneGeo.orig;
     const Vec2i geoSize = sceneGeo.rect.size();
-    newMvp.setPos(getTilePos(combOrigin) - Vec2i(0, 1));
+    newMvp.setPos(getTilePos(combOrigin, tsize) - Vec2i(0, 1));
     /* Ensure that the size is big enough to cover the whole viewport,
      * and add one tile row/column as a buffer for scrolling */
-    newMvp.setSize((geoSize / 32) + !!(geoSize % 32) + Vec2i(1, 2));
+    newMvp.setSize((geoSize / tsize) + !!(geoSize % tsize) + Vec2i(1, 2));
     if (newMvp != mapViewp) {
       mapViewp = newMvp;
       flashMap.setViewport(newMvp);
       buffersDirty = true;
     }
-    dispPos = sceneGeo.rect.pos() - wrap(combOrigin, 32) - Vec2i(0, 32);
+    dispPos = sceneGeo.rect.pos() - wrap(combOrigin, tsize) - Vec2i(0, tsize);
   }
 
   static size_t quadBytes(size_t quads)
@@ -178,7 +183,8 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 
   void rebuildBuffers()
   {
-    if (!mapData) return;
+    if (!mapData)
+      return;
     groundVert.clear();
     aboveVert.clear();
     TileAtlasVX::readTiles(*this, *mapData, flags,
@@ -197,9 +203,13 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
     shState->ensureQuadIBO(totalQuads);
   }
 
+  void update_autotiles_index() {}
+  // { tiles.aniIdx += autotiles_speed;  }
+
   void prepare()
   {
-    if (!mapData) return;
+    if (!mapData)
+      return;
     if (atlasDirty) {
       rebuildAtlas();
       atlasDirty = false;
@@ -231,7 +241,8 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 
   void drawGround()
   {
-    if (groundQuads == 0) return;
+    if (groundQuads == 0)
+      return;
     ShaderBase *shader;
     if (!nullOrDisposed(bitmaps[BM_A1])) {// Animated tileset
       TilemapVXShader &tmShader = shState->shaders().tilemapVX;
@@ -294,9 +305,10 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 
 void TilemapVX::BitmapArray::set(int i, Bitmap *bitmap)
 {
-  if (!p) return;
-  if (i < 0 || i >= BM_COUNT) return;
-  if (p->bitmaps[i] == bitmap) return;
+  if (!p || i < 0 || i >= BM_COUNT)
+    return;
+  if (p->bitmaps[i] == bitmap)
+    return;
   p->bitmaps[i] = bitmap;
   p->atlasDirty = true;
   p->bmChangedCons[i].disconnect();
@@ -309,8 +321,8 @@ void TilemapVX::BitmapArray::set(int i, Bitmap *bitmap)
 
 Bitmap *TilemapVX::BitmapArray::get(int i) const
 {
-  if (!p) return 0;
-  if (i < 0 || i >= BM_COUNT) return 0;
+  if (!p || i < 0 || i >= BM_COUNT)
+    return 0;
   return p->bitmaps[i];
 }
 
@@ -328,7 +340,7 @@ TilemapVX::~TilemapVX()
 void TilemapVX::update()
 {
   guardDisposed();
-  /* Animate tiles */
+  // Animate tiles
   if (++p->frameIdx >= 30*3*4) p->frameIdx = 0;
   const uint8_t aniIndicesA[3*4] =
       { 0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1 };
@@ -337,7 +349,7 @@ void TilemapVX::update()
   uint8_t aniIdxA = aniIndicesA[p->frameIdx / 30];
   uint8_t aniIdxC = aniIndicesC[p->frameIdx / 30];
   p->aniOffset = Vec2(aniIdxA * 2 * 32, aniIdxC * 32);
-  /* Animate flash */
+  // Animate flash
   if (++p->flashAlphaIdx >= flashAlphaN) p->flashAlphaIdx = 0;
 }
 
@@ -421,6 +433,22 @@ void TilemapVX::setOY(int value)
   if (p->origin.y == value) return;
   p->origin.y = value;
   p->mapViewportDirty = true;
+}
+
+void TilemapVX::set_tile_zoom(int value)
+{
+  p->tile_zoom = value;
+  p->tsize = value * 32 / 100;
+}
+
+void TilemapVX::set_autotiles_speed(int value)
+{
+  p->autotiles_speed = clamp(1, value, 4);
+}
+
+int TilemapVX::get_autotiles_speed()
+{
+  return p->autotiles_speed;
 }
 
 void TilemapVX::releaseResources()

@@ -32,43 +32,41 @@
 #include "vertex.h"
 #include "quad.h"
 #include "etc-internal.h"
-
 #include <stdint.h>
 #include <assert.h>
 #include <vector>
-
 #include <sigc++/connection.h>
 
 static inline int
 wrap(int value, int range)
 {
-	int res = value % range;
-	return res < 0 ? res + range : res;
+  int res = value % range;
+  return res < 0 ? res + range : res;
 }
 
 static inline Vec2i
 wrap(const Vec2i &value, int range)
 {
-	return Vec2i(wrap(value.x, range),
-	             wrap(value.y, range));
+  return Vec2i(wrap(value.x, range),
+               wrap(value.y, range));
 }
 
 static inline int16_t
 tableGetWrapped(const Table &t, int x, int y, int z = 0)
 {
-	return t.get(wrap(x, t.xSize()),
-	             wrap(y, t.ySize()),
-	             z);
+  return t.get(wrap(x, t.xSize()),
+               wrap(y, t.ySize()),
+               z);
 }
 
 /* Calculate the tile x/y on which this pixel x/y lies */
 static inline Vec2i
-getTilePos(const Vec2i &pixelPos)
+getTilePos(const Vec2i &pixelPos, int tile_size)
 {
-	/* Round the pixel position down to the nearest top left
-	 * tile boundary, by masking off the lower 5 bits (2^5 = 32).
-	 * Then divide by 32 to convert into tile units. */
-	return (pixelPos & ~(32-1)) / 32;
+  /* Round the pixel position down to the nearest top left
+   * tile boundary, by masking off the lower 5 bits (2^5 = 32).
+   * Then divide by 32 to convert into tile units. */
+  return (pixelPos & ~(tile_size-1)) / tile_size;
 }
 
 enum AtSubPos
@@ -140,14 +138,11 @@ struct FlashMap
 	{
 		if (data == value)
 			return;
-
 		data = value;
 		dataCon.disconnect();
 		dirty = true;
-
 		if (!data)
 			return;
-
 		dataCon = data->modified.connect
 			(sigc::mem_fun(this, &FlashMap::setDirty));
 	}
@@ -162,7 +157,6 @@ struct FlashMap
 	{
 		if (!dirty)
 			return;
-
 		rebuildBuffer();
 		dirty = false;
 	}
@@ -170,23 +164,17 @@ struct FlashMap
 	void draw(float alpha, const Vec2i &trans)
 	{
 		const size_t count = quadCount();
-
 		if (count == 0)
 			return;
-
 		GLMeta::vaoBind(vao);
 		glState.blendMode.pushSet(BlendAddition);
-
 		FlashMapShader &shader = shState->shaders().flashMap;
 		shader.bind();
 		shader.applyViewportProj();
 		shader.setAlpha(alpha);
 		shader.setTranslation(trans);
-
 		gl.DrawElements(GL_TRIANGLES, count * 6, _GL_INDEX_TYPE, 0);
-
 		glState.blendMode.pop();
-
 		GLMeta::vaoUnbind(vao);
 	}
 
@@ -264,12 +252,9 @@ private:
 	}
 
 	bool dirty;
-
 	Table *data;
 	sigc::connection dataCon;
-
 	IntRect viewp;
-
 	GLMeta::VAO vao;
 	size_t allocQuads;
 	std::vector<CVertex> vertices;

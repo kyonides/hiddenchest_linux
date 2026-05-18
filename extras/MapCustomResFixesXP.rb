@@ -1,7 +1,11 @@
-# Increased HiddenChest XP Resolution Map Fix
-# * Scripter : Kyonides-Arkanthes
-# Update:   2024-05-30
+# Increased HiddenChest XP Resolution Map Fix * #
+# * Scripter : Kyonides * #
+# Update:   2026-05-18
 # Original: 2019-07-16
+
+# * Optional Script Call * #
+# - Change Current Autotile Animation Speed to 1x, 2x or 4x.
+# Example: $game_map.autotiles_speed = 4
 
 class Game_Screen
   def weather(type, power, duration)
@@ -23,6 +27,12 @@ class Game_Screen
 end
 
 class Game_Map
+  alias :kyon_map_cstm_res_gm_map_init :initialize
+  def initialize
+    kyon_map_cstm_res_gm_map_init
+    @autotiles_speed = 1
+  end
+
   def scroll_down(distance)
     tiles_max = Graphics.height / 32
     @display_y = [@display_y + distance, (self.height - tiles_max) * 128].min
@@ -32,6 +42,7 @@ class Game_Map
     tiles_max = Graphics.width / 32
     @display_x = [@display_x + distance, (self.width - tiles_max) * 128].min
   end
+  attr_accessor :autotiles_speed
 end
 
 class Game_Player < Game_Character
@@ -101,6 +112,7 @@ class Game_Player < Game_Character
 end
 
 class Spriteset_Map
+  alias :kyon_map_cstm_res_sprst_map_up :update
   def initialize
     w, h = Graphics.dimensions
     @viewport1 = Viewport.new(0, 0, w, h)
@@ -109,6 +121,8 @@ class Spriteset_Map
     @viewport2.z = 200
     @viewport3.z = 5000
     @tilemap = Tilemap.new(@viewport1)
+    @at_speed = $game_map.autotiles_speed
+    @tilemap.autotiles_speed = @at_speed
     @tilemap.tileset = RPG::Cache.tileset($game_map.tileset_name)
     for i in 0..6
       autotile_name = $game_map.autotile_names[i]
@@ -137,6 +151,14 @@ class Spriteset_Map
     end
     @timer_sprite = Sprite_Timer.new
     update
+  end
+
+  def update
+    if $game_map.autotiles_speed != @at_speed
+      @at_speed = $game_map.autotiles_speed
+      @tilemap.autotiles_speed = @at_speed
+    end
+    kyon_map_cstm_res_sprst_map_up
   end
 
   def update_viewports

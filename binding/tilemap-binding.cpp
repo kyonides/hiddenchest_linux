@@ -19,6 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "hcextras.h"
 #include "tilemap.h"
 #include "viewport.h"
 #include "bitmap.h"
@@ -29,24 +30,22 @@
 
 DEF_TYPE_CUSTOMFREE(TilemapAutotiles, RUBY_TYPED_NEVER_FREE);
 
-RB_METHOD(tilemapAutotilesSet)
+static VALUE tilemapAutotilesSet(VALUE self, VALUE pos, VALUE obj)
 {
   Tilemap::Autotiles *a = getPrivateData<Tilemap::Autotiles>(self);
-  int i;
-  VALUE bitmapObj;
-  rb_get_args(argc, argv, "io", &i, &bitmapObj RB_ARG_END);
-  Bitmap *bitmap = getPrivateDataCheck<Bitmap>(bitmapObj, BitmapType);
+  int i = RB_FIX2INT(pos);
+  Bitmap *bitmap = getPrivateDataCheck<Bitmap>(obj, BitmapType);
   a->set(i, bitmap);
   VALUE ary = rb_iv_get(self, "array");
-  rb_ary_store(ary, i, bitmapObj);
+  rb_ary_store(ary, i, obj);
   return self;
 }
 
-RB_METHOD(tilemapAutotilesGet)
+static VALUE tilemapAutotilesGet(VALUE self, VALUE pos)
 {
-  int i;
-  rb_get_args (argc, argv, "i", &i RB_ARG_END);
-  if (i < 0 || i > 6) return Qnil;
+  int i = RB_FIX2INT(pos);
+  if (i < 0 || i > 6)
+    return Qnil;
   VALUE ary = rb_iv_get(self, "array");
   return rb_ary_entry(ary, i);
 }
@@ -62,6 +61,8 @@ static VALUE tilemapInitialize(int argc, VALUE *argv, VALUE self)
   t = new Tilemap(viewport);
   setPrivateData(self, t);
   rb_iv_set(self, "viewport", argv[0]);
+  rb_iv_set(self, "autotiles_speed", RB_INT2FIX(1));
+  rb_iv_set(self, "zoom", RB_INT2FIX(100));
   wrapProperty(self, &t->getAutotiles(), "autotiles", TilemapAutotilesType);
   VALUE autotilesObj = rb_iv_get(self, "autotiles");
   VALUE ary = rb_ary_new2(7);
@@ -94,6 +95,47 @@ RB_METHOD(tilemapGetViewport)
   return rb_iv_get(self, "viewport");
 }
 
+static VALUE tilemap_at_speed_set(VALUE self, VALUE speed)
+{
+  VALUE rb_speed = rb_iv_get(self, "speed");
+  int next_speed = RB_FIX2INT(speed);
+  if (rb_speed == speed)
+    return rb_speed;
+  Tilemap *t = getPrivateData<Tilemap>(self);
+  t->set_autotiles_speed(next_speed);
+  next_speed = t->get_autotiles_speed();
+  speed = RB_INT2FIX(next_speed);
+  return rb_iv_set(self, "autotiles_speed", speed);
+}
+
+static VALUE tilemap_at_speed_get(VALUE self)
+{
+  return rb_iv_get(self, "autotiles_speed");
+}
+
+static VALUE tilemap_zoom_set(VALUE self, VALUE zoom)
+{
+  VALUE rb_zoom = rb_iv_get(self, "zoom");
+  int next_zoom = RB_FIX2INT(zoom);
+  if (rb_zoom == zoom) {
+    return rb_zoom;
+  } else if (next_zoom < 100) {
+    next_zoom = 100;
+    zoom = RB_INT2FIX(next_zoom);
+  } else if (next_zoom > 200) {
+    next_zoom = 200;
+    zoom = RB_INT2FIX(next_zoom);
+  }
+  Tilemap *t = getPrivateData<Tilemap>(self);
+  t->set_tile_zoom(next_zoom);
+  return rb_iv_set(self, "zoom", zoom);
+}
+
+static VALUE tilemap_zoom_get(VALUE self)
+{
+  return rb_iv_get(self, "zoom");
+}
+
 DEF_PROP_OBJ_REF(Tilemap, Bitmap,   Tileset,    "tileset")
 DEF_PROP_OBJ_REF(Tilemap, Table,    MapData,    "map_data")
 DEF_PROP_OBJ_REF(Tilemap, Table,    FlashData,  "flash_data")
@@ -106,8 +148,8 @@ void tilemapBindingInit()
 {
   VALUE klass = rb_define_class("TilemapAutotiles", rb_cObject);
   rb_define_alloc_func(klass, classAllocate<&TilemapAutotilesType>);
-  _rb_define_method(klass, "[]=", tilemapAutotilesSet);
-  _rb_define_method(klass, "[]", tilemapAutotilesGet);
+  rb_define_method(klass, "[]=", RMF(tilemapAutotilesSet), 2);
+  rb_define_method(klass, "[]",  RMF(tilemapAutotilesGet), 1);
   klass = rb_define_class("Tilemap", rb_cObject);
   rb_define_alloc_func(klass, classAllocate<&TilemapType>);
   disposableBindingInit<Tilemap>(klass);
@@ -122,4 +164,8 @@ void tilemapBindingInit()
   INIT_PROP_BIND( Tilemap, Visible,    "visible"   );
   INIT_PROP_BIND( Tilemap, OX,         "ox"        );
   INIT_PROP_BIND( Tilemap, OY,         "oy"        );
+  rb_define_method(klass, "autotiles_speed=", RMF(tilemap_at_speed_set), 1);
+  rb_define_method(klass, "autotiles_speed",  RMF(tilemap_at_speed_get), 0);
+  rb_define_method(klass, "zoom=", RMF(tilemap_zoom_set), 1);
+  rb_define_method(klass, "zoom",  RMF(tilemap_zoom_get), 0);
 }

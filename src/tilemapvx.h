@@ -63,6 +63,9 @@ public:
 	DECL_ATTR( Visible,    bool      )
 	DECL_ATTR( OX,         int       )
 	DECL_ATTR( OY,         int       )
+  void set_tile_zoom(int value);
+  void set_autotiles_speed(int value);
+  int get_autotiles_speed();
 
 private:
 	TilemapVXPrivate *p;

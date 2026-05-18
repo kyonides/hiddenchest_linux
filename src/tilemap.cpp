@@ -44,6 +44,7 @@
 #include <algorithm>
 #include <vector>
 #include <SDL_surface.h>
+#include "debugwriter.h"
 
 extern const StaticRect autotileRects[];
 //typedef std::vector<SVertex> SVVector;
@@ -240,6 +241,9 @@ struct TilemapPrivate
 
   FlashMap flashMap;
   uint8_t flashAlphaIdx;
+  int tile_zoom;
+  int tsize;
+  int autotiles_speed;
   /* Scene elements */
   struct
   {
@@ -281,6 +285,9 @@ struct TilemapPrivate
     priorities(0),
     visible(true),
     flashAlphaIdx(0),
+    tile_zoom(100),
+    tsize(32),
+    autotiles_speed(1),
     atlasSizeDirty(false),
     atlasDirty(false),
     buffersDirty(false),
@@ -350,7 +357,7 @@ struct TilemapPrivate
 
   void updateAutotileInfo()
   {
-    /* Check if and which autotiles are animated */
+    // Check if and which autotiles are animated
     std::vector<uint8_t> &usableATs = atlas.usableATs;
     std::vector<uint8_t> &animatedATs = atlas.animatedATs;
     usableATs.clear();
@@ -397,7 +404,7 @@ struct TilemapPrivate
   void allocateAtlas()
   {
     updateAtlasInfo();
-    // Aquire atlas tex
+    // Acquire atlas tex
     shState->releaseAtlasTex(atlas.gl);
     shState->requestAtlasTex(atlas.size.x, atlas.size.y, atlas.gl);
     atlasDirty = true;
@@ -504,7 +511,7 @@ struct TilemapPrivate
     const StaticRect *pieceRect = &autotileRects[subInd*4];
     /* Iterate over the 4 tile pieces */
     for (int i = 0; i < 4; ++i) {
-      FloatRect posRect(x*32, y*32, 16, 16);
+      FloatRect posRect(x*tsize, y*tsize, 16, 16);
       atSelectSubPos(posRect, i);
       FloatRect texRect = pieceRect[i];
       /* Adjust to atlas coordinates */
@@ -539,8 +546,8 @@ struct TilemapPrivate
     int tileX = tsInd % 8;
     int tileY = tsInd / 8;
     Vec2i texPos = TileAtlas::tileToAtlasCoor(tileX, tileY, atlas.efTilesetH, atlas.size.y);
-    FloatRect texRect((float) texPos.x + 0.5f, (float) texPos.y + 0.5f, 31, 31);
-    FloatRect posRect(x * 32, y * 32, 32, 32);
+    FloatRect texRect((float) texPos.x + 0.5f, (float) texPos.y + 0.5f, tsize - 1, tsize - 1);
+    FloatRect posRect(x * tsize, y * tsize, tsize, tsize);
     SVertex v[4];
     Quad::setTexPosRect(v, texRect, posRect);
     for (size_t i = 0; i < 4; ++i)
@@ -695,13 +702,18 @@ struct TilemapPrivate
   void updateMapViewport()
   {
     const Vec2i combOrigin = origin + elem.sceneGeo.orig;
-    const Vec2i mvpPos = getTilePos(combOrigin);
+    const Vec2i mvpPos = getTilePos(combOrigin, tsize);
     if (mvpPos != viewpPos) {
       viewpPos = mvpPos;
       buffersDirty = true;
       updateFlashMapViewport();
     }
-    dispPos = elem.sceneGeo.rect.pos() - wrap(combOrigin, 32);
+    dispPos = elem.sceneGeo.rect.pos() - wrap(combOrigin, tsize);
+  }
+
+  void update_autotiles_index()
+  {
+    tiles.aniIdx += autotiles_speed;
   }
 
   void prepare()
@@ -876,12 +888,14 @@ void Tilemap::update()
   if (!p->tilemapReady)
     return;
   // Animate flash
-  if (++p->flashAlphaIdx >= flashAlphaN) p->flashAlphaIdx = 0;
+  if (++p->flashAlphaIdx >= flashAlphaN)
+    p->flashAlphaIdx = 0;
   // Animate autotiles
   if (!p->tiles.animated)
     return;
   p->tiles.frameIdx = atAnimation[p->tiles.aniIdx];
-  if (++p->tiles.aniIdx >= atAnimationN)
+  p->update_autotiles_index();
+  if (p->tiles.aniIdx >= atAnimationN)
     p->tiles.aniIdx = 0;
 }
 
@@ -979,6 +993,22 @@ void Tilemap::setOY(int value)
   p->origin.y = value;
   p->zOrderDirty = true;
   p->mapViewportDirty = true;
+}
+
+void Tilemap::set_tile_zoom(int value)
+{
+  p->tile_zoom = value;
+  p->tsize = value * 32 / 100;
+}
+
+void Tilemap::set_autotiles_speed(int value)
+{
+  p->autotiles_speed = clamp(1, value, 4);
+}
+
+int Tilemap::get_autotiles_speed()
+{
+  return p->autotiles_speed;
 }
 
 void Tilemap::releaseResources()

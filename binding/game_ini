@@ -452,7 +452,7 @@ module Input
     end
     slot_max = 4
     14.times do |n|
-      line = lines.shift
+      line = lines.shift.sub(/\w+\s?(=)\s?/i, "")
       group = bind.list[n]
       group.target = n
       names = line.split(",")

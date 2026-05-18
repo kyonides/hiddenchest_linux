@@ -19,6 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "hcextras.h"
 #include "tilemapvx.h"
 #include "viewport.h"
 #include "bitmap.h"
@@ -44,6 +45,7 @@ RB_METHOD(tilemapVXInitialize)
   t = new TilemapVX(viewport);
   setPrivateData(self, t);
   rb_iv_set(self, "viewport", viewportObj);
+  rb_iv_set(self, "zoom", RB_INT2FIX(100));
   wrapProperty(self, &t->getBitmapArray(), "bitmap_array", BitmapArrayType,
                rb_const_get(rb_cObject, rb_intern("Tilemap")));
   VALUE autotilesObj = rb_iv_get(self, "bitmap_array");
@@ -71,13 +73,34 @@ RB_METHOD(tilemapVXUpdate)
   return Qnil;
 }
 
+static VALUE tilemapVX_zoom_set(VALUE self, VALUE zoom)
+{
+  VALUE rb_zoom = rb_iv_get(self, "zoom");
+  int next_zoom = RB_FIX2INT(rb_zoom);
+  if (rb_zoom == zoom) {
+    return rb_zoom;
+  } else if (next_zoom < 100) {
+    next_zoom = 100;
+    zoom = RB_INT2FIX(next_zoom);
+  } else if (next_zoom > 200) {
+    next_zoom = 200;
+    zoom = RB_INT2FIX(next_zoom);
+  }
+  TilemapVX *t = getPrivateData<TilemapVX>(self);
+  t->set_tile_zoom(next_zoom);
+  return rb_iv_set(self, "zoom", zoom);
+}
+
+static VALUE tilemapVX_zoom_get(VALUE self)
+{
+  return rb_iv_get(self, "zoom");
+}
+
 DEF_PROP_OBJ_REF(TilemapVX, Viewport, Viewport,  "viewport")
 DEF_PROP_OBJ_REF(TilemapVX, Table,    MapData,   "map_data")
 DEF_PROP_OBJ_REF(TilemapVX, Table,    FlashData, "flash_data")
 DEF_PROP_OBJ_REF(TilemapVX, Table,    Flags,     "flags")
-
 DEF_PROP_B(TilemapVX, Visible)
-
 DEF_PROP_I(TilemapVX, OX)
 DEF_PROP_I(TilemapVX, OY)
 
@@ -118,6 +141,8 @@ void tilemapVXBindingInit()
   INIT_PROP_BIND( TilemapVX, Visible,   "visible"   );
   INIT_PROP_BIND( TilemapVX, OX,        "ox"        );
   INIT_PROP_BIND( TilemapVX, OY,        "oy"        );
+  rb_define_method(klass, "zoom=", RMF(tilemapVX_zoom_set), 1);
+  rb_define_method(klass, "zoom",  RMF(tilemapVX_zoom_get), 0);
   if (rgssVer == 3) {
     INIT_PROP_BIND( TilemapVX, Flags, "flags"   );
   } else {

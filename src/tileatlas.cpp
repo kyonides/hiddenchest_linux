@@ -23,8 +23,7 @@
 
 namespace TileAtlas
 {
-/* A Column represents a Rect
- * with undefined width */
+// A Column represents a Rect with undefined width
 struct Column
 {
   int x, y, h;
@@ -34,7 +33,7 @@ struct Column
 
 typedef std::vector<Column> ColumnVec;
 
-/* Buffer between autotile area and tileset */
+// Buffer between autotile area and tileset
 static const int atBuffer = 32;
 /* Autotile area width */
 static const int atAreaW = 96*4;
