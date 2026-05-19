@@ -1452,6 +1452,11 @@ int Input::triggered_old()
   return p->trigger_old;
 }
 
+void Input::triggered_last_clear()
+{
+  p->trigger_new = Input::None;
+}
+
 int Input::dir4Value()
 {
   return p->dir4Data.active;

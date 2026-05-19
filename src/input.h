@@ -111,6 +111,7 @@ public:
   int triggered_js_dir();
   int triggered_last();
   int triggered_old();
+  void triggered_last_clear();
   int dir4Value();
   int dir8Value();
   bool is_dir4();

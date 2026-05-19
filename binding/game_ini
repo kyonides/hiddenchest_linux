@@ -364,14 +364,59 @@ module Input
     save_new_bindings
   end
 
+  def set_sequence(*buttons)
+    trigger_last_clear
+    buttons = buttons.flatten
+    @button_target_names = buttons.map(&:to_s)
+    @button_targets = buttons.map {|b| BUTTON_CODES[b] }
+    @button_sequence_names = []
+    @button_sequence = []
+    @sequence_max = @button_targets.size
+    @store_sequence = true
+  end
+
+  def set_sequence_timer(n, *buttons)
+    set_sequence(*buttons)
+    n *= Graphics.frame_rate
+    @sequence_timer = n.to_i
+    @start_sequence_timer = true
+  end
+
+  def clear_button_sequence
+    @button_sequence.clear
+    @button_targets.clear
+    @button_target_names.clear
+    @button_sequence_names.clear
+    @sequence_max = 0
+  end
+
+  def same_sequence?
+    @button_targets == @button_sequence
+  end
+
   def update
     update_internal
+    update_button_sequence
     update_gamepad_state
   rescue => e
     puts e.full_message
   end
 
   private
+  def update_button_sequence
+    if @store_sequence
+      if @start_sequence_timer
+        @sequence_timer -= 1
+        @store_sequence = @sequence_timer > 0
+        @start_sequence_timer = !@store_sequence
+        return
+      elsif @button_sequence.size == @sequence_max
+        @sequence_timer = 0
+        @store_sequence = false
+      end
+    end
+  end
+
   def update_gamepad_state
     if trigger?(:F1) and !Graphics.block_f1
       Sound.play_ok

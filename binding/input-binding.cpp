@@ -188,6 +188,18 @@ static VALUE input_gamepad_set_rumble(VALUE self, VALUE lint, VALUE rint, VALUE 
 static VALUE input_update_internal(VALUE self)
 {
   shState->input().update();
+  int btn = shState->input().triggered_last();
+  if (btn > 0 && rb_iv_get(self, "@store_sequence") == Qtrue) {
+    shState->input().triggered_last_clear();
+    VALUE codes, seq, button, names;
+    codes = rb_const_get(self, rb_intern("CODE_BUTTONS"));
+    seq = rb_iv_get(self, "@button_sequence");
+    names = rb_iv_get(self, "@button_sequence_names");
+    button = RB_INT2FIX(btn);
+    rb_ary_push(seq, button);
+    button = rb_hash_aref(codes, button);
+    rb_ary_push(names, button);
+  }
   return Qnil;
 }
 
@@ -283,6 +295,12 @@ static VALUE input_trigger_gp_clear(VALUE self)
   return ZERO;
 }
 
+static VALUE input_trigger_last_clear(VALUE self)
+{
+  shState->input().triggered_last_clear();
+  return ZERO;
+}
+
 static VALUE input_trigger_last(VALUE self)
 {
   int num = shState->input().triggered_last();
@@ -293,6 +311,47 @@ static VALUE input_trigger_old(VALUE self)
 {
   int num = shState->input().triggered_old();
   return RB_INT2FIX(num);
+}
+
+static VALUE input_button_targets(VALUE self)
+{
+  return rb_iv_get(self, "@button_targets");
+}
+
+static VALUE input_button_target_names(VALUE self)
+{
+  return rb_iv_get(self, "@button_target_names");
+}
+
+static VALUE input_button_sequence(VALUE self)
+{
+  return rb_iv_get(self, "@button_sequence");
+}
+
+static VALUE input_button_sequence_names(VALUE self)
+{
+  return rb_iv_get(self, "@button_sequence_names");
+}
+
+static VALUE input_store_sequence_get(VALUE self)
+{
+  return rb_iv_get(self, "@store_sequence");
+}
+
+static VALUE input_sequence_max_get(VALUE self)
+{
+  return rb_iv_get(self, "@sequence_max");
+}
+
+static VALUE input_sequence_timer_get(VALUE self)
+
+{
+  return rb_iv_get(self, "@sequence_timer");
+}
+
+static VALUE input_start_sequence_timer_get(VALUE self)
+{
+  return rb_iv_get(self, "@start_sequence_timer");
 }
 
 static VALUE input_are_triggered(int size, VALUE* buttons, VALUE self)
@@ -618,6 +677,14 @@ void inputBindingInit()
   input_create_gamepad_types(gamepad);
   rb_iv_set(input, "text_input", ZERO);
   rb_iv_set(input, "default_trigger_timer", RB_INT2FIX(TRIGGER_TIMER));
+  rb_iv_set(input, "@button_targets", rb_ary_new());
+  rb_iv_set(input, "@button_target_names", rb_ary_new());
+  rb_iv_set(input, "@button_sequence", rb_ary_new());
+  rb_iv_set(input, "@button_sequence_names", rb_ary_new());
+  rb_iv_set(input, "@store_sequence", Qfalse);
+  rb_iv_set(input, "@set_sequence_timer", Qfalse);
+  rb_iv_set(input, "@sequence_max", ZERO);
+  rb_iv_set(input, "@sequence_timer", ZERO);
   rb_iv_set(input, "@gamepad_updates", rb_ary_new());
   module_func(input, "trigger_timer", input_trigger_timer, 0);
   module_func(input, "base_trigger_timer", input_default_trigger_timer, 0);
@@ -648,8 +715,17 @@ void inputBindingInit()
   module_func(input, "trigger_gp_axis", input_trigger_gp_axis, 0);
   module_func(input, "trigger_gp_dir", input_trigger_gp_dir, 0);
   module_func(input, "trigger_gp_clear", input_trigger_gp_clear, 0);
+  module_func(input, "trigger_last_clear", input_trigger_last_clear, 0);
   module_func(input, "trigger_last", input_trigger_last, 0);
   module_func(input, "trigger_old", input_trigger_old, 0);
+  module_func(input, "button_target_names", input_button_target_names, 0);
+  module_func(input, "button_targets", input_button_targets, 0);
+  module_func(input, "button_sequence_names", input_button_sequence_names, 0);
+  module_func(input, "button_sequence", input_button_sequence, 0);
+  module_func(input, "store_sequence",  input_store_sequence_get, 0);
+  module_func(input, "sequence_max",  input_sequence_max_get, 0);
+  module_func(input, "sequence_timer",  input_sequence_timer_get, 0);
+  module_func(input, "start_sequence_timer",  input_start_sequence_timer_get, 0);
   module_func(input, "repeat?", inputRepeat, 1);
   module_func(input, "repeat_left_click?", input_repeat_left_click, 0);
   module_func(input, "repeat_right_click?", input_repeat_right_click, 0);
