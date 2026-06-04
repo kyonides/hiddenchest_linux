@@ -32,6 +32,8 @@ class Disposable;
 struct RGSSThreadData;
 struct GraphicsPrivate;
 struct AtomicFlag;
+struct THEORAPLAY_VideoFrame;
+struct Movie;
 
 class Graphics
 {
@@ -74,7 +76,9 @@ public:
   void resizeScreen(int width=0, int height=0, bool center=true);
   void window_size_factor(int res_factor, bool center=true);
   void center_window(int width=0, int height=0);
-  void playMovie(const char *filename);
+	void drawMovieFrame(const THEORAPLAY_VideoFrame* video, Bitmap *videoBitmap);
+	bool updateMovieInput(Movie *movie);
+  void playMovie(const char *filename, int volume, bool res_win, bool skippable);
   void reset();
   /* Non-standard extension */
   bool get_fullscreen() const;

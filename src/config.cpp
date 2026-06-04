@@ -172,6 +172,7 @@ void Config::read(int argc, char *argv[])
   editor.debug = false;
   editor.battleTest = false;
   // Read arguments sent from the editor
+  execName = argv[0];
   if (argc > 1) {
     std::string argv1 = argv[1];
     // RGSS1 uses "debug", 2 and 3 use "test"

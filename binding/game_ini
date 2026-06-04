@@ -18,8 +18,42 @@ module System
   end
 end
 
+module Graphics
+  def self.play_movie(fn, vol=100, resize=false, skip=true)
+    path = Game.movie_path
+    if Game::RGSS_VERSION != 3 and !fn.include?(path)
+      fn = path + fn
+    end
+    if !fn.include?(".ogv")
+      fn += ".ogv"
+    end
+    if !File.exist?(fn)
+      print "Failed to open file #{fn}!\n",
+            "File does not exist!"
+      return false
+    end
+    play_movie_int(fn, vol, resize, skip)
+  end
+end
+
 module Input
   KEYBOARD_GENERIC = "kb_generic"
+  PRESET_BINDINGS = [
+    "Up=Up,Keypad 8",
+    "Down=Down,Numpad 2",
+    "L=Q",
+    "L2=E",
+    "Left=Left,Keypad 4",
+    "Right=Right,Numpad 6",
+    "R=W",
+    "R2=R",
+    "A=Shift",
+    "B=Escape,X",
+    "C=Return,Space,C",
+    "X=F",
+    "Y=G",
+    "Z=H"
+  ]
   class Gamepad
     attr_reader :vendor_fn, :int_name
     def initialize(name, vendor_id, kind, level, state1, state2)
@@ -327,6 +361,13 @@ module Input
         save_bindings(code)
       end
     end
+    if @all_bindings.empty?
+      code = KEYBOARD_GENERIC.to_sym
+      @bindings = KeyBindings.new
+      lines = PRESET_BINDINGS.dup
+      parse_bindings_lines(@bindings, lines)
+      @all_bindings[code] = @bindings
+    end
     if gamepad?
       @gamepad_updates << :add
       setup_gamepad
@@ -362,6 +403,9 @@ module Input
   def save_key_bindings
     reset_sdl_bindings
     save_new_bindings
+  rescue => e
+    puts "Save Key Bindings"
+    puts e.full_message
   end
 
   def set_sequence(*buttons)
@@ -466,7 +510,17 @@ module Input
     code = @gamepad.internal_name.to_sym
     @bindings = @all_bindings[code]
     gamepad_clear_change
+    if code&.empty?
+      puts "Empty Gamepad Code!"
+      return
+    elsif !@bindings
+      puts "No #{code} Bindings found!"
+      return
+    end
     reset_sdl_bindings
+  rescue => e
+    puts "Reset Key Bindings"
+    puts e.full_message
   end
 
   def process_target_button(line)
@@ -495,6 +549,11 @@ module Input
       parsing_kb_error(code, "missing [Bindings]")
       return
     end
+    parse_bindings_lines(bind, lines)
+    @all_bindings[code.to_sym] = bind
+  end
+
+  def parse_bindings_lines(bind, lines)
     slot_max = 4
     14.times do |n|
       line = lines.shift.sub(/\w+\s?(=)\s?/i, "")
@@ -509,7 +568,6 @@ module Input
         b.name = names[n]
       end
     end
-    @all_bindings[code.to_sym] = bind
   end
 
   def parsing_kb_error(code, reason)
@@ -554,7 +612,7 @@ module Game
   attr_reader :shot_formats, :shot_format, :shot_dir, :shot_filename
   attr_reader :shot_path, :save_dir, :save_path, :show_splash
   attr_reader :soundfont, :soundfonts, :env_dir, :user_dir, :user_path
-  attr_reader :bind_dir, :bind_path
+  attr_reader :movie_dir, :movie_path, :bind_dir, :bind_path
   attr_accessor :save_filename, :setup_screen
   def clear
     @shot_formats = ["jpg", "png"]
@@ -564,6 +622,8 @@ module Game
     @save_dir = "Saves"
     @save_filename = "Save"
     @bind_dir = "KeyBindings"
+    @movie_dir = "Movies"
+    @movie_path = @movie_dir + "/"
     @env_dir = ""
     @user_dir = ""
     @soundfont = ""
@@ -595,6 +655,11 @@ module Game
     @save_dir = dir
   end
 
+  def movie_dir=(dir)
+    @movie_path = dir + "/"
+    @movie_dir = dir
+  end
+
   def init_size
     [WIDTH, HEIGHT]
   end
@@ -605,6 +670,13 @@ module Game
 
   def change_size?
     (WIDTH != START_WIDTH || HEIGHT != START_HEIGHT)
+  end
+
+  def store_ruby_version
+    maj, min, teen = RUBY_VERSION.split(".")
+    const_set("RUBY_MAJOR", maj)
+    const_set("RUBY_MINOR", min)
+    const_set("RUBY_TEENY", teen)
   end
 
   def process_exe_name(list)
@@ -679,6 +751,9 @@ module Game
     else
       @soundfonts.delete(@soundfont)
       @soundfonts.unshift(@soundfont)
+    end
+    if DATA.has_key?("Movies")
+      @movie_dir = DATA["Movies"].empty? ? "Movies" : DATA["Movies"]
     end
     company = DATA["Company"]
     title = DATA["Title"]
@@ -785,6 +860,7 @@ module Game
   end
 
   def setup
+    store_ruby_version
     set_exe_ini_names
     process_main_ini
     set_basic_values

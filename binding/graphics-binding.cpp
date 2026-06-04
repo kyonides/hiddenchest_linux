@@ -27,6 +27,7 @@
 #include "binding-util.h"
 #include "binding-types.h"
 #include "exception.h"
+#include "debugwriter.h"
 
 extern VALUE rect_from_ary(VALUE ary);
 
@@ -204,11 +205,17 @@ static VALUE graphicsReset(VALUE self)
   return Qnil;
 }
 
-static VALUE graphicsPlayMovie(VALUE self, VALUE filename)
+static VALUE graphics_play_movie(int argc, VALUE *args, VALUE self)
 {
+  if (argc == 0)
+    return Qfalse;
+  VALUE filename = args[0];
   const char *fn = StringValueCStr(filename);
-  shState->graphics().playMovie(fn);
-  return Qnil;
+  int vol = RB_FIX2INT(args[1]);
+  bool res = args[2] == Qtrue;
+  bool skip = args[3] == Qtrue;
+  shState->graphics().playMovie(fn, vol, res, skip);
+  return Qtrue;
 }
 
 static VALUE graphicsGetFrameRate(VALUE self)
@@ -368,7 +375,6 @@ void graphicsBindingInit()
   module_func(graph, "window_size_factor", graphics_window_size_factor, 2);
   module_func(graph, "brightness", graphicsGetBrightness, 0);
   module_func(graph, "brightness=", graphicsSetBrightness, 1);
-  module_func(graph, "play_movie", graphicsPlayMovie, 1);
   module_func(graph, "block_fullscreen", graphics_get_block_fullscreen, 0);
   module_func(graph, "block_fullscreen=", graphics_set_block_fullscreen, 1);
   module_func(graph, "block_f12", graphics_get_block_ftwelve, 0);
@@ -384,6 +390,8 @@ void graphicsBindingInit()
   module_func(graph, "show_window", graphics_show_window, 0);
   module_func(graph, "hide_window", graphics_hide_window, 0);
   module_func(graph, "delta", graphics_get_delta, 0);
+  module_func(graph, "play_movie_int", graphics_play_movie, -1);
+  module_pfunc(graph, "play_movie_int", graphics_play_movie, -1);
   VALUE sys = rb_define_module("System");
   module_func(sys, "delta", graphics_get_delta, 0);
   module_func(sys, "uptime", graphics_get_delta, 0);

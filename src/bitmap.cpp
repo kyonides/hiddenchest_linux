@@ -733,6 +733,36 @@ void Bitmap::setPixel(int x, int y, const Color &color)
   p->onModified(false);
 }
 
+bool Bitmap::getRaw(void *output, int output_size)
+{
+  if (output_size != width()*height()*4)
+    return false;
+  guardDisposed();
+  if (p->surface || p->megaSurface) {
+    void *src = (p->megaSurface) ? p->megaSurface->pixels : p->surface->pixels;
+    memcpy(output, src, output_size);
+  } else {
+    FBO::bind(getGLTypes().fbo);
+    gl.ReadPixels(0,0,width(),height(),GL_RGBA,GL_UNSIGNED_BYTE,output);
+  }
+  return true;
+}
+
+void Bitmap::replaceRaw(void *pixel_data, int size)
+{
+  guardDisposed();
+  GUARD_MEGA;
+  int w = width();
+  int h = height();
+  int requiredsize = w*h*4;
+  if (size != w*h*4)
+    throw Exception(Exception::HiddenChestError, "Replacement bitmap data is not large enough (given %i bytes, need %i)", size, requiredsize);
+  TEX::bind(getGLTypes().tex);
+  TEX::uploadImage(w, h, pixel_data, GL_RGBA);
+  taintArea(IntRect(0,0,w,h));
+  p->onModified();
+}
+
 void Bitmap::invert_colors()
 {
   guardDisposed();

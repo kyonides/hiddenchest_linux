@@ -70,6 +70,8 @@ public:
   bool write(const char *fn, const char *ext) const;
   Color getPixel(int x, int y) const;
   void setPixel(int x, int y, const Color &color);
+  bool getRaw(void *output, int output_size);
+  void replaceRaw(void *pixel_data, int size);
   void invert_colors();
   void hueChange(int hue);
   void gray_out();
