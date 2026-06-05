@@ -21,15 +21,12 @@
 */
 
 #include "graphics.h"
-#include "audio.h"
 #include "binding.h"
-#include "bitmap.h"
 #include "config.h"
 #include "debugwriter.h"
 #include "disposable.h"
 #include "etc-internal.h"
 #include "eventthread.h"
-#include "filesystem.h"
 #include "gl-fun.h"
 #include "gl-util.h"
 #include "glstate.h"
@@ -39,7 +36,7 @@
 #include "shader.h"
 #include "sharedstate.h"
 #include "texpool.h"
-#include "theoraplay/theoraplay.h"
+#include "movie.h"
 #include "util.h"
 #include "input.h"
 #include "sprite.h"
@@ -61,265 +58,6 @@
 #define DEF_FRAMERATE 60
 #define RATE_MIN 10
 #define RATE_MAX 160
-#define DEF_MAX_VIDEO_FRAMES 30
-#define VIDEO_DELAY 10
-#define AUDIO_DELAY 100
-
-typedef struct AudioQueue
-{
-  const THEORAPLAY_AudioPacket *audio;
-  int offset;
-  struct AudioQueue *next;
-} AudioQueue;
-
-static volatile AudioQueue *movieAudioQueue;
-static volatile AudioQueue *movieAudioQueueTail;
-
-static long readMovie(THEORAPLAY_Io *io, void *buf, long buflen)
-{
-    SDL_RWops *f = (SDL_RWops *) io->userdata;
-    return (long) SDL_RWread(f, buf, 1, buflen);
-} // IoFopenRead
-
-static void closeMovie(THEORAPLAY_Io *io)
-{
-    SDL_RWops *f = (SDL_RWops *) io->userdata;
-    SDL_RWclose(f);
-    free(io);
-} // IoFopenClose
-
-struct Movie
-{
-  THEORAPLAY_Decoder *decoder;
-  const THEORAPLAY_AudioPacket *audio;
-  const THEORAPLAY_VideoFrame *video;
-  bool hasVideo;
-  bool hasAudio;
-  bool skippable;
-  Bitmap *videoBitmap;
-  SDL_RWops srcOps;
-  static float volume;
-  
-  Movie(int volume_, bool skippable_)
-  : decoder(0), audio(0), video(0), skippable(skippable_), videoBitmap(0)
-  {
-    volume = volume_ * 0.01f;
-  }
-
-  bool preparePlayback()
-  {
-    // https://theora.org/doc/libtheora-1.0/codec_8h.html
-    // https://ffmpeg.org/doxygen/0.11/group__lavc__misc__pixfmt.html
-    THEORAPLAY_Io *io = (THEORAPLAY_Io *) malloc(sizeof (THEORAPLAY_Io));
-    if(!io) {
-      SDL_RWclose(&srcOps);
-      return false;
-    }
-    io->read = readMovie;
-    io->close = closeMovie;
-    io->userdata = &srcOps;
-    decoder = THEORAPLAY_startDecode(io, DEF_MAX_VIDEO_FRAMES, THEORAPLAY_VIDFMT_RGBA);
-    if (!decoder) {
-        SDL_RWclose(&srcOps);
-        return false;
-    }
-    // Wait until the decoder has parsed out some basic truths from the file.
-    while (!THEORAPLAY_isInitialized(decoder)) {
-        SDL_Delay(VIDEO_DELAY);
-    }
-    // Once we're initialized, we can tell if this file has audio and/or video.
-    hasAudio = THEORAPLAY_hasAudioStream(decoder);
-    hasVideo = THEORAPLAY_hasVideoStream(decoder);
-    // Queue up the audio
-    if (hasAudio) {
-      while ((audio = THEORAPLAY_getAudio(decoder)) == NULL) {
-        if ((THEORAPLAY_availableVideo(decoder) >= DEF_MAX_VIDEO_FRAMES))
-          break;  // we'll never progress, there's no audio yet but we've prebuffered as much as we plan to.
-        SDL_Delay(VIDEO_DELAY);
-      }
-    }
-    // No video, so no point in doing anything else
-    if (!hasVideo) {
-      THEORAPLAY_stopDecode(decoder);
-      return false;
-    }
-    // Wait until we have video
-    while ((video = THEORAPLAY_getVideo(decoder)) == NULL) {
-      SDL_Delay(VIDEO_DELAY);
-    }
-    // Wait until we have audio, if applicable
-    audio = NULL;
-    if (hasAudio) {
-      while ((audio = THEORAPLAY_getAudio(decoder)) == NULL && THEORAPLAY_availableVideo(decoder) < DEF_MAX_VIDEO_FRAMES) {
-        SDL_Delay(VIDEO_DELAY);
-      }
-    }
-    videoBitmap = new Bitmap(video->width, video->height);
-    movieAudioQueue = NULL;
-    movieAudioQueueTail = NULL;
-    return true;
-  }
-  
-  static void queueAudioPacket(const THEORAPLAY_AudioPacket *audio)
-  {
-    AudioQueue *item = NULL;
-    if (!audio)
-      return;
-    item = (AudioQueue *) malloc(sizeof (AudioQueue));
-    if (!item) {
-      THEORAPLAY_freeAudio(audio);
-      return;  // oh well.
-    }
-    item->audio = audio;
-    item->offset = 0;
-    item->next = NULL;
-    SDL_LockAudio();
-    if (movieAudioQueueTail) {
-      movieAudioQueueTail->next = item;
-    } else {
-      movieAudioQueue = item;
-    }
-    movieAudioQueueTail = item;
-    SDL_UnlockAudio();
-  }
-  
-  static void queueMoreMovieAudio(THEORAPLAY_Decoder *decoder, const Uint32 now)
-  {
-    const THEORAPLAY_AudioPacket *audio;
-    while ((audio = THEORAPLAY_getAudio(decoder)) != NULL) {
-      queueAudioPacket(audio);
-      if (audio->playms >= now + 2000) // don't let this get too far ahead.
-        break;
-    }
-  }
-  
-  static void SDLCALL movieAudioCallback(void *userdata, uint8_t *stream, int len)
-  {
-    // !!! FIXME: this should refuse to play if item->playms is in the future.
-    //const Uint32 now = SDL_GetTicks() - baseticks;
-    Sint16 *dst = (Sint16 *) stream;
-    while (movieAudioQueue && (len > 0)) {
-      volatile AudioQueue *item = movieAudioQueue;
-      AudioQueue *next = item->next;
-      const int channels = item->audio->channels;
-      const float *src = item->audio->samples + (item->offset * channels);
-      unsigned int cpy = (item->audio->frames - item->offset) * channels;
-      if (cpy > (len / sizeof (Sint16)))
-        cpy = len / sizeof (Sint16);
-      for (unsigned int i = 0; i < cpy; i++) {
-        const float val = (*(src++)) * volume;
-        if (val < -1.0f) {
-          *(dst++) = -32768;
-        } else if (val > 1.0f) {
-          *(dst++) = 32767;
-        } else {
-          *(dst++) = (Sint16) (val * 32767.0f);
-        }
-      }
-      item->offset += (cpy / channels);
-      len -= cpy * sizeof (Sint16);
-      if (item->offset >= item->audio->frames) {
-        THEORAPLAY_freeAudio(item->audio);
-        free((void *) item);
-        movieAudioQueue = next;
-      }
-    }
-    if (!movieAudioQueue)
-      movieAudioQueueTail = NULL;
-    if (len > 0)
-      memset(dst, '\0', len);
-  }
-    
-  bool startAudio()
-  {
-    SDL_AudioSpec spec{};
-    spec.freq = audio->freq;
-    spec.format = AUDIO_S16SYS;
-    spec.channels = audio->channels;
-    spec.samples = 2048;
-    spec.callback = movieAudioCallback;
-    if (SDL_OpenAudio(&spec, NULL) != 0)
-      return false;
-    queueAudioPacket(audio);
-    audio = NULL;
-    queueMoreMovieAudio(decoder, 0);
-    SDL_PauseAudio(0);  // Start audio playback
-    return true;
-  }
-// Assuming every frame has the same duration.
-// Uint32 frameMs = (video->fps == 0.0) ? 0 : ((Uint32) (1000.0 / video->fps));
-  void play()
-  {
-    Uint32 baseTicks = SDL_GetTicks();
-    bool openedAudio = false;
-    while (THEORAPLAY_isDecoding(decoder)) {
-      // Check for reset / shutdown input
-      if(shState->graphics().updateMovieInput(this)) break;
-      // Check for attempted skip
-      if (skippable) {
-        shState->input().update();
-        if (shState->input().isTriggered(Input::C) || shState->input().isTriggered(Input::B)) break;
-      }
-      const Uint32 now = SDL_GetTicks() - baseTicks;
-      if (!video)
-        video = THEORAPLAY_getVideo(decoder);
-      if (hasAudio) {
-        if (!audio)
-          audio = THEORAPLAY_getAudio(decoder);
-        if (audio && !openedAudio) {
-          if(!startAudio()) {
-            Debug() << "Error opening movie audio!";
-            break;
-          }
-          openedAudio = true;
-        }
-      }
-      // Got a video frame, now draw it
-      if (video) {
-        videoBitmap->replaceRaw(video->pixels, video->width * video->height * 4);
-        THEORAPLAY_freeVideo(video);
-        video = NULL;
-      }
-      shState->graphics().update();//(false);
-      if (openedAudio)
-        queueMoreMovieAudio(decoder, now);
-    }
-  }
-    
-  ~Movie()
-  {
-    if (hasAudio) {
-      if (movieAudioQueueTail)
-        THEORAPLAY_freeAudio(movieAudioQueueTail->audio);
-      movieAudioQueueTail = NULL;
-      if (movieAudioQueue)
-        THEORAPLAY_freeAudio(movieAudioQueue->audio);
-      movieAudioQueue = NULL;
-    }
-    if (video) THEORAPLAY_freeVideo(video);
-    if (audio) THEORAPLAY_freeAudio(audio);
-    if (decoder) THEORAPLAY_stopDecode(decoder);
-    SDL_CloseAudio();
-    delete videoBitmap;
-  }
-};
-
-float Movie::volume;
-
-struct MovieOpenHandler : FileSystem::OpenHandler
-{
-  SDL_RWops *srcOps;
-  
-  MovieOpenHandler(SDL_RWops &srcOps)
-  : srcOps(&srcOps)
-  {}
-  
-  bool tryRead(SDL_RWops &ops, const char *ext)
-  {
-    *srcOps = ops;
-    return true;
-  }
-};
 
 struct PingPong
 {
@@ -1411,61 +1149,50 @@ void Graphics::center_window(int width, int height)
   SDL_SetWindowPosition(p->threadData->window, width, height);
 }
 
+Movie *Graphics::movie;
+
 bool Graphics::updateMovieInput(Movie *movie) {
-  return  p->threadData->rqTerm || p->threadData->rqReset;
+  return p->threadData->rqTerm || p->threadData->rqReset;
 }
 
-void Graphics::playMovie(const char *filename, int volume, bool res_win, bool skippable)
+bool Graphics::prepare_movie(const char *filename, int volume, bool skippable)
 {
-  Movie *movie = new Movie(volume, skippable);
+  movie = new Movie(volume, skippable);
   MovieOpenHandler handler(movie->srcOps);
   shState->fileSystem().openRead(handler, filename);
-  bool res_change = false;
-  int old_w = width();
-  int old_h = height();
-  if (movie->preparePlayback()) {
-    int vid_w = (int)movie->video->width;
-    int vid_h = (int)movie->video->height;
-    int limiterDisabled = p->fpsLimiter.disabled;
-    p->fpsLimiter.disabled = false;
-    int old_fps = getFrameRate();
-    setFrameRate(movie->video->fps);
-    //bool oldframeskip = p->useFrameSkip;
-    //p->useFrameSkip = false;
-    update();
-    Sprite clip_sprite;
-    // Currently this stretches to fit the screen. VX Ace behavior is to center it and let the edges run off
-    clip_sprite.setBitmap(movie->videoBitmap);
-    Debug() << get_fullscreen();
-    if (res_win && !get_fullscreen()) {
-      if (old_w != vid_w || height() != vid_h) {
-        resizeScreen(vid_w, vid_h, true);
-        res_change = true;
-      }
-    } else {
-      double ratio = std::min((double)old_w / vid_w, (double)old_h / vid_h);
-      clip_sprite.setZoomX(ratio);
-      clip_sprite.setZoomY(ratio);
-      clip_sprite.setX((old_w / 2) - (vid_w * ratio / 2));
-      clip_sprite.setY((old_h / 2) - (vid_h * ratio / 2));
-    }
-    Sprite letterboxSprite;
-    Bitmap letterbox(old_w, old_h);
-    letterbox.fillRect(0, 0, old_w, old_h, Vec4(0,0,0,255));
-    letterboxSprite.setBitmap(&letterbox);
-    letterboxSprite.setZ(4999);
-    clip_sprite.setZ(5001);
-    shState->audio().bgm_pause();
-    shState->audio().bgs_pause();
-    movie->play();
-    if (res_change)
-      resizeScreen(old_w, old_h, true);
-    shState->audio().bgm_resume();
-    shState->audio().bgs_resume();
-    p->fpsLimiter.disabled = limiterDisabled;
-    setFrameRate(old_fps);
-    //p->useFrameSkip = oldframeskip;
+  if (!movie->preparePlayback())
+    return false;
+  movie_width = (int)movie->video->width;
+  movie_height = (int)movie->video->height;
+  movie_fps = movie->video->fps;
+  old_w = width();
+  old_h = height();
+  return true;
+}
+
+void Graphics::play_movie(bool resized)
+{
+  int limiterDisabled = p->fpsLimiter.disabled;
+  p->fpsLimiter.disabled = false;
+  //bool oldframeskip = p->useFrameSkip; p->useFrameSkip = false;
+  Sprite clip_sprite;
+  // Currently this stretches to fit the screen. VX Ace behavior is to center it and let the edges run off
+  clip_sprite.setBitmap(movie->videoBitmap);
+  if (!resized) {
+    double ratio = std::min((double)old_w / movie_width, (double)old_h / movie_height);
+    clip_sprite.setZoomX(ratio);
+    clip_sprite.setZoomY(ratio);
+    clip_sprite.setX((old_w / 2) - (movie_width * ratio / 2));
+    clip_sprite.setY((old_h / 2) - (movie_height * ratio / 2));
   }
+  clip_sprite.setZ(10100);
+  movie->play();
+  clip_sprite.getBitmap()->dispose();
+  clip_sprite.dispose();
+  movie_width = 0;
+  movie_height = 0;
+  p->fpsLimiter.disabled = limiterDisabled;
+  //p->useFrameSkip = oldframeskip;
   delete movie;
 }
 

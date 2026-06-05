@@ -8,7 +8,6 @@
 
 #include "author.h"
 #include "hcextras.h"
-#include "graphics.h"
 #include "SDL_locale.h"
 
 const char* sys_kind = SYSTEM_STRING;

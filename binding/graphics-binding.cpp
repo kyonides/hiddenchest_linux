@@ -27,6 +27,7 @@
 #include "binding-util.h"
 #include "binding-types.h"
 #include "exception.h"
+#include "theoraplay/theoraplay.h"
 #include "debugwriter.h"
 
 extern VALUE rect_from_ary(VALUE ary);
@@ -205,16 +206,42 @@ static VALUE graphicsReset(VALUE self)
   return Qnil;
 }
 
-static VALUE graphics_play_movie(int argc, VALUE *args, VALUE self)
+static VALUE graphics_movie(VALUE self)
 {
-  if (argc == 0)
-    return Qfalse;
-  VALUE filename = args[0];
-  const char *fn = StringValueCStr(filename);
-  int vol = RB_FIX2INT(args[1]);
-  bool res = args[2] == Qtrue;
-  bool skip = args[3] == Qtrue;
-  shState->graphics().playMovie(fn, vol, res, skip);
+  return rb_iv_get(self, "@movie");
+}
+
+static VALUE graphics_prepare_movie(VALUE self)
+{
+  VALUE movie, name, volume, failed;
+  movie = rb_iv_get(self, "@movie");
+  name = rb_iv_get(movie, "@name");
+  volume = rb_iv_get(movie, "@volume");
+  const char *fn = StringValueCStr(name);
+  int vol = RB_FIX2INT(volume);
+  bool skip = rb_iv_get(movie, "@skip") == Qtrue;
+  bool result = shState->graphics().prepare_movie(fn, vol, skip);
+  if (result) {
+    VALUE width, height, frame_rate;
+    int w = shState->graphics().movie_width;
+    int h = shState->graphics().movie_height;
+    double fps = shState->graphics().movie_fps;
+    width = RB_INT2FIX(w);
+    height = RB_INT2FIX(h);
+    frame_rate = DBL2NUM(fps);
+    rb_iv_set(movie, "@width", width);
+    rb_iv_set(movie, "@height", height);
+    rb_iv_set(movie, "@fps", frame_rate);
+  }
+  failed = result ? Qfalse : Qtrue;
+  return rb_iv_set(movie, "@failed", failed);
+}
+
+static VALUE graphics_play_movie_int(VALUE self)
+{
+  VALUE movie = rb_iv_get(self, "@movie");
+  bool resize = rb_iv_get(movie, "@resize") == Qtrue;
+  shState->graphics().play_movie(resize);
   return Qtrue;
 }
 
@@ -390,8 +417,11 @@ void graphicsBindingInit()
   module_func(graph, "show_window", graphics_show_window, 0);
   module_func(graph, "hide_window", graphics_hide_window, 0);
   module_func(graph, "delta", graphics_get_delta, 0);
-  module_func(graph, "play_movie_int", graphics_play_movie, -1);
-  module_pfunc(graph, "play_movie_int", graphics_play_movie, -1);
+  module_func(graph, "movie", graphics_movie, 0);
+  module_func(graph, "prepare_movie", graphics_prepare_movie, 0);
+  module_pfunc(graph, "prepare_movie", graphics_prepare_movie, 0);
+  module_func(graph, "play_movie_int", graphics_play_movie_int, 0);
+  module_pfunc(graph, "play_movie_int", graphics_play_movie_int, 0);
   VALUE sys = rb_define_module("System");
   module_func(sys, "delta", graphics_get_delta, 0);
   module_func(sys, "uptime", graphics_get_delta, 0);

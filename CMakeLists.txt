@@ -99,7 +99,6 @@ endif()
 pkg_check_modules(SIGCXX       REQUIRED sigc++-2.0)
 pkg_check_modules(PIXMAN       REQUIRED pixman-1)
 pkg_check_modules(PHYSFS       REQUIRED physfs>=2.1)
-
 pkg_check_modules(SDL2         REQUIRED sdl2)
 pkg_check_modules(SDL2_TTF     REQUIRED SDL2_ttf)
 pkg_check_modules(SDL2_IMAGE   REQUIRED SDL2_image)
@@ -107,14 +106,12 @@ pkg_check_modules(SDL_SOUND    REQUIRED SDL_sound)
 find_package(OpenAL REQUIRED)
 find_package(ZLIB REQUIRED)
 
-if (LINUX)
-  pkg_check_modules(OGG        REQUIRED ogg)
-  pkg_check_modules(VORBIS     REQUIRED vorbis)
-  pkg_check_modules(VORBISFILE REQUIRED vorbisfile)
-  pkg_check_modules(VORBISENC  REQUIRED vorbisenc)
-  pkg_check_modules(THEORA     REQUIRED theora)
-  pkg_check_modules(THEORADEC  REQUIRED theoradec)
-endif()
+pkg_check_modules(OGG        REQUIRED ogg)
+pkg_check_modules(VORBIS     REQUIRED vorbis)
+pkg_check_modules(VORBISFILE REQUIRED vorbisfile)
+pkg_check_modules(VORBISENC  REQUIRED vorbisenc)
+pkg_check_modules(THEORA     REQUIRED theora)
+pkg_check_modules(THEORADEC  REQUIRED theoradec)
 
 ## Setup main source ##
 
@@ -203,6 +200,7 @@ set(MAIN_SOURCE
   src/tilemap.cpp
   src/autotiles.cpp
   src/graphics.cpp
+  src/movie.cpp
   src/gl-debug.cpp
   src/etc.cpp
   src/config.cpp
@@ -230,11 +228,11 @@ set(MAIN_SOURCE
 if(WIN32)
   list(APPEND MAIN_HEADERS windows/resource.h)
   list(APPEND MAIN_SOURCE windows/resource.rc)
-elseif(LINUX)
-  list(APPEND MAIN_HEADERS src/theoraplay/theoraplay.h)
-  list(APPEND MAIN_HEADERS src/theoraplay/theoraplay_cvtrgb.h)
-  list(APPEND MAIN_SOURCE src/theoraplay.c)
 endif()
+
+list(APPEND MAIN_HEADERS src/theoraplay/theoraplay.h)
+list(APPEND MAIN_HEADERS src/theoraplay/theoraplay_cvtrgb.h)
+list(APPEND MAIN_SOURCE src/theoraplay.c)
 
 source_group("MKXPPLUS Source" FILES ${MAIN_SOURCE} ${MAIN_HEADERS})
 

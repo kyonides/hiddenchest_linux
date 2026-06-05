@@ -38,6 +38,11 @@ struct Movie;
 class Graphics
 {
 public:
+  int movie_width;
+  int movie_height;
+  int old_w;
+  int old_h;
+  double movie_fps;
   unsigned long long getDelta();
   unsigned long long lastUpdate();
   void update();
@@ -76,9 +81,10 @@ public:
   void resizeScreen(int width=0, int height=0, bool center=true);
   void window_size_factor(int res_factor, bool center=true);
   void center_window(int width=0, int height=0);
-	void drawMovieFrame(const THEORAPLAY_VideoFrame* video, Bitmap *videoBitmap);
-	bool updateMovieInput(Movie *movie);
-  void playMovie(const char *filename, int volume, bool res_win, bool skippable);
+  void drawMovieFrame(const THEORAPLAY_VideoFrame* video, Bitmap *videoBitmap);
+  bool updateMovieInput(Movie *movie);
+  bool prepare_movie(const char *filename, int volume, bool skippable);
+  void play_movie(bool resized);
   void reset();
   /* Non-standard extension */
   bool get_fullscreen() const;
@@ -97,6 +103,7 @@ public:
   void call_delay();
 
 private:
+  static Movie *movie;
   int screenshot_format_index;
   std::string screenshot_format, screenshot_dir, screenshot_fn;
   Graphics(RGSSThreadData *data);

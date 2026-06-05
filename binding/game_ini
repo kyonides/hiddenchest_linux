@@ -18,8 +18,23 @@ module System
   end
 end
 
+class Movie
+  def initialize(fn, vol, skip, resize)
+    @name = fn
+    @volume = vol
+    @skip = skip
+    @resize = resize
+    @failed = false
+    @fps = 0
+    @width = 0
+    @height= 0
+  end
+  attr_reader :name, :volume, :skip, :resize, :failed, :fps
+  attr_accessor :width, :height
+end
+
 module Graphics
-  def self.play_movie(fn, vol=100, resize=false, skip=true)
+  def self.play_movie(fn, vol=100, resized=false, skip=true)
     path = Game.movie_path
     if Game::RGSS_VERSION != 3 and !fn.include?(path)
       fn = path + fn
@@ -32,7 +47,49 @@ module Graphics
             "File does not exist!"
       return false
     end
-    play_movie_int(fn, vol, resize, skip)
+    @movie = Movie.new(fn, vol, skip, resized)
+    prepare_movie
+    if @movie.failed
+      @movie = nil
+      print "Failed to play videoclip #{fn}!"
+      return false
+    end
+    mw = @movie.width
+    mh = @movie.height
+    w, h = dimensions
+    old_fps = frame_rate
+    self.frame_rate = @movie.fps
+    backdrop = Sprite.new
+    backdrop.z = 10001
+    change_resolution = false
+    if resized and !fullscreen
+      if @movie.width != w or @movie.height != h
+        resize_screen(mw, mh, true)
+        change_resolution = true
+      end
+      bw, bh = mw, mh
+    else
+      bw, bh = w, h
+    end
+    bitmap = Bitmap.new(bw, bh)
+    bitmap.fill_rect(0, 0, bw, bh, Color.new(0, 0, 0, 255))
+    backdrop.bitmap = bitmap
+    Audio.bgm_pause
+    Audio.bgs_pause
+    update
+    play_movie_int
+    update
+    Audio.bgm_resume
+    Audio.bgs_resume
+    self.frame_rate = old_fps
+    if change_resolution
+      resize_screen(w, h, true)
+    end
+    backdrop.bitmap.dispose
+    backdrop.dispose
+    self.frame_rate = old_fps
+    @movie = nil
+    true
   end
 end
 
