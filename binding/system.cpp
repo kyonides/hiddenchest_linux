@@ -3,7 +3,7 @@
 **
 ** This file is part of HiddenChest
 **
-** Copyright (C) 2018-2025 Kyonides-Arkanthes
+** Copyright (C) 2018-2026 Kyonides-Arkanthes
 */
 
 #include "author.h"
@@ -31,4 +31,5 @@ void init_system()
   rb_define_const(sys, "NAME", rstr(SYSTEM_REAL_STRING));
   rb_define_const(sys, "FAMILY_NAME", rstr(SYSTEM_STRING));
   rb_define_const(sys, "CODENAME", rstr(CODENAME));
+  rb_define_alias(rb_cHash, "index", "key");
 }

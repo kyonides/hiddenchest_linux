@@ -739,8 +739,11 @@ module Game
   def process_exe_name(list)
     version = 0
     5.times do |n|
-      if File.exist?(EXE_BASE_NAME + "." + list[n])
+      ext = list[n]
+      if File.exist?(EXE_BASE_NAME + "." + ext) or
+         File.exist?("Game." + ext)
         version = n
+        break
       end
     end
     return version

@@ -597,7 +597,12 @@ static void mriBindingExecute()
   char **argv = 0;
   ruby_sysinit(&argc, &argv);
   ruby_init();
-  rb_enc_set_default_external(rb_enc_from_encoding(rb_utf8_encoding()));
+  RUBY_INIT_STACK;
+  ruby_setup();
+  ruby_init_loadpath();
+  VALUE encoding = rb_enc_from_encoding(rb_utf8_encoding());
+  rb_enc_set_default_external(encoding);
+  rb_enc_set_default_internal(encoding);
   Config &conf = shState->rtData().config;
   if (!conf.rubyLoadpaths.empty()) {
     // Setup custom load paths
