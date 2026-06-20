@@ -34,18 +34,39 @@
 #include <SDL_thread.h>
 #include <SDL_timer.h>
 
-ALStream::ALStream(LoopMode loopMode, const std::string &threadId)
-: looped(loopMode == Looped),
+ALStream::ALStream()
+: looped(true),
   state(Closed),
   source(0),
   thread(0),
   preemptPause(false),
+  volume(0),
   pitch(1.0f)
 {
   alSrc = AL::Source::gen();
   AL::Source::setVolume(alSrc, 1.0f);
   AL::Source::setPitch(alSrc, 1.0f);
   AL::Source::detachBuffer(alSrc);
+  volume = AL::Source::get_volume(alSrc);
+  for (int i = 0; i < STREAM_BUFS; ++i)
+    alBuf[i] = AL::Buffer::gen();
+  pauseMut = SDL_CreateMutex();
+}
+
+ALStream::ALStream(LoopMode loopMode, const std::string &threadId)
+: looped(loopMode == Looped),
+  state(Closed),
+  source(0),
+  thread(0),
+  preemptPause(false),
+  volume(0),
+  pitch(1.0f)
+{
+  alSrc = AL::Source::gen();
+  AL::Source::setVolume(alSrc, 1.0f);
+  AL::Source::setPitch(alSrc, 1.0f);
+  AL::Source::detachBuffer(alSrc);
+  volume = AL::Source::get_volume(alSrc);
   for (int i = 0; i < STREAM_BUFS; ++i)
     alBuf[i] = AL::Buffer::gen();
   pauseMut = SDL_CreateMutex();
@@ -104,8 +125,6 @@ void ALStream::stop()
     stopStream();
   }
   state = Stopped;
-  if (!looped)
-    close();
 }
 
 void ALStream::play(float offset)
@@ -143,6 +162,7 @@ void ALStream::pause()
 void ALStream::setVolume(float value)
 {
   AL::Source::setVolume(alSrc, value);
+  volume = AL::Source::get_volume(alSrc);
 }
 
 void ALStream::setPitch(float value)
@@ -238,26 +258,42 @@ void ALStream::openSource(const std::string &filename)
 
 void ALStream::stopStream()
 {
+  Debug() << "Stop Audio Stream Now!";
   threadTermReq.set();
   if (thread) {
     SDL_WaitThread(thread, 0);
     thread = 0;
-    if (looped)
-      needsRewind.set();
   }
   /* Need to stop the source _after_ the thread has terminated,
    * because it might have accidentally started it again before
    * seeing the term request */
-  AL::Source::stop(alSrc);
   if (!looped) {
+    int buffers_left = AL::Source::queued_buffers(alSrc);
+    Debug() << "Stop Total Buffers Left:" << buffers_left;
+    while (buffers_left--) {
+      AL::Source::unqueueBuffer(alSrc);
+      Debug() << "Buffers Left:" << buffers_left;
+    }
+    AL::Source::rewind(alSrc);
     AL::Source::clearQueue(alSrc);
+    source->seekToOffset(startOffset);
+    //for (int i = 0; i < STREAM_BUFS; ++i) {
+    //  AL::Buffer::del(alBuf[i]);
+    //  alBuf[i] = AL::Buffer::gen();
+    //}
+  } else {
+    needsRewind.set();
   }
+  AL::Source::stop(alSrc);
   procFrames = 0;
+  startOffset = 0;
   setVolume(0);
 }
 
 void ALStream::startStream(float offset)
 {
+  int buffers_left = AL::Source::queued_buffers(alSrc);
+  Debug() << "Start Total Buffers Left:" << buffers_left;
   AL::Source::clearQueue(alSrc);
   preemptPause = false;
   streamInited.clear();
@@ -312,30 +348,48 @@ void ALStream::checkStopped()
   stopStream();
   state = Stopped;
 }
+
+void ALStream::queue_first_buffers(bool first_buffer)
+{
+  ALDataSource::Status status;
+  for (int i = 0; i < STREAM_BUFS; ++i) {
+    if (threadTermReq)
+      return;
+    AL::Buffer::ID buf = alBuf[i];
+    status = source->fillBuffer(buf);
+    if (status == ALDataSource::Error)
+      return;
+    AL::Source::queueBuffer(alSrc, buf);
+    if (first_buffer) {
+      resumeStream();
+      streamInited.set();
+    }
+    if (threadTermReq)
+      return;
+    if (status == ALDataSource::EndOfStream) {
+      sourceExhausted.set();
+      return;
+    }
+  }
+}
 // thread func
 void ALStream::streamData()
 {// Fill up queue
-  bool firstBuffer = true;
+  Debug() << "Initialized Audio Streaming";
+  bool skip_buffer = false;
   ALDataSource::Status status;
-  if (threadTermReq) return;
-  if (needsRewind) source->seekToOffset(startOffset);
-  for (int i = 0; i < STREAM_BUFS; ++i) {
-    if (threadTermReq) return;
-    AL::Buffer::ID buf = alBuf[i];
-    status = source->fillBuffer(buf);
-    if (status == ALDataSource::Error) return;
-    AL::Source::queueBuffer(alSrc, buf);
-    if (firstBuffer) {
-      resumeStream();
-      firstBuffer = false;
-      streamInited.set();
-    }
-    if (threadTermReq) return;
-    if (status == ALDataSource::EndOfStream) {
-      sourceExhausted.set();
-      break;
-    }
-  }// Wait for buffers to be consumed, then refill and queue them up again
+  if (threadTermReq)
+    return;
+  if (needsRewind)
+    source->seekToOffset(startOffset);
+  float old_volume = AL::Source::get_volume(alSrc);
+  Debug() << "Volume:" << volume;
+  if (!looped)
+    setVolume(0.0f);
+  queue_first_buffers(true);
+  if (!looped)
+    setVolume(old_volume);
+  // Wait for buffers to be consumed, then refill and queue them up again
   while (true) {
     shState->rtData().syncPoint.passSecondarySync();
     ALint procBufs = AL::Source::getProcBufferCount(alSrc);
@@ -344,11 +398,14 @@ void ALStream::streamData()
         break;
       AL::Buffer::ID buf = AL::Source::unqueueBuffer(alSrc);
       // If something went wrong, try again later
-      if (buf == AL::Buffer::ID(0))
+      if (buf == AL::Buffer::ID(0)) {
+        Debug() << "No Buffer?";
         break;
+      }
       if (buf == lastBuf) {
 // Reset processed sample count so querying playback offset returns 0.0 again
-        procFrames = source->loopStartFrames();
+        Debug() << "Buffer == Last Buffer";
+        procFrames = looped ? source->loopStartFrames() : 0;
         lastBuf = AL::Buffer::ID(0);
       } else {
       // Add the frame count contained in this buffer to the total count
@@ -358,27 +415,43 @@ void ALStream::streamData()
         if (bits != 0 && chan != 0)
           procFrames += ((size / (bits / 8)) / chan);
       }
-      if (sourceExhausted)
+      if (sourceExhausted) {
+        Debug() << "Audio Stream Exhausted";
         continue;
+      }
       status = source->fillBuffer(buf);
+      if (status == ALDataSource::EndOfStream) {
+        Debug() << "Audio Stream Has Ended";
+        sourceExhausted.set();
+        if (!looped) {
+          AL::Source::unqueueBuffer2(alSrc, buf);
+          lastBuf = AL::Buffer::ID(0);
+          procBufs = 0;
+          skip_buffer = true;
+          break;
+        }
+      }
       if (status == ALDataSource::Error) {
+        Debug() << "Audio Stream Status Error";
         sourceExhausted.set();
         return;
       }
       AL::Source::queueBuffer(alSrc, buf);
       // In case of buffer underrun, start playing again
-      if (AL::Source::getState(alSrc) == AL_STOPPED)
+      if (AL::Source::getState(alSrc) == AL_STOPPED) {
+        Debug() << "Audio Stream Buffer Underrun";
         AL::Source::play(alSrc);
+      }
       /* If this was the last buffer before the data
        * source loop wrapped around again, mark it as
        * such so we can catch it and reset the processed
        * sample count once it gets unqueued */
-      if (status == ALDataSource::WrapAround)
+      if (status == ALDataSource::WrapAround) {
+        Debug() << "Audio Stream Wrapped Around";
         lastBuf = buf;
-      if (status == ALDataSource::EndOfStream)
-        sourceExhausted.set();
+      }
     }
-    if (threadTermReq)
+    if (threadTermReq || skip_buffer)
       break;
     SDL_Delay(AUDIO_SLEEP);
   }

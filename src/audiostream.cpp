@@ -27,6 +27,21 @@
 #include <SDL_thread.h>
 #include <SDL_timer.h>
 
+AudioStream::AudioStream()
+: extPaused(false),
+  noResumeStop(false)
+{
+  current.volume = 1.0f;
+  current.pitch = 1.0f;
+  for (size_t i = 0; i < VolumeTypeCount; ++i)
+    volumes[i] = 1.0f;
+  fade.thread = 0;
+  //fade.threadName = std::string("audio_fadeout (") + threadId + ")";
+  fadeIn.thread = 0;
+  //fadeIn.threadName = std::string("audio_fadein (") + threadId + ")";
+  streamMut = SDL_CreateMutex();
+}
+
 AudioStream::AudioStream(ALStream::LoopMode loopMode, const std::string &threadId)
 : extPaused(false),
   noResumeStop(false),
@@ -59,6 +74,14 @@ AudioStream::~AudioStream()
   unlockStream();
   SDL_DestroyMutex(streamMut);
 }
+
+/*AudioStream::AudioStream &operator=(const AudioStream &&o) noexcept
+{
+  if (this != &o) {
+    looped = std::move(o.looped);
+  }
+  return *this;
+}*/
 
 void AudioStream::play(const std::string &filename,
   int volume, int pitch, float offset)

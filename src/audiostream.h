@@ -95,6 +95,7 @@ struct AudioStream
     uint32_t startTicks;
   } fadeIn;
 
+  AudioStream();
   AudioStream(ALStream::LoopMode loopMode, const std::string &threadId);
   ~AudioStream();
   void play(const std::string &filename, int volume, int pitch, float offset=0);
@@ -117,6 +118,7 @@ struct AudioStream
   bool closed();
   bool paused();
   bool looping();
+  //AudioStream &operator=(const AudioStream &&o) noexcept;
 
 private:
   float volumes[VolumeTypeCount];
@@ -125,6 +127,8 @@ private:
   void startFadeIn();
   void fadeOutThread();
   void fadeInThread();
+  // /AudioStream(const AudioStream &o);
+  //AudioStream &operator=(const AudioStream &o);
 };
 
 #endif // AUDIOSTREAM_H

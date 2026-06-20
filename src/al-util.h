@@ -131,9 +131,27 @@ namespace Source
     return buffer;
   }
 
+  inline Buffer::ID unqueueBuffer2(Source::ID id, Buffer::ID buffer)
+  {
+    alSourceUnqueueBuffers(id.al, 1, &buffer.al);
+    return buffer;
+  }
+
+  inline int queued_buffers(Source::ID id)
+  {
+    ALint b_queued;
+    alGetSourcei(id.al, AL_BUFFERS_QUEUED, &b_queued);
+    return b_queued;
+  }
+
   inline void clearQueue(Source::ID id)
   {
     attachBuffer(id, Buffer::ID(0));
+  }
+
+  inline void set_loop(Source::ID id, bool loop)
+  {
+    alSourcei(id.al, AL_LOOPING, loop ? 1 : 0);
   }
 
   inline ALint getInteger(Source::ID id, ALenum prop)
@@ -160,6 +178,13 @@ namespace Source
     return value;
   }
 
+  inline ALfloat get_volume(Source::ID id)
+  {
+    ALfloat value;
+    alGetSourcef(id.al, AL_GAIN, &value);
+    return value;
+  }
+
   inline void setVolume(Source::ID id, float value)
   {
     alSourcef(id.al, AL_GAIN, value);
@@ -178,6 +203,11 @@ namespace Source
   inline void stop(Source::ID id)
   {
     alSourceStop(id.al);
+  }
+
+  inline void rewind(Source::ID id)
+  {
+    alSourceRewind(id.al);
   }
 
   inline void pause(Source::ID id)

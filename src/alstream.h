@@ -59,6 +59,7 @@ struct ALStream
   AtomicFlag threadTermReq;
   AtomicFlag needsRewind;
   float startOffset;
+  float volume;
   float pitch;
   AL::Source::ID alSrc;
   AL::Buffer::ID alBuf[STREAM_BUFS];
@@ -78,6 +79,7 @@ struct ALStream
     NotLooped
   };
 
+  ALStream();
   ALStream(LoopMode loopMode, const std::string &threadId);
   ~ALStream();
   void close();
@@ -87,6 +89,7 @@ struct ALStream
   void pause();
   void setVolume(float value);
   void setPitch(float value);
+  void set_loop(bool state);
   State queryState();
   float queryOffset();
   bool queryNativePitch();
@@ -102,10 +105,9 @@ private:
   void pauseStream();
   void resumeStream();
   void checkStopped();
-  /* thread func */
+  void queue_first_buffers(bool first_buffer);
+  // thread function
   void streamData();
-  void play_repeat(int play_state);
-  void play_once(int play_state);
 };
 
 #endif // ALSTREAM_H
