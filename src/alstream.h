@@ -63,6 +63,7 @@ struct ALStream
   float pitch;
   AL::Source::ID alSrc;
   AL::Buffer::ID alBuf[STREAM_BUFS];
+  //AL::Buffer::ID alEmpty[STREAM_BUFS];
   uint64_t procFrames;
   AL::Buffer::ID lastBuf;
   SDL_RWops srcOps;
@@ -79,7 +80,6 @@ struct ALStream
     NotLooped
   };
 
-  ALStream();
   ALStream(LoopMode loopMode, const std::string &threadId);
   ~ALStream();
   void close();

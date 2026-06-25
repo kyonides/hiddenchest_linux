@@ -27,21 +27,6 @@
 #include <SDL_thread.h>
 #include <SDL_timer.h>
 
-AudioStream::AudioStream()
-: extPaused(false),
-  noResumeStop(false)
-{
-  current.volume = 1.0f;
-  current.pitch = 1.0f;
-  for (size_t i = 0; i < VolumeTypeCount; ++i)
-    volumes[i] = 1.0f;
-  fade.thread = 0;
-  //fade.threadName = std::string("audio_fadeout (") + threadId + ")";
-  fadeIn.thread = 0;
-  //fadeIn.threadName = std::string("audio_fadein (") + threadId + ")";
-  streamMut = SDL_CreateMutex();
-}
-
 AudioStream::AudioStream(ALStream::LoopMode loopMode, const std::string &threadId)
 : extPaused(false),
   noResumeStop(false),
@@ -75,14 +60,6 @@ AudioStream::~AudioStream()
   SDL_DestroyMutex(streamMut);
 }
 
-/*AudioStream::AudioStream &operator=(const AudioStream &&o) noexcept
-{
-  if (this != &o) {
-    looped = std::move(o.looped);
-  }
-  return *this;
-}*/
-
 void AudioStream::play(const std::string &filename,
   int volume, int pitch, float offset)
 {
@@ -95,8 +72,8 @@ void AudioStream::play(const std::string &filename,
   /* If all parameters match the current ones and we're
    * still playing, there's nothing to do */
   if (filename == current.filename
-    && _volume  == current.volume
-    && _pitch   == current.pitch
+    && _volume == current.volume
+    && _pitch  == current.pitch
     && (sState == ALStream::Playing || sState == ALStream::Paused))
   {
     unlockStream();
@@ -105,7 +82,7 @@ void AudioStream::play(const std::string &filename,
   /* If all parameters except volume match the current ones,
    * we update the volume and continue streaming */
   if (filename == current.filename
-    && _pitch   == current.pitch
+    && _pitch  == current.pitch
     && (sState == ALStream::Playing || sState == ALStream::Paused))
   {
     setVolume(Base, _volume);
@@ -195,7 +172,7 @@ void AudioStream::resume()
 void AudioStream::set_loop(bool state)
 {
   lockStream();
-  stream.looped = state;
+  stream.set_loop(state);
   unlockStream();
 }
 

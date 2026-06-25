@@ -23,13 +23,29 @@ bool system_is_really_linux()
   return !strcmp(SYSTEM_STRING, "linux");
 }
 
+static VALUE system_is_windows(VALUE self)
+{
+  return rb_iv_get(self, "windows");
+}
+
+static VALUE system_is_linux(VALUE self)
+{
+  return rb_iv_get(self, "linux");
+}
+
 void init_system()
 {
   locales = SDL_GetPreferredLocales();
   VALUE sys = rb_define_module("System");
-  rb_iv_set(sys, "@user_language", rstr(locales[0].language));
   rb_define_const(sys, "NAME", rstr(SYSTEM_REAL_STRING));
   rb_define_const(sys, "FAMILY_NAME", rstr(SYSTEM_STRING));
   rb_define_const(sys, "CODENAME", rstr(CODENAME));
+  bool is_windows = system_is_really_windows();
+  bool is_linux = system_is_really_linux();
+  rb_iv_set(sys, "windows", is_windows ? Qtrue : Qfalse);
+  rb_iv_set(sys, "linux", is_linux ? Qtrue : Qfalse);
+  rb_iv_set(sys, "@user_language", rstr(locales[0].language));
+  module_func(sys, "windows?", system_is_windows, 0);
+  module_func(sys, "linux?", system_is_linux, 0);
   rb_define_alias(rb_cHash, "index", "key");
 }

@@ -34,25 +34,6 @@
 #include <SDL_thread.h>
 #include <SDL_timer.h>
 
-ALStream::ALStream()
-: looped(true),
-  state(Closed),
-  source(0),
-  thread(0),
-  preemptPause(false),
-  volume(0),
-  pitch(1.0f)
-{
-  alSrc = AL::Source::gen();
-  AL::Source::setVolume(alSrc, 1.0f);
-  AL::Source::setPitch(alSrc, 1.0f);
-  AL::Source::detachBuffer(alSrc);
-  volume = AL::Source::get_volume(alSrc);
-  for (int i = 0; i < STREAM_BUFS; ++i)
-    alBuf[i] = AL::Buffer::gen();
-  pauseMut = SDL_CreateMutex();
-}
-
 ALStream::ALStream(LoopMode loopMode, const std::string &threadId)
 : looped(loopMode == Looped),
   state(Closed),
@@ -170,6 +151,14 @@ void ALStream::setPitch(float value)
   AL::Source::setPitch(alSrc, value);
 }
 
+void ALStream::set_loop(bool state)
+{
+  if (looped == state)
+    return;
+  AL::Source::stop(alSrc);
+  looped = state;
+}
+
 ALStream::State ALStream::queryState()
 {
   checkStopped();
@@ -266,25 +255,19 @@ void ALStream::stopStream()
   }
   /* Need to stop the source _after_ the thread has terminated,
    * because it might have accidentally started it again before
-   * seeing the term request */
+   * seeing the term request */// else {//needsRewind.set();}
+  AL::Source::stop(alSrc);
+  AL::Source::rewind(alSrc);
+  source->seekToOffset(startOffset);
   if (!looped) {
+    // alEmpty[STREAM_BUFS];
     int buffers_left = AL::Source::queued_buffers(alSrc);
     Debug() << "Stop Total Buffers Left:" << buffers_left;
     while (buffers_left--) {
       AL::Source::unqueueBuffer(alSrc);
       Debug() << "Buffers Left:" << buffers_left;
     }
-    AL::Source::rewind(alSrc);
-    AL::Source::clearQueue(alSrc);
-    source->seekToOffset(startOffset);
-    //for (int i = 0; i < STREAM_BUFS; ++i) {
-    //  AL::Buffer::del(alBuf[i]);
-    //  alBuf[i] = AL::Buffer::gen();
-    //}
-  } else {
-    needsRewind.set();
   }
-  AL::Source::stop(alSrc);
   procFrames = 0;
   startOffset = 0;
   setVolume(0);
@@ -352,6 +335,9 @@ void ALStream::checkStopped()
 void ALStream::queue_first_buffers(bool first_buffer)
 {
   ALDataSource::Status status;
+  AL::Buffer::ID buffer = AL::Buffer::ID(0);
+  status = source->fillBuffer(buffer);
+  AL::Source::queueBuffer(alSrc, buffer);
   for (int i = 0; i < STREAM_BUFS; ++i) {
     if (threadTermReq)
       return;
@@ -384,11 +370,7 @@ void ALStream::streamData()
     source->seekToOffset(startOffset);
   float old_volume = AL::Source::get_volume(alSrc);
   Debug() << "Volume:" << volume;
-  if (!looped)
-    setVolume(0.0f);
   queue_first_buffers(true);
-  if (!looped)
-    setVolume(old_volume);
   // Wait for buffers to be consumed, then refill and queue them up again
   while (true) {
     shState->rtData().syncPoint.passSecondarySync();

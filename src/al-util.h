@@ -149,11 +149,6 @@ namespace Source
     attachBuffer(id, Buffer::ID(0));
   }
 
-  inline void set_loop(Source::ID id, bool loop)
-  {
-    alSourcei(id.al, AL_LOOPING, loop ? 1 : 0);
-  }
-
   inline ALint getInteger(Source::ID id, ALenum prop)
   {
     ALint value;
@@ -203,6 +198,7 @@ namespace Source
   inline void stop(Source::ID id)
   {
     alSourceStop(id.al);
+    alSourcei(id.al, AL_BUFFER, AL_NONE);
   }
 
   inline void rewind(Source::ID id)

@@ -239,6 +239,10 @@ static VALUE graphics_prepare_movie(VALUE self)
 
 static VALUE graphics_play_movie_int(VALUE self)
 {
+  VALUE system = rb_define_module("System");
+  VALUE is_windows = rb_iv_get(system, "windows");
+  if (is_windows == Qtrue)
+    return Qfalse;
   VALUE movie = rb_iv_get(self, "@movie");
   bool resize = rb_iv_get(movie, "@resize") == Qtrue;
   shState->graphics().play_movie(resize);

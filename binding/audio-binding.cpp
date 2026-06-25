@@ -111,9 +111,28 @@ static VALUE audio_bgms_looping(VALUE self, VALUE pos)
 static VALUE audio_bgms_loop_set(VALUE self, VALUE pos, VALUE state)
 {
   int n = RB_FIX2INT(pos) - 1;
-  shState->audio().set_bgms_loop(n, state == Qtrue);
+  bool result = state == Qtrue;
+  shState->audio().set_bgms_loop(n, result);
   VALUE hash = rb_iv_get(self, "@bgms_loop");
-  return rb_hash_aset(hash, pos, state == Qtrue ? Qtrue : Qfalse);
+  return rb_hash_aset(hash, pos, result ? Qtrue : Qfalse);
+}
+
+static VALUE audio_bgms_loop_all(VALUE self)
+{
+  return rb_iv_get(self, "@bgms_loop");
+}
+
+static VALUE audio_bgms_loop_all_set(VALUE self, VALUE state)
+{
+  bool result = state == Qtrue;
+  state = result ? Qtrue : Qfalse;
+  VALUE pos, hash = rb_iv_get(self, "@bgms_loop");
+  for (int n = 0; n < BGM_CHANNELS; n++) {
+    shState->audio().set_bgms_loop(n, result);
+    pos = RB_INT2FIX(n + 1);
+    rb_hash_aset(hash, pos, state);
+  }
+  return hash;
 }
 
 static VALUE audio_bgms_pos(VALUE self, VALUE pos)
@@ -219,8 +238,9 @@ static VALUE audio_bgm_looping(VALUE self)
 
 static VALUE audio_bgm_loop_set(VALUE self, VALUE state)
 {
-  shState->audio().set_bgm_loop(state == Qtrue);
-  return rb_iv_set(self, "@bgm_loop", state == Qtrue ? Qtrue : Qfalse);
+  bool result = state == Qtrue;
+  shState->audio().set_bgm_loop(result);
+  return rb_iv_set(self, "@bgm_loop", result ? Qtrue : Qfalse);
 }
 
 static VALUE audio_bgmPos(VALUE self)
@@ -344,6 +364,24 @@ static VALUE audio_bgss_loop_set(VALUE self, VALUE pos, VALUE state)
   shState->audio().set_bgss_loop(n, state == Qtrue);
   VALUE hash = rb_iv_get(self, "@bgss_loop");
   return rb_hash_aset(hash, pos, state == Qtrue ? Qtrue : Qfalse);
+}
+
+static VALUE audio_bgss_loop_all(VALUE self)
+{
+  return rb_iv_get(self, "@bgss_loop");
+}
+
+static VALUE audio_bgss_loop_all_set(VALUE self, VALUE state)
+{
+  bool result = state == Qtrue;
+  state = result ? Qtrue : Qfalse;
+  VALUE pos, hash = rb_iv_get(self, "@bgss_loop");
+  for (int n = 0; n < BGS_CHANNELS; n++) {
+    shState->audio().set_bgss_loop(n, result);
+    pos = RB_INT2FIX(n + 1);
+    rb_hash_aset(hash, pos, state);
+  }
+  return hash;
 }
 
 static VALUE audio_bgss_volume_get(VALUE self, VALUE pos)
@@ -652,6 +690,8 @@ void audioBindingInit()
   module_func(md, "bgms_paused?", audio_bgms_paused, 1);
   module_func(md, "bgms_loop", audio_bgms_looping, 1);
   module_func(md, "bgms_loop_set", audio_bgms_loop_set, 2);
+  module_func(md, "bgms_loop_all", audio_bgms_loop_all, 0);
+  module_func(md, "bgms_loop_all=", audio_bgms_loop_all_set, 1);
   module_func(md, "bgms_fade", audio_bgms_fade, 2);
   module_func(md, "bgms_pos", audio_bgms_pos, 1);
   module_func(md, "bgms_volume", audio_bgms_volume_get, 1);
@@ -689,6 +729,8 @@ void audioBindingInit()
   module_func(md, "bgss_paused?", audio_bgss_paused, 1);
   module_func(md, "bgss_loop", audio_bgss_looping, 1);
   module_func(md, "bgss_loop_set", audio_bgss_loop_set, 2);
+  module_func(md, "bgss_loop_all", audio_bgss_loop_all, 0);
+  module_func(md, "bgss_loop_all=", audio_bgss_loop_all_set, 1);
   module_func(md, "bgss_fade", audio_bgss_fade, 2);
   module_func(md, "bgss_pos", audio_bgss_pos, 1);
   module_func(md, "bgss_volume", audio_bgss_volume_get, 1);
