@@ -159,6 +159,11 @@ void ALStream::set_loop(bool state)
   looped = state;
 }
 
+int ALStream::sample_rate()
+{
+  return !source ? 0 : source->sampleRate();
+}
+
 ALStream::State ALStream::queryState()
 {
   checkStopped();
@@ -260,13 +265,9 @@ void ALStream::stopStream()
   AL::Source::rewind(alSrc);
   source->seekToOffset(startOffset);
   if (!looped) {
-    // alEmpty[STREAM_BUFS];
     int buffers_left = AL::Source::queued_buffers(alSrc);
-    Debug() << "Stop Total Buffers Left:" << buffers_left;
-    while (buffers_left--) {
+    while (buffers_left--)
       AL::Source::unqueueBuffer(alSrc);
-      Debug() << "Buffers Left:" << buffers_left;
-    }
   }
   procFrames = 0;
   startOffset = 0;

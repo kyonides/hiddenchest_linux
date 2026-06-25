@@ -135,6 +135,13 @@ static VALUE audio_bgms_loop_all_set(VALUE self, VALUE state)
   return hash;
 }
 
+static VALUE audio_bgms_sample_rate(VALUE self, VALUE pos)
+{
+  int n = RB_FIX2INT(pos) - 1;
+  int rate = shState->audio().bgms_sample_rate(n);
+  return RB_INT2FIX(rate);
+}
+
 static VALUE audio_bgms_pos(VALUE self, VALUE pos)
 {
   int n = RB_FIX2INT(pos) - 1;
@@ -241,6 +248,12 @@ static VALUE audio_bgm_loop_set(VALUE self, VALUE state)
   bool result = state == Qtrue;
   shState->audio().set_bgm_loop(result);
   return rb_iv_set(self, "@bgm_loop", result ? Qtrue : Qfalse);
+}
+
+static VALUE audio_bgm_sample_rate(VALUE self)
+{
+  int rate = shState->audio().bgm_sample_rate();
+  return RB_INT2FIX(rate);
 }
 
 static VALUE audio_bgmPos(VALUE self)
@@ -672,6 +685,7 @@ void audioBindingInit()
   module_func(md, "bgm_loop", audio_bgm_looping, 0);
   module_func(md, "bgm_loop=", audio_bgm_loop_set, 1);
   module_func(md, "bgm_fade", audio_bgmFade, -1);
+  module_func(md, "bgm_sample_rate", audio_bgm_sample_rate, 0);
   module_func(md, "bgm_pos", audio_bgmPos, 0);
   module_func(md, "bgm_volume", audio_bgm_volume_get, 0);
   module_func(md, "bgm_volume=", audio_bgm_volume_set, 1);
@@ -693,6 +707,7 @@ void audioBindingInit()
   module_func(md, "bgms_loop_all", audio_bgms_loop_all, 0);
   module_func(md, "bgms_loop_all=", audio_bgms_loop_all_set, 1);
   module_func(md, "bgms_fade", audio_bgms_fade, 2);
+  module_func(md, "bgms_sample_rate", audio_bgms_sample_rate, 1);
   module_func(md, "bgms_pos", audio_bgms_pos, 1);
   module_func(md, "bgms_volume", audio_bgms_volume_get, 1);
   module_func(md, "bgms_volume_set", audio_bgms_volume_set, 2);

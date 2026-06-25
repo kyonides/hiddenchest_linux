@@ -136,7 +136,7 @@ struct MidiReadHandler
 static void
 badMidiFormat()
 {
-	throw Exception(Exception::HiddenChestError, "Midi: Bad format");
+  throw Exception(Exception::HiddenChestError, "Midi: Bad format");
 }
 
 /* File-like interface to a read-only memory buffer */
@@ -182,43 +182,35 @@ struct MemChunk
 static uint32_t
 readVarNum(MemChunk &chunk)
 {
-	uint32_t result = 0;
-	uint8_t byte;
-	uint8_t len = 0;
-
-	do
-	{
-		/* A variable length number can at most be made of 4 bytes */
-		if (++len > 4)
-			badMidiFormat();
-
-		byte = chunk.readByte();
-		result = (result << 0x7) | (byte & 0x7F);
-	}
-	while (byte & 0x80);
-
-	return result;
+  uint32_t result = 0;
+  uint8_t byte;
+  uint8_t len = 0;
+  // A variable length number can at most be made of 4 bytes
+  do {
+    if (++len > 4)
+      badMidiFormat();
+    byte = chunk.readByte();
+    result = (result << 0x7) | (byte & 0x7F);
+  }
+  while (byte & 0x80);
+  return result;
 }
 
 template<typename T>
 static T readBigEndian(MemChunk &chunk)
 {
-	T result = 0;
-
-	for (size_t i = 0; i < sizeof(T); ++i)
-		result = (result << 0x8) | chunk.readByte();
-
-	return result;
+  T result = 0;
+  for (size_t i = 0; i < sizeof(T); ++i)
+    result = (result << 0x8) | chunk.readByte();
+  return result;
 }
 
 static void
 readVoiceEvent(MidiEvent &e, MemChunk &chunk,
                uint8_t type, uint8_t data1, bool &handled)
 {
-	e.e.chan.chan = (type & 0x0F);
-
-	uint8_t tmp;
-
+  e.e.chan.chan = (type & 0x0F);
+  uint8_t tmp;
 	switch (type >> 4)
 	{
 	case 0x8 :
@@ -882,10 +874,15 @@ struct MidiSource : ALDataSource, MidiReadHandler
 		return NoError;
 	}
 
-	int sampleRate()
-	{
-		return freq;
-	}
+  int sampleRate()
+  {
+    return freq;
+  }
+
+  double seconds()
+  {
+    return 0;
+  }
 
 	/* Midi sources cannot seek, and so always reset to beginning */
 	void seekToOffset(float)

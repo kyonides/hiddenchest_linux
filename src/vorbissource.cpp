@@ -55,6 +55,7 @@ struct VorbisSource : ALDataSource
   SDL_RWops &src;
   OggVorbis_File vf;
   uint32_t currentFrame;
+  double sec;
   struct
   {
     uint32_t start;
@@ -75,6 +76,7 @@ struct VorbisSource : ALDataSource
 
   VorbisSource(SDL_RWops &ops, bool looped) : src(ops), currentFrame(0)
   {
+    sec = 0;
     int error = ov_open_callbacks(&src, &vf, 0, 0, OvCallbacks);
     if (error) {
       SDL_RWclose(&src);
@@ -94,24 +96,26 @@ struct VorbisSource : ALDataSource
     loop.requested = looped;
     loop.valid = false;
     loop.start = loop.length = 0;
-    if (!loop.requested) return;
+    if (!loop.requested)
+      return;
     /* Try to extract loop info */
     for (int i = 0; i < vf.vc->comments; ++i) {
-            char *comment = vf.vc->user_comments[i];
-            char *sep = strstr(comment, "=");
-            /* No '=' found */
-            if (!sep) continue;
-            /* Empty value */
-            if (!*(sep+1)) continue;
-            *sep = '\0';
-            if (!strcmp(comment, "LOOPSTART"))
-                    loop.start = strtol(sep+1, 0, 10);
-            if (!strcmp(comment, "LOOPLENGTH"))
-                    loop.length = strtol(sep+1, 0, 10);
-            *sep = '=';
+      char *comment = vf.vc->user_comments[i];
+      char *sep = strstr(comment, "=");
+      /* No '=' found */
+      if (!sep) continue;
+      /* Empty value */
+      if (!*(sep+1)) continue;
+      *sep = '\0';
+      if (!strcmp(comment, "LOOPSTART"))
+        loop.start = strtol(sep+1, 0, 10);
+      if (!strcmp(comment, "LOOPLENGTH"))
+        loop.length = strtol(sep+1, 0, 10);
+      *sep = '=';
     }
     loop.end = loop.start + loop.length;
     loop.valid = (loop.start && loop.length);
+    sec = ov_time_total(&vf, -1);
   }
 
   ~VorbisSource()
@@ -123,6 +127,11 @@ struct VorbisSource : ALDataSource
   int sampleRate()
   {
     return info.rate;
+  }
+
+  double seconds()
+  {
+    return sec;
   }
 
   void seekToOffset(float seconds)

@@ -103,6 +103,7 @@ struct AudioStream
   void pause();
   void resume();
   void set_loop(bool state);
+  int sample_rate();
   void fadeOut(int duration);
   /* Any access to this classes 'stream' member,
    * whether state query or modification, must be

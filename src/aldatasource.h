@@ -45,6 +45,7 @@ struct ALDataSource
   virtual uint32_t loopStartFrames() = 0;
   /* Returns false if not supported */
   virtual bool setPitch(float value) = 0;
+  virtual double seconds() = 0;
 };
 
 ALDataSource *createSDLSource(SDL_RWops &ops, const char *extension,

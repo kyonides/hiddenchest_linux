@@ -63,7 +63,6 @@ struct ALStream
   float pitch;
   AL::Source::ID alSrc;
   AL::Buffer::ID alBuf[STREAM_BUFS];
-  //AL::Buffer::ID alEmpty[STREAM_BUFS];
   uint64_t procFrames;
   AL::Buffer::ID lastBuf;
   SDL_RWops srcOps;
@@ -90,6 +89,7 @@ struct ALStream
   void setVolume(float value);
   void setPitch(float value);
   void set_loop(bool state);
+  int sample_rate();
   State queryState();
   float queryOffset();
   bool queryNativePitch();

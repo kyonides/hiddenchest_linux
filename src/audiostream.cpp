@@ -176,6 +176,11 @@ void AudioStream::set_loop(bool state)
   unlockStream();
 }
 
+int AudioStream::sample_rate()
+{
+  return stream.sample_rate();
+}
+
 void AudioStream::fadeOut(int duration)
 {
   lockStream();

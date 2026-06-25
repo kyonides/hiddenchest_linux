@@ -29,6 +29,7 @@ struct SDLSoundSource : ALDataSource
   Sound_Sample *sample;
   SDL_RWops &srcOps;
   uint8_t sampleSize;
+  double sec;
   bool looped;
   ALenum alFormat;
   ALsizei alFreq;
@@ -82,6 +83,11 @@ struct SDLSoundSource : ALDataSource
   int sampleRate()
   {
     return sample->actual.rate;
+  }
+
+  double seconds()
+  {
+    return sec;
   }
 
   void seekToOffset(float seconds)

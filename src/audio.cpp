@@ -339,6 +339,11 @@ void Audio::set_bgms_loop(int n, bool state)
   p->get_bgm(n)->set_loop(state);
 }
 
+int Audio::bgms_sample_rate(int n)
+{
+  return p->get_bgm(n)->sample_rate();
+}
+
 float Audio::bgms_pos(int n)
 {
   return p->get_bgm(n)->playingOffset();
@@ -352,6 +357,11 @@ void Audio::bgmPlay(const char *filename, int volume, int pitch, float pos)
 void Audio::bgmStop()
 {
   p->bgm1.stop();
+}
+
+void Audio::bgmFade(int time)
+{
+  p->bgm1.fadeOut(time);
 }
 
 void Audio::bgm_close()
@@ -399,9 +409,9 @@ void Audio::set_bgm_loop(bool state)
   p->bgm1.set_loop(state);
 }
 
-void Audio::bgmFade(int time)
+int Audio::bgm_sample_rate()
 {
-  p->bgm1.fadeOut(time);
+  return p->bgm1.sample_rate();
 }
 
 float Audio::bgmPos()
