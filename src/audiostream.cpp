@@ -181,6 +181,16 @@ int AudioStream::sample_rate()
   return stream.sample_rate();
 }
 
+int AudioStream::samples()
+{
+  return stream.samples();
+}
+
+double AudioStream::seconds()
+{
+  return stream.seconds();
+}
+
 void AudioStream::fadeOut(int duration)
 {
   lockStream();

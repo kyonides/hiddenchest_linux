@@ -4,6 +4,7 @@
 ** This file is part of mkxp.
 **
 ** Copyright (C) 2014 Jonas Kulla <Nyocurio@gmail.com>
+** Modified  (C) 2018-2026 Kyonides <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -55,6 +56,7 @@ struct VorbisSource : ALDataSource
   SDL_RWops &src;
   OggVorbis_File vf;
   uint32_t currentFrame;
+  int smpls;
   double sec;
   struct
   {
@@ -76,7 +78,7 @@ struct VorbisSource : ALDataSource
 
   VorbisSource(SDL_RWops &ops, bool looped) : src(ops), currentFrame(0)
   {
-    sec = 0;
+    sec = 0.0f;
     int error = ov_open_callbacks(&src, &vf, 0, 0, OvCallbacks);
     if (error) {
       SDL_RWclose(&src);
@@ -96,6 +98,9 @@ struct VorbisSource : ALDataSource
     loop.requested = looped;
     loop.valid = false;
     loop.start = loop.length = 0;
+    sec = ov_time_total(&vf, -1);
+    uint32_t smpls32 = ov_pcm_total(&vf, -1);
+    smpls = (int) smpls32;
     if (!loop.requested)
       return;
     /* Try to extract loop info */
@@ -115,7 +120,6 @@ struct VorbisSource : ALDataSource
     }
     loop.end = loop.start + loop.length;
     loop.valid = (loop.start && loop.length);
-    sec = ov_time_total(&vf, -1);
   }
 
   ~VorbisSource()
@@ -127,6 +131,11 @@ struct VorbisSource : ALDataSource
   int sampleRate()
   {
     return info.rate;
+  }
+
+  int samples()
+  {
+    return smpls;
   }
 
   double seconds()

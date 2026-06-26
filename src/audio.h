@@ -60,6 +60,8 @@ public:
   bool bgms_looping(int n);
   void set_bgms_loop(int n, bool state);
   int bgms_sample_rate(int n);
+  int bgms_samples(int n);
+  double bgms_seconds(int n);
   float bgms_pos(int n);
 // End of BGM Channels
   void bgmPlay(const char *filename,
@@ -78,6 +80,8 @@ public:
   bool bgm_looping();
   void set_bgm_loop(bool state);
   int bgm_sample_rate();
+  int bgm_samples();
+  double bgm_seconds();
   float bgmPos();
 // BGS Channels
   void bgss_play(int n,

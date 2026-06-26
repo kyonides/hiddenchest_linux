@@ -104,6 +104,8 @@ struct AudioStream
   void resume();
   void set_loop(bool state);
   int sample_rate();
+  int samples();
+  double seconds();
   void fadeOut(int duration);
   /* Any access to this classes 'stream' member,
    * whether state query or modification, must be

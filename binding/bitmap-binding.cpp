@@ -121,10 +121,8 @@ inline void bitmapDisposeChildren(VALUE disp)
 
 static VALUE bitmapDispose(VALUE self)
 {
-  if (rb_iv_get(self, "disposed") == Qtrue) {
-    Debug() << "Already disposed!";
+  if (rb_iv_get(self, "disposed") == Qtrue)
     return Qnil;
-  }
   Bitmap *b = getPrivateData<Bitmap>(self);
   if (!b)
     return Qnil;

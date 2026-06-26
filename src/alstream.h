@@ -90,6 +90,8 @@ struct ALStream
   void setPitch(float value);
   void set_loop(bool state);
   int sample_rate();
+  int samples();
+  double seconds();
   State queryState();
   float queryOffset();
   bool queryNativePitch();

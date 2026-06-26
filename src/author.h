@@ -1,6 +1,6 @@
 #define HIDDENAUTHOR "Kyonides Arkanthes"
 #define HIDDENVERSION "1.2.12"
-#define HIDDENDATE "2026-06-25"
+#define HIDDENDATE "2026-06-26"
 #define CODENAME "AudioUnlooped"
 #define SYSTEM_STRING "linux"
 #define SYSTEM_REAL_STRING "Linux"

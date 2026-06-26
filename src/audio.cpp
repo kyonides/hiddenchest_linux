@@ -344,6 +344,16 @@ int Audio::bgms_sample_rate(int n)
   return p->get_bgm(n)->sample_rate();
 }
 
+int Audio::bgms_samples(int n)
+{
+  return p->get_bgm(n)->samples();
+}
+
+double Audio::bgms_seconds(int n)
+{
+  return p->get_bgm(n)->seconds();
+}
+
 float Audio::bgms_pos(int n)
 {
   return p->get_bgm(n)->playingOffset();
@@ -412,6 +422,16 @@ void Audio::set_bgm_loop(bool state)
 int Audio::bgm_sample_rate()
 {
   return p->bgm1.sample_rate();
+}
+
+int Audio::bgm_samples()
+{
+  return p->bgm1.samples();
+}
+
+double Audio::bgm_seconds()
+{
+  return p->bgm1.seconds();
 }
 
 float Audio::bgmPos()

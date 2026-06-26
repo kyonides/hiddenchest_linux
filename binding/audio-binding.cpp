@@ -138,8 +138,22 @@ static VALUE audio_bgms_loop_all_set(VALUE self, VALUE state)
 static VALUE audio_bgms_sample_rate(VALUE self, VALUE pos)
 {
   int n = RB_FIX2INT(pos) - 1;
-  int rate = shState->audio().bgms_sample_rate(n);
-  return RB_INT2FIX(rate);
+  double rate = shState->audio().bgms_sample_rate(n);
+  return DBL2NUM(rate);
+}
+
+static VALUE audio_bgms_samples(VALUE self, VALUE pos)
+{
+  int n = RB_FIX2INT(pos) - 1;
+  int samples = shState->audio().bgms_samples(n);
+  return RB_INT2FIX(samples);
+}
+
+static VALUE audio_bgms_seconds(VALUE self, VALUE pos)
+{
+  int n = RB_FIX2INT(pos) - 1;
+  double seconds = shState->audio().bgms_seconds(n);
+  return DBL2NUM(seconds);
 }
 
 static VALUE audio_bgms_pos(VALUE self, VALUE pos)
@@ -252,8 +266,20 @@ static VALUE audio_bgm_loop_set(VALUE self, VALUE state)
 
 static VALUE audio_bgm_sample_rate(VALUE self)
 {
-  int rate = shState->audio().bgm_sample_rate();
-  return RB_INT2FIX(rate);
+  double rate = shState->audio().bgm_sample_rate();
+  return DBL2NUM(rate);
+}
+
+static VALUE audio_bgm_samples(VALUE self)
+{
+  int samples = shState->audio().bgm_samples();
+  return RB_INT2FIX(samples);
+}
+
+static VALUE audio_bgm_seconds(VALUE self)
+{
+  double seconds = shState->audio().bgm_seconds();
+  return DBL2NUM(seconds);
 }
 
 static VALUE audio_bgmPos(VALUE self)
@@ -686,6 +712,8 @@ void audioBindingInit()
   module_func(md, "bgm_loop=", audio_bgm_loop_set, 1);
   module_func(md, "bgm_fade", audio_bgmFade, -1);
   module_func(md, "bgm_sample_rate", audio_bgm_sample_rate, 0);
+  module_func(md, "bgm_samples", audio_bgm_samples, 0);
+  module_func(md, "bgm_seconds", audio_bgm_seconds, 0);
   module_func(md, "bgm_pos", audio_bgmPos, 0);
   module_func(md, "bgm_volume", audio_bgm_volume_get, 0);
   module_func(md, "bgm_volume=", audio_bgm_volume_set, 1);
@@ -708,6 +736,8 @@ void audioBindingInit()
   module_func(md, "bgms_loop_all=", audio_bgms_loop_all_set, 1);
   module_func(md, "bgms_fade", audio_bgms_fade, 2);
   module_func(md, "bgms_sample_rate", audio_bgms_sample_rate, 1);
+  module_func(md, "bgms_samples", audio_bgms_samples, 1);
+  module_func(md, "bgms_seconds", audio_bgms_seconds, 1);
   module_func(md, "bgms_pos", audio_bgms_pos, 1);
   module_func(md, "bgms_volume", audio_bgms_volume_get, 1);
   module_func(md, "bgms_volume_set", audio_bgms_volume_set, 2);

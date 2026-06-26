@@ -4,6 +4,7 @@
 ** This file is part of mkxp.
 **
 ** Copyright (C) 2014 Jonas Kulla <Nyocurio@gmail.com>
+** Modified  (C) 2018-2026 Kyonides <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -22,13 +23,13 @@
 #include "aldatasource.h"
 #include "exception.h"
 #include <SDL_sound.h>
-#include "debugwriter.h"
 
 struct SDLSoundSource : ALDataSource
 {
   Sound_Sample *sample;
   SDL_RWops &srcOps;
   uint8_t sampleSize;
+  uint32_t smpls;
   double sec;
   bool looped;
   ALenum alFormat;
@@ -46,10 +47,13 @@ struct SDLSoundSource : ALDataSource
     sampleSize = formatSampleSize(sample->actual.format);
     alFormat = chooseALFormat(sampleSize, sample->actual.channels);
     alFreq = sample->actual.rate;
+    uint32_t total_sec = Sound_GetDuration(sample);
+    smpls = sample->actual.channels * alFreq * (int)total_sec;
+    sec = (double)total_sec / 1000.0f;
   }
-
+// This also closes 'srcOps'
   ~SDLSoundSource()
-  {// This also closes 'srcOps'
+  {
     Sound_FreeSample(sample);
   }
 
@@ -67,15 +71,11 @@ struct SDLSoundSource : ALDataSource
       return ALDataSource::Error;
     AL::Buffer::uploadData(alBuffer, alFormat, sample->buffer, decoded, alFreq);
     if (sample->flags & SOUND_SAMPLEFLAG_EOF) {
-      Debug() << "Loops?" << looped;
-      if (looped) {
-        Debug() << "Wrap Around";
-        Sound_Rewind(sample);
+      Sound_Rewind(sample);
+      if (looped)
         return ALDataSource::WrapAround;
-      } else {
-        Debug() << "End of Stream";
+      else
         return ALDataSource::EndOfStream;
-      }
     }
     return ALDataSource::NoError;
   }
@@ -83,6 +83,11 @@ struct SDLSoundSource : ALDataSource
   int sampleRate()
   {
     return sample->actual.rate;
+  }
+
+  int samples()
+  {
+    return smpls;
   }
 
   double seconds()

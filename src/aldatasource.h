@@ -38,6 +38,7 @@ struct ALDataSource
    * to provided AL buffer */
   virtual Status fillBuffer(AL::Buffer::ID alBuffer) = 0;
   virtual int sampleRate() = 0;
+  virtual int samples() = 0;
   /* If the source doesn't support seeking, it will
    * reset back to the beginning */
   virtual void seekToOffset(float seconds) = 0;
