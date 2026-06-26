@@ -14,11 +14,14 @@ module HiddenPlay
   @menu_bgm = ["024-Town02", 50]
   MAIN_BGM_CHANNEL = 3
   LIST_BGM_CHANNEL = 1
+  DURATION = "Playback Time"
   class Song < RPG::AudioFile
     DIR = "Audio/BGM/"
     def play(n)
       @channel = n
       Audio.bgms_play(@channel, DIR + @name, @volume, @pitch)
+      @seconds ||= Audio.bgms_seconds(@channel)
+      puts @seconds
     end
 
     def pause
@@ -28,7 +31,12 @@ module HiddenPlay
     def resume
       Audio.bgms_resume(@channel)
     end
+
+    def seconds
+      @seconds || 0.0
+    end
     attr_accessor :title
+    attr_writer :seconds
   end
 
   class List
@@ -41,6 +49,29 @@ module HiddenPlay
 
   extend self
   attr_reader :menu_bgm
+
+  class BGMWindow < Window_Base
+    def initialize(wx, wy, ww, wh)
+      super
+      @width = ww - 32
+      @height = wh - 32
+      self.contents = Bitmap.new(@width, @height)
+    end
+
+    def set_time(seconds)
+      seconds = seconds.floor
+      @sec = seconds % 60
+      @min = seconds / 60
+      refresh
+    end
+
+    def refresh
+      text = sprintf("%02d:%02d", @min, @sec)
+      self.contents.clear
+      self.contents.draw_text(:rect, DURATION)
+      self.contents.draw_text(:rect, text, 2)
+    end
+  end
 
   class Scene
     SELECT_LIST = "Select a Playlist"
@@ -68,7 +99,6 @@ module HiddenPlay
           audio.title = texts.shift
           audio.name = texts.shift.chomp
           audio.volume = VOLUME
-          #audio.pitch = 200
           list.files << audio
         end
         @lists << list
@@ -97,6 +127,8 @@ module HiddenPlay
       @help_window.set_text(SELECT_LIST, 1)
       @list_window = Window_Command.new(240, @commands)
       @list_window.y = 64
+      ox = @list_window.width
+      @bgm_window = BGMWindow.new(ox, 64, Graphics.width - ox, 64)
     end
 
     def update
@@ -140,21 +172,23 @@ module HiddenPlay
         titles = @files.map(&:title)
         @song_window = Window_Command.new(240, titles)
         @song_window.y = 64
-        @song_window.index = @song_index
         @file_max = @files.size
-        file = @files[@song_index]
-        $game_system.bgms_play(LIST_BGM_CHANNEL, file)
-        @stage = :list
+        play_file
       end
+    end
+
+    def play_file
+      @song_window.index = @song_index
+      file = @files[@song_index]
+      file.play(LIST_BGM_CHANNEL)
+      @bgm_window.set_time(file.seconds)
+      @stage = :list
     end
 
     def update_next
       @song_index = (@song_index + 1) % @file_max
-      @song_window.index = @song_index
-      file = @files[@song_index]
-      file.play(LIST_BGM_CHANNEL)
+      play_file
       @play_next = nil
-      @stage = :list
     end
 
     def update_list
@@ -167,6 +201,7 @@ module HiddenPlay
         Audio.bgms_stop(LIST_BGM_CHANNEL)
         MENU_BGM.resume
         @help_window.set_text(SELECT_LIST, 1)
+        @bgm_window.contents.clear
         @song_window.dispose
         @list_window.active = true
         @list_window.visible = true
@@ -181,10 +216,9 @@ module HiddenPlay
     end
 
     def terminate
-      @loop_states.each {|n, state| Audio.bgms_loop_set(n, state)
-                         puts "Previous State: #{state}"
-                         puts Audio.bgms_loop(n) }
+      @loop_states.each {|n, state| Audio.bgms_loop_set(n, state) }
       Font.default_outline = @font_outline
+      @bgm_window.dispose
       @list_window.dispose
       @help_window.dispose
       $game_map.autoplay
@@ -208,7 +242,7 @@ class Game_System
     Audio.bgms_stop(n)
   end
 
-  def bgm_fade(n, time)
+  def bgms_fade(n, time)
     @playing_bgms ||= {}
     @playing_bgms[n] = nil
     Audio.bgms_fade(n, time * 1000)
