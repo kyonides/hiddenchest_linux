@@ -1,6 +1,6 @@
 # * HiddenPlayList XP * #
 #   Scripter : Kyonides Arkanthes
-#   2026-06-25
+#   2026-06-29
 
 # * REQUIRES HiddenChest v1.2.12 * #
 
@@ -14,14 +14,11 @@ module HiddenPlay
   @menu_bgm = ["024-Town02", 50]
   MAIN_BGM_CHANNEL = 3
   LIST_BGM_CHANNEL = 1
-  DURATION = "Playback Time"
   class Song < RPG::AudioFile
     DIR = "Audio/BGM/"
-    def play(n)
-      @channel = n
+    def play
       Audio.bgms_play(@channel, DIR + @name, @volume, @pitch)
       @seconds ||= Audio.bgms_seconds(@channel)
-      puts @seconds
     end
 
     def pause
@@ -35,7 +32,7 @@ module HiddenPlay
     def seconds
       @seconds || 0.0
     end
-    attr_accessor :title
+    attr_accessor :title, :channel
     attr_writer :seconds
   end
 
@@ -56,20 +53,43 @@ module HiddenPlay
       @width = ww - 32
       @height = wh - 32
       self.contents = Bitmap.new(@width, @height)
+      @name_rect = Rect.new(0, 0, @width, 32)
+      @time_rect = Rect.new(0, 32, @width, 32)
     end
 
-    def set_time(seconds)
-      seconds = seconds.floor
-      @sec = seconds % 60
-      @min = seconds / 60
+    def calc_time(sec)
+      @seconds = sec % 60
+      @minutes = sec / 60
+      self.contents.clear_rect(@time_rect)
+    end
+
+    def set(file)
+      @channel = file.channel
+      @name = file.title
+      @minutes = 0
+      @seconds = Audio.bgms_pos(@channel).floor
+      total_seconds = file.seconds.floor
+      @sec = total_seconds % 60
+      @min = total_seconds / 60
+      self.contents.clear
+      self.contents.draw_text(@name_rect, @name, 1)
+      @total_time = sprintf("%02d:%02d", @min, @sec)
       refresh
     end
 
     def refresh
-      text = sprintf("%02d:%02d", @min, @sec)
-      self.contents.clear
-      self.contents.draw_text(:rect, DURATION)
-      self.contents.draw_text(:rect, text, 2)
+      self.contents.clear_rect(@time_rect)
+      text = sprintf("%02d:%02d", @minutes, @seconds)
+      self.contents.draw_text(@time_rect, text)
+      self.contents.draw_text(@time_rect, @total_time, 2)
+    end
+
+    def update
+      sec = Audio.bgms_pos(@channel).floor
+      if @seconds != sec
+        calc_time(sec)
+        refresh
+      end
     end
   end
 
@@ -77,6 +97,7 @@ module HiddenPlay
     SELECT_LIST = "Select a Playlist"
     EMPTY_LIST = "Empty List"
     MENU_BGM = Song.new(*HiddenPlay.menu_bgm)
+    MENU_BGM.channel = MAIN_BGM_CHANNEL
     VOLUME = 40
     def initialize
       @loop_states = Audio.bgms_loop_all.dup
@@ -84,7 +105,7 @@ module HiddenPlay
       Audio.bgms_loop_set(2, false)
       Audio.bgms_loop_set(3, true)
       3.times {|n| Audio.bgms_fade(n + 1, 60) }
-      MENU_BGM.play(MAIN_BGM_CHANNEL)
+      MENU_BGM.play
       @font_outline = Font.default_outline
       Font.default_outline = true
       @lists = []
@@ -99,6 +120,7 @@ module HiddenPlay
           audio.title = texts.shift
           audio.name = texts.shift.chomp
           audio.volume = VOLUME
+          audio.channel = LIST_BGM_CHANNEL
           list.files << audio
         end
         @lists << list
@@ -128,7 +150,7 @@ module HiddenPlay
       @list_window = Window_Command.new(240, @commands)
       @list_window.y = 64
       ox = @list_window.width
-      @bgm_window = BGMWindow.new(ox, 64, Graphics.width - ox, 64)
+      @bgm_window = BGMWindow.new(ox, 64, Graphics.width - ox, 96)
     end
 
     def update
@@ -180,8 +202,8 @@ module HiddenPlay
     def play_file
       @song_window.index = @song_index
       file = @files[@song_index]
-      file.play(LIST_BGM_CHANNEL)
-      @bgm_window.set_time(file.seconds)
+      file.play
+      @bgm_window.set(file)
       @stage = :list
     end
 
@@ -195,6 +217,7 @@ module HiddenPlay
       if Audio.bgms_stopped?(LIST_BGM_CHANNEL)
         return @stage = :next
       end
+      @bgm_window.update
       @song_window.update
       if Input.trigger?(:B)
         $game_system.se_play($data_system.cancel_se)
