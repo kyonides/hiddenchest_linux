@@ -358,20 +358,20 @@ void readMidiTrack(MidiReadHandler *handler, MemChunk &chunk)
 void readMidi(MidiReadHandler *handler, const std::vector<uint8_t> &data)
 {
   MemChunk chunk(data);
-  /* Midi signature */
+  // Midi signature
   char sig[5] = { 0 };
   chunk.readData(sig, 4);
   if (strcmp(sig, "MThd"))
     badMidiFormat();
-  /* Header length must always be 6 */
+  // Header length must always be 6
   uint32_t hdrLen = readBigEndian<uint32_t>(chunk);
   if (hdrLen != 6)
     badMidiFormat();
-  /* Only types 0, 1, 2 exist */
+  // Only types 0, 1, 2 exist
   uint16_t type = readBigEndian<uint16_t>(chunk);
   if (type > 2)
     badMidiFormat();
-  /* Type 0 only contains one track */
+  // Type 0 only contains one track
   uint16_t trackCount = readBigEndian<uint16_t>(chunk);
   if (trackCount == 0)
     badMidiFormat();
@@ -379,7 +379,7 @@ void readMidi(MidiReadHandler *handler, const std::vector<uint8_t> &data)
     badMidiFormat();
   uint16_t timeDiv = readBigEndian<uint16_t>(chunk);
   handler->onMidiHeader(type, trackCount, timeDiv);
-  /* Read tracks */
+  // Read tracks
   for (uint16_t i = 0; i < trackCount; ++i)
     readMidiTrack(handler, chunk);
 }
@@ -387,14 +387,14 @@ void readMidi(MidiReadHandler *handler, const std::vector<uint8_t> &data)
 struct Track
 {
   std::vector<MidiEvent> events;
-  /* Combined deltas of all events */
+  // Combined deltas of all events
   uint64_t length;
-  /* Event index that is resumed from after loop wraparound */
+  // Event index that is resumed from after loop wraparound
   int32_t loopI;
   /* Difference between last event's position and length of
    * the longest overall track / song length */
   uint32_t loopOffsetEnd;
-  /* Delta offset from the loop beginning to event[loopI] */
+  // Delta offset from the loop beginning to event[loopI]
   uint32_t loopOffsetStart;
   bool valid;
   MidiEvent event;
@@ -424,7 +424,7 @@ struct Track
   {
     if (valid)
       return;
-    /* At end and not looped? */
+    // At end and not looped?
     if (index == events.size() && ((!looped || loopI < 0) || length == 0)) {
       valid = false;
       atEnd = true;
@@ -512,12 +512,14 @@ struct MidiSource : ALDataSource, MidiReadHandler
   bool looped;
   // Absolute delta at which we received the LOOP_MARKER CC event
   uint32_t loopDelta;
+  uint32_t bpm;
   // Deltas per beat aka Division or TPQN or PPQ(N) (Resolution in PPQ)
   uint16_t dpb;
   int8_t pitchShift;
   // Deltas per tick
   float playbackSpeed;
   float genDeltasCarry;
+  double sec;
   // MidiReadHandler (track that's currently being read)
   int16_t curTrack;
 
@@ -528,6 +530,7 @@ MidiSource(SDL_RWops &ops, bool looped)
     dpb(480),
     pitchShift(0),
     genDeltasCarry(0),
+    sec(0),
     curTrack(-1)
   {
     size_t dataLen = SDL_RWsize(&ops);
@@ -543,12 +546,15 @@ MidiSource(SDL_RWops &ops, bool looped)
       throw;
     }
     synth = shState->midiState().allocateSynth();
+    std::vector<uint32_t> tempo;
+    std::vector<uint32_t> tempo_delta;
     uint64_t longest = 0;
-    for (size_t i = 0; i < tracks.size(); ++i)
+    for (size_t i = 0; i < tracks.size(); ++i) {
       if (tracks[i].length > longest) {
         longest = tracks[i].length;
         longestI = i;
       }
+    }
     for (size_t i = 0; i < tracks.size(); ++i)
       tracks[i].loopOffsetEnd = longest - tracks[i].length;
     /* Enterbrain likes to be funny and put loop markers at
@@ -560,10 +566,16 @@ MidiSource(SDL_RWops &ops, bool looped)
       int64_t base = 0;
       for (size_t j = 0; j < track.events.size(); ++j) {
         MidiEvent &e = track.events[j];
+        if (e.type == Tempo) {
+          uint32_t this_tempo = e.e.tempo.bpm;
+          if (tempo.size() > 0)
+            tempo_delta.push_back(e.delta);
+          tempo.push_back(this_tempo);
+        }
         base += e.delta;
         if (base < loopDelta)
           continue;
-        /* Don't make the last event loop eternally */
+        // Don't make the last event loop eternally
         if (j < track.events.size()) {
           track.loopI = j;
           track.loopOffsetStart = base - loopDelta;
@@ -571,8 +583,29 @@ MidiSource(SDL_RWops &ops, bool looped)
         break;
       }
     }
-    updatePlaybackSpeed(DEFAULT_BPM);
     max_ticks = (int)longest;
+    uint32_t first_bpm, td;
+    if (tempo.size() > 0) {
+      first_bpm = tempo[0];
+      tempo_delta.push_back(0);
+      td = max_ticks;
+      for (size_t i = 0; i < tempo.size(); i++) {
+        uint32_t microsec = 60000000.0f / tempo[i];
+        uint32_t delta_now = tempo_delta[i];
+        if (delta_now > 0)
+          td -= tempo_delta[i];
+        else
+          delta_now = td;
+        uint32_t beats = delta_now / dpb;
+        sec += beats * microsec / 1000000.0f;
+      }
+    } else {
+      first_bpm = DEFAULT_BPM;
+      uint32_t msec = 60000000.0f / first_bpm;
+      uint32_t bts = max_ticks / dpb;
+      sec += bts * msec / 1000000.0f;
+    }
+    updatePlaybackSpeed(first_bpm);
   }
 // FIXME: It would make the code in 'fillBuffer' a lot nicer if
 // we could combine all tracks into one giant one on construction,
@@ -582,8 +615,9 @@ MidiSource(SDL_RWops &ops, bool looped)
     shState->midiState().releaseSynth(synth);
   }
 
-  void updatePlaybackSpeed(uint32_t bpm)
+  void updatePlaybackSpeed(uint32_t new_bpm)
   {
+    bpm = new_bpm;
     float deltaLength = 60.0f / (dpb * bpm);
     playbackSpeed = TICK_FRAMES / (deltaLength * freq);
   }
@@ -743,27 +777,11 @@ MidiSource(SDL_RWops &ops, bool looped)
   {
     return max_ticks;
   }
-// Seconds per [quarter note or beat]
-  double beat()
-  {
-    return 60 / DEFAULT_BPM;
-  }
-
-  double bps()
-  {
-    return DEFAULT_BPM / 60;
-  }
-// Ticks per second
-  double ticks_per_sec()
-  {
-    return dpb * bps();
-  }
 
   double seconds()
   {
-    return max_ticks / ticks_per_sec();
+    return sec;
   }
-
   /* Midi sources cannot seek, and so always reset to beginning */
   void seekToOffset(float)
   {
