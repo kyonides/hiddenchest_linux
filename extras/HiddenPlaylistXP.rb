@@ -19,14 +19,21 @@ module HiddenPlay
     def play
       Audio.bgms_play(@channel, DIR + @name, @volume, @pitch)
       @seconds ||= Audio.bgms_seconds(@channel)
+      @playing = true
     end
 
     def pause
       Audio.bgms_pause(@channel)
+      @playing = false
     end
 
     def resume
       Audio.bgms_resume(@channel)
+      @playing = true
+    end
+
+    def toggle!
+      @playing ? pause : resume
     end
     attr_accessor :title, :channel
     attr_reader :seconds
@@ -236,10 +243,10 @@ module HiddenPlay
 
     def play_file
       @song_window.index = @song_index
-      file = @files[@song_index]
-      file.play
-      @bgm_window.set(file)
-      @playtime_bar.total = file.seconds
+      @file = @files[@song_index]
+      @file.play
+      @bgm_window.set(@file)
+      @playtime_bar.total = @file.seconds
       @stage = :list
     end
 
@@ -268,7 +275,10 @@ module HiddenPlay
         return @stage = :main
       elsif Input.trigger?(:C)
         $game_system.se_play($data_system.decision_se)
-        return if @song_window.index == @index
+        if @song_window.index == @song_index
+          @file.toggle!
+          return
+        end
         Audio.bgms_stop(LIST_BGM_CHANNEL)
         @song_index = @song_window.index - 1
         @stage = :next
