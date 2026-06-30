@@ -1,6 +1,6 @@
 # * HiddenPlayList XP * #
 #   Scripter : Kyonides Arkanthes
-#   2026-06-29
+#   2026-06-30
 
 # * REQUIRES HiddenChest v1.2.12 * #
 
@@ -28,12 +28,8 @@ module HiddenPlay
     def resume
       Audio.bgms_resume(@channel)
     end
-
-    def seconds
-      @seconds || 0.0
-    end
     attr_accessor :title, :channel
-    attr_writer :seconds
+    attr_reader :seconds
   end
 
   class List
@@ -54,10 +50,11 @@ module HiddenPlay
       @height = wh - 32
       self.contents = Bitmap.new(@width, @height)
       @name_rect = Rect.new(0, 0, @width, 32)
-      @time_rect = Rect.new(0, 32, @width, 32)
+      @time_rect = Rect.new(0, 40, @width, 32)
     end
 
     def calc_time(sec)
+      @bar.set_progress(sec)
       @seconds = sec % 60
       @minutes = sec / 60
       self.contents.clear_rect(@time_rect)
@@ -67,7 +64,7 @@ module HiddenPlay
       @channel = file.channel
       @name = file.title
       @minutes = 0
-      @seconds = Audio.bgms_pos(@channel).floor
+      @seconds = Audio.bgms_pos(@channel).round
       total_seconds = file.seconds.floor
       @sec = total_seconds % 60
       @min = total_seconds / 60
@@ -85,11 +82,44 @@ module HiddenPlay
     end
 
     def update
-      sec = Audio.bgms_pos(@channel).floor
+      sec = Audio.bgms_pos(@channel).round
       if @seconds != sec
         calc_time(sec)
         refresh
       end
+    end
+    attr_writer :bar
+  end
+
+  class BarSprite < Sprite
+    BLACK = Color.new(0, 0, 0)
+    LIGHT = Color.new(192, 224, 255, 255)
+    def initialize(sx, sy, sw, sh)
+      super(nil)
+      self.x = sx
+      self.y = sy
+      @width = sw
+      @height = sh
+      reset
+    end
+
+    def reset
+      self.bitmap = Bitmap.new(@width, @height)
+      self.bitmap.fill_rect(:rect, BLACK)
+    end
+
+    def total=(sec)
+      self.visible = true
+      @total = sec
+      reset
+    end
+
+    def set_progress(sec)
+      rect = self.bitmap.rect.dup
+      percent = sec * 100 / @total
+      percent = 100 if percent == 0
+      rect.width = percent * @width / 100
+      self.bitmap.fill_rect(rect, LIGHT)
     end
   end
 
@@ -150,7 +180,12 @@ module HiddenPlay
       @list_window = Window_Command.new(240, @commands)
       @list_window.y = 64
       ox = @list_window.width
-      @bgm_window = BGMWindow.new(ox, 64, Graphics.width - ox, 96)
+      ww = Graphics.width - ox
+      @bgm_window = BGMWindow.new(ox, 64, ww, 100)
+      @playtime_bar = BarSprite.new(ox + 16, 112, ww - 32, 4)
+      @playtime_bar.visible = false
+      @playtime_bar.z = 100
+      @bgm_window.bar = @playtime_bar
     end
 
     def update
@@ -204,6 +239,7 @@ module HiddenPlay
       file = @files[@song_index]
       file.play
       @bgm_window.set(file)
+      @playtime_bar.total = file.seconds
       @stage = :list
     end
 
@@ -224,6 +260,7 @@ module HiddenPlay
         Audio.bgms_stop(LIST_BGM_CHANNEL)
         MENU_BGM.resume
         @help_window.set_text(SELECT_LIST, 1)
+        @playtime_bar.visible = false
         @bgm_window.contents.clear
         @song_window.dispose
         @list_window.active = true
@@ -241,6 +278,7 @@ module HiddenPlay
     def terminate
       @loop_states.each {|n, state| Audio.bgms_loop_set(n, state) }
       Font.default_outline = @font_outline
+      @playtime_bar.dispose
       @bgm_window.dispose
       @list_window.dispose
       @help_window.dispose
