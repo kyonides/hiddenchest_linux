@@ -60,6 +60,7 @@ public:
   float getAngle() const;
   bool getMirror() const;
   bool mirror_y() const;
+  bool get_obscured() const;
   void setX(int);
   void setY(int);
   void set_xy(int, int);
@@ -70,6 +71,7 @@ public:
   void setAngle(float);
   void setMirror(bool);
   void set_mirror_y(bool);
+  void set_obscured(bool);
   Bitmap* getBitmap();
   void setBitmap(Bitmap*);
   void gray_out();

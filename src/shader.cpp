@@ -48,6 +48,7 @@
 #include "vignette_blue.frag.xxd"
 #include "vignette_yellow.frag.xxd"
 #include "vignette_black.frag.xxd"
+#include "obscured.frag.xxd"
 #include "flatColor.frag.xxd"
 #include "simple.frag.xxd"
 #include "simpleColor.frag.xxd"
@@ -306,6 +307,18 @@ SimpleSpriteShader::SimpleSpriteShader()
 void SimpleSpriteShader::setSpriteMat(const float value[16])
 {
   gl.UniformMatrix4fv(u_spriteMat, 1, GL_FALSE, value);
+}
+
+ObscuredShader::ObscuredShader()
+{
+  INIT_SHADER(simple, obscured, ObscuredShader);
+  ShaderBase::init();
+  GET_U(obscured);
+}
+
+void ObscuredShader::setObscured(const TEX::ID value)
+{
+  setTexUniform(u_obscured, 1, value);
 }
 
 AlphaSpriteShader::AlphaSpriteShader()

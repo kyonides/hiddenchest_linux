@@ -46,6 +46,7 @@ struct SpritePrivate
   Transform trans;
   Rect *srcRect;
   sigc::connection srcRectCon;
+  bool obscured;
   bool mirrored;
   bool mirrored_y;
   bool increase_width;
@@ -84,6 +85,7 @@ struct SpritePrivate
   SpritePrivate()
   : bitmap(0),
     srcRect(&tmp.rect),
+    obscured(false),
     mirrored(false),
     mirrored_y(false),
     bushDepth(0),
@@ -385,6 +387,11 @@ bool Sprite::mirror_y() const
   return p->mirrored_y;
 }
 
+bool Sprite::get_obscured() const
+{
+  return p->obscured;
+}
+
 int Sprite::getBlendType() const
 {
   return p->blendType;
@@ -604,6 +611,12 @@ void Sprite::set_mirror_y(bool mirrored)
   p->onSrcRectChange();
 }
 
+void Sprite::set_obscured(bool obscured)
+{
+  guardDisposed();
+  p->obscured = obscured;//p->onSrcRectChange();
+}
+
 void Sprite::setBushDepth(int value)
 {
   guardDisposed();
@@ -816,7 +829,13 @@ void Sprite::draw()
                       p->tone->hasEffect()  ||
                       flashing              ||
                       p->bushDepth != 0;
-  if (renderEffect) {
+  if (p->obscured) {
+    ObscuredShader &shader = shState->shaders().obscured;
+    shader.bind();
+    shader.applyViewportProj();
+    shader.setObscured(shState->graphics().obscuredTex());
+    base = &shader;
+  } else if (renderEffect) {
     SpriteShader &shader = shState->shaders().sprite;
     shader.bind();
     shader.applyViewportProj();

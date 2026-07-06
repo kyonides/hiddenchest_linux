@@ -528,6 +528,7 @@ struct GraphicsPrivate
   FPSLimiter fpsLimiter;
   bool block_fullscreen;
   bool block_ftwelve;
+  bool obscured_dirty;
   bool frozen;
   TEXFBO frozenScene;
   Quad screenQuad;
@@ -535,6 +536,8 @@ struct GraphicsPrivate
   unsigned long long last_avg_update;
   // Global list of all live Disposables (disposed on reset)
   IntruList<Disposable> dispList;
+  std::vector<uint8_t> obscured_map;
+  TEX::ID obscuredTex;
 
   GraphicsPrivate(RGSSThreadData *rtData)
   : scRes(WIDTH_MAX, HEIGHT_MAX),
@@ -548,20 +551,30 @@ struct GraphicsPrivate
     brightness(255),
     size_factor(1),
     fpsLimiter(frameRate),
+    obscured_dirty(false),
     frozen(false),
     last_update(0),
     last_avg_update(0),
     block_fullscreen(false),
     block_ftwelve(false)
   {
+    int w = scRes.x;
+    int h = scRes.y;
     recalculateScreenSize(rtData);
     updateScreenResoRatio(rtData);
     TEXFBO::init(frozenScene);
-    TEXFBO::allocEmpty(frozenScene, scRes.x, scRes.y);
+    TEXFBO::allocEmpty(frozenScene, w, h);
     TEXFBO::linkFBO(frozenScene);
-    FloatRect screenRect(0, 0, scRes.x, scRes.y);
+    FloatRect screenRect(0, 0, w, h);
     screenQuad.setTexPosRect(screenRect, screenRect);
     fpsLimiter.resetFrameAdjust();
+    obscuredTex = TEX::gen();
+    TEX::bind(obscuredTex);
+#ifdef GLES2_HEADER
+    gl.TexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, w, h, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0);
+#else
+    gl.TexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+#endif
   }
 
   ~GraphicsPrivate()
@@ -588,6 +601,7 @@ struct GraphicsPrivate
       scOffset.x = 0;
     if (scOffset.y < 0)
       scOffset.y = 0;
+    obscured_map.resize(scRes.x * scRes.y, 255);
   }
 
   void updateScreenResoRatio(RGSSThreadData *rtData)
@@ -718,6 +732,17 @@ struct GraphicsPrivate
 
   void redrawScreen()
   {
+    if (obscured_dirty) {
+      int w = scRes.x;
+      int h = scRes.y;
+      TEX::bind(obscuredTex);
+#ifdef GLES2_HEADER
+      TEX::uploadSubImage(0, 0, w, h, obscured_map.data(), GL_LUMINANCE);
+#else
+      TEX::uploadSubImage(0, 0, w, h, obscured_map.data(), GL_RED);
+#endif
+      obscured_dirty = false;
+    }
     screen.composite();
     GLMeta::blitBeginScreen(winSize);
     GLMeta::blitSource(screen.getPP().frontBuffer());
@@ -1268,6 +1293,19 @@ void Graphics::set_show_cursor(bool value)
   p->threadData->ethread->requestShowCursor(value);
 }
 
+bool Graphics::obscured_dirty() const
+{
+  return p->obscured_dirty;
+}
+
+void Graphics::set_obscured_dirty(bool value)
+{
+  if (p->obscured_dirty == value)
+    return;
+  p->obscured_dirty = value;
+  p->redrawScreen();
+}
+
 Scene *Graphics::getScreen() const
 {
   return &p->screen;
@@ -1292,6 +1330,11 @@ void Graphics::repaintWait(const AtomicFlag &exitCond, bool checkReset)
     p->threadData->ethread->notifyFrame();
   }
   GLMeta::blitEnd();
+}
+
+const TEX::ID &Graphics::obscuredTex() const
+{
+  return p->obscuredTex;
 }
 
 void Graphics::addDisposable(Disposable *d)

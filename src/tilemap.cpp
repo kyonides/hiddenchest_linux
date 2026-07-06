@@ -178,6 +178,7 @@ struct GroundLayer : public ViewportElement
 
 struct ZLayer : public ViewportElement
 {
+  int base_z = 0;
   size_t index;
   GLintptr vboOffset;
   GLsizei vboCount;
@@ -208,33 +209,33 @@ struct TilemapPrivate
   bool visible;
   Vec2i origin;
   Vec2i dispPos;
-  int vw, vh, zlayersMax;
-  /* Tile atlas */
+  int z, vw, vh, zlayersMax;
+  // Tile atlas
   struct {
     TEXFBO gl;
     Vec2i size;
-    /* Effective tileset height, clamped to a multiple of 32 */
+    // Effective tileset height, clamped to a multiple of 32
     int efTilesetH;
-    /* Indices of usable (not null, not disposed) autotiles */
+    // Indices of usable (not null, not disposed) autotiles
     std::vector<uint8_t> usableATs;
-    /* Indices of animated autotiles */
+    // Indices of animated autotiles
     std::vector<uint8_t> animatedATs;
   } atlas;
-  /* Map viewport position */
+  // Map viewport position
   Vec2i viewpPos;
-  /* Ground layer vertices */
+  // Ground layer vertices
   std::vector<SVertex> groundVert;
-  /* ZLayer vertices */
+  // ZLayer vertices
   std::vector<SVertex> zlayerVert[TILE_HEIGHT_MAX + 5];
   // Base quad indices of each zlayer in the shared buffer
   size_t zlayerBases[TILE_HEIGHT_MAX + 6];
-  /* Shared buffers for all tiles */
+  // Shared buffers for all tiles
   struct
   {
     GLMeta::VAO vao;
     VBO::ID vbo;
     bool animated;
-    /* Animation state */
+    // Animation state
     uint8_t frameIdx;
     uint8_t aniIdx;
   } tiles;
@@ -244,39 +245,40 @@ struct TilemapPrivate
   int tile_zoom;
   int tsize;
   int autotiles_speed;
-  /* Scene elements */
+  // Scene elements
   struct
   {
     GroundLayer *ground;
     std::vector<ZLayer*> zlayers;
-    /* Used layers out of 'zlayers' (rest is hidden) */
+    // Used layers out of 'zlayers' (rest is hidden)
     size_t activeLayers;
     Scene::Geometry sceneGeo;
   } elem;
-  /* Affected by: autotiles, tileset */
+  // Affected by: autotiles, tileset
   bool atlasSizeDirty;
-  /* Affected by: autotiles(.changed), tileset(.changed), allocateAtlas */
+  // Affected by: autotiles(.changed), tileset(.changed), allocateAtlas
   bool atlasDirty;
-  /* Affected by: mapData(.changed), priorities(.changed) */
+  // Affected by: mapData(.changed), priorities(.changed)
   bool buffersDirty;
-  /* Affected by: ox, oy */
+  // Affected by: ox, oy
   bool mapViewportDirty;
-  /* Affected by: oy */
+  // Affected by: oy
   bool zOrderDirty;
-  /* Resources are sufficient and tilemap is ready to be drawn */
+  // Resources are sufficient and tilemap is ready to be drawn
   bool tilemapReady;
-  /* Change watches */
+  // Change watches
   sigc::connection tilesetCon;
   sigc::connection autotilesCon[autotileCount];
   sigc::connection mapDataCon;
   sigc::connection prioritiesCon;
-  /* Dispose watches */
+  // Dispose watches
   sigc::connection autotilesDispCon[autotileCount];
-  /* Draw prepare call */
+  // Draw prepare call
   sigc::connection prepareCon;
 
   TilemapPrivate(Viewport *viewport)
   : viewport(viewport),
+    z(0),
     vw(TILE_WIDTH_MAX),
     vh(TILE_HEIGHT_MAX),
     zlayersMax(TILE_HEIGHT_MAX + 5),
@@ -301,7 +303,7 @@ struct TilemapPrivate
     tiles.animated = false;
     tiles.frameIdx = 0;
     tiles.aniIdx = 0;
-    /* Init tile buffers */
+    // Init tile buffers
     tiles.vbo = VBO::gen();
     GLMeta::vaoFillInVertexData<SVertex>(tiles.vao);
     tiles.vao.vbo = tiles.vbo;
@@ -309,23 +311,25 @@ struct TilemapPrivate
     GLMeta::vaoInit(tiles.vao);
     //elem.zlayers.reserve(TILE_HEIGHT_MAX + 5);
     elem.ground = new GroundLayer(this, viewport);
-    for (size_t i = 0; i < zlayersMax; ++i)
+    for (size_t i = 0; i < zlayersMax; i++) {
       elem.zlayers.push_back(new ZLayer(this, viewport));
+      elem.zlayers[i]->base_z = z;
+    }
     prepareCon = shState->prepareDraw.connect
       (sigc::mem_fun(this, &TilemapPrivate::prepare));
     updateFlashMapViewport();
   }
 
   ~TilemapPrivate()
-  {/* Destroy elements */
+  {// Destroy elements
     delete elem.ground;
-    for (size_t i = 0; i < zlayersMax; ++i)
+    for (size_t i = 0; i < zlayersMax; i++)
       delete elem.zlayers[i];
     shState->releaseAtlasTex(atlas.gl);
-    /* Destroy tile buffers */
+    // Destroy tile buffers
     GLMeta::vaoFini(tiles.vao);
     VBO::del(tiles.vbo);
-    /* Disconnect signal handlers */
+    // Disconnect signal handlers
     tilesetCon.disconnect();
     for (int i = 0; i < autotileCount; ++i) {
       autotilesCon[i].disconnect();
@@ -430,23 +434,23 @@ struct TilemapPrivate
       int blitH = std::min(autotile->height(), atAreaH);
       GLMeta::blitSource(autotile->getGLTypes());
       if (blitW <= autotileW && tiles.animated) {
-        /* Static autotile */
+        // Static autotile
         for (int j = 0; j < 4; ++j)
           GLMeta::blitRectangle(IntRect(0, 0, blitW, blitH),
             Vec2i(autotileW*j, atInd*autotileH));
       } else {
-      /* Animated autotile */
+      // Animated autotile
         GLMeta::blitRectangle(IntRect(0, 0, blitW, blitH),
           Vec2i(0, atInd*autotileH));
       }
     }
     GLMeta::blitEnd();
-    /* Blit tileset */
+    // Blit tileset
     if (tileset->megaSurface()) {
-      /* Mega surface tileset */
+      // Mega surface tileset
       SDL_Surface *tsSurf = tileset->megaSurface();
       if (shState->config().subImageFix) {
-        /* Implementation for broken GL drivers */
+        // Implementation for broken GL drivers
         FBO::bind(atlas.gl.fbo);
         glState.blend.pushSet(false);
         glState.viewport.pushSet(IntRect(0, 0, atlas.size.x, atlas.size.y));
@@ -504,42 +508,42 @@ struct TilemapPrivate
   }
 
   void handleAutotile(int x, int y, int tileInd, std::vector<SVertex> *array)
-  {/* Which autotile [0-7] */
+  {// Which autotile [0-7]
     int atInd = tileInd / 48 - 1;
-    /* Which tile pattern of the autotile [0-47] */
+    // Which tile pattern of the autotile [0-47]
     int subInd = tileInd % 48;
     const StaticRect *pieceRect = &autotileRects[subInd*4];
-    /* Iterate over the 4 tile pieces */
+    // Iterate over the 4 tile pieces
     for (int i = 0; i < 4; ++i) {
       FloatRect posRect(x*tsize, y*tsize, 16, 16);
       atSelectSubPos(posRect, i);
       FloatRect texRect = pieceRect[i];
-      /* Adjust to atlas coordinates */
+      // Adjust to atlas coordinates
       texRect.y += atInd * autotileH;
       SVertex v[4];
       Quad::setTexPosRect(v, texRect, posRect);
-      /* Iterate over 4 vertices */
+      // Iterate over 4 vertices
       for (size_t i = 0; i < 4; ++i)
         array->push_back(v[i]);
     }
   }
 
-  void handleTile(int x, int y, int z)
+  void handleTile(int tx, int ty, int tz)
   {
-    int tileInd = tableGetWrapped(*mapData, x + viewpPos.x, y + viewpPos.y, z);
+    int tileInd = tableGetWrapped(*mapData, tx + viewpPos.x, ty + viewpPos.y, tz);
     if (tileInd < 48) return;// Check for empty space
     int prio = samplePriority(tileInd);
     if (prio == -1) return;// Check for faulty data
     std::vector<SVertex> *targetArray;
-    /* Prio 0 tiles are all part of the same ground layer */
+    // Prio 0 tiles are all part of the same ground layer
     if (prio == 0) {
       targetArray = &groundVert;
     } else {
-      int layerInd = y + prio;
+      int layerInd = ty + prio;
       targetArray = &zlayerVert[layerInd];
     }
     if (tileInd < 48 * 8) {// Check for autotile
-      handleAutotile(x, y, tileInd, targetArray);
+      handleAutotile(tx, ty, tileInd, targetArray);
       return;
     }
     int tsInd = tileInd - 48 * 8;
@@ -547,7 +551,7 @@ struct TilemapPrivate
     int tileY = tsInd / 8;
     Vec2i texPos = TileAtlas::tileToAtlasCoor(tileX, tileY, atlas.efTilesetH, atlas.size.y);
     FloatRect texRect((float) texPos.x + 0.5f, (float) texPos.y + 0.5f, tsize - 1, tsize - 1);
-    FloatRect posRect(x * tsize, y * tsize, tsize, tsize);
+    FloatRect posRect(tx * tsize, ty * tsize, tsize, tsize);
     SVertex v[4];
     Quad::setTexPosRect(v, texRect, posRect);
     for (size_t i = 0; i < 4; ++i)
@@ -557,7 +561,7 @@ struct TilemapPrivate
   void clearQuadArrays()
   {
     groundVert.clear();
-    for (size_t i = 0; i < zlayersMax; ++i)
+    for (size_t i = 0; i < zlayersMax; i++)
       zlayerVert[i].clear();
   }
 
@@ -567,7 +571,7 @@ struct TilemapPrivate
     for (int x = 0; x < vw; ++x)
       for (int y = 0; y < vh; ++y)
         for (int z = 0; z < mapData->zSize(); ++z)
-            handleTile(x, y, z);
+          handleTile(x, y, z);
   }
 
   static size_t quadDataSize(size_t quadCount)
@@ -582,10 +586,10 @@ struct TilemapPrivate
 
   void uploadBuffers()
   {
-    /* Calculate total quad count */
+    // Calculate total quad count
     size_t groundQuadCount = groundVert.size() / 4;
     size_t quadCount = groundQuadCount;
-    for (size_t i = 0; i < zlayersMax; ++i) {
+    for (size_t i = 0; i < zlayersMax; i++) {
       zlayerBases[i] = quadCount;
       quadCount += zlayerVert[i].size() / 4;
     }
@@ -593,7 +597,7 @@ struct TilemapPrivate
     VBO::bind(tiles.vbo);
     VBO::allocEmpty(quadDataSize(quadCount));
     VBO::uploadSubData(0, quadDataSize(groundQuadCount), dataPtr(groundVert));
-    for (size_t i = 0; i < zlayersMax; ++i) {
+    for (size_t i = 0; i < zlayersMax; i++) {
       if (zlayerVert[i].empty())
         continue;
       VBO::uploadSubData(quadDataSize(zlayerBases[i]),
@@ -626,7 +630,7 @@ struct TilemapPrivate
   void updateActiveElements(std::vector<int> &zlayerInd)
   {
     elem.ground->updateVboCount();
-    for (size_t i = 0; i < zlayersMax; ++i) {
+    for (size_t i = 0; i < zlayersMax; i++) {
       if (i < zlayerInd.size()) {
         int index = zlayerInd[i];
         elem.zlayers[i]->setVisible(visible);
@@ -641,8 +645,9 @@ struct TilemapPrivate
   {
     // Only allocate elements for non-empty zlayers
     std::vector<int> zlayerInd;
-    for (size_t i = 0; i < zlayersMax; ++i)
-      if (zlayerVert[i].size() > 0) zlayerInd.push_back(i);
+    for (size_t i = 0; i < zlayersMax; i++)
+      if (zlayerVert[i].size() > 0)
+        zlayerInd.push_back(i);
     updateActiveElements(zlayerInd);
     elem.activeLayers = zlayerInd.size();
     zOrderDirty = false;
@@ -651,7 +656,7 @@ struct TilemapPrivate
   void hideElements()
   {
     elem.ground->setVisible(false);
-    for (size_t i = 0; i < zlayersMax; ++i)
+    for (size_t i = 0; i < zlayersMax; i++)
       elem.zlayers[i]->setVisible(false);
   }
 
@@ -697,6 +702,13 @@ struct TilemapPrivate
       batchHead->vboBatchCount = vboBatchCount;
       --i;
     }
+  }
+  
+  void set_z(int value)
+  {
+    z = value;
+    for (size_t i = 0; i < zlayersMax; i++)
+      elem.zlayers[i]->base_z = z;
   }
 
   void updateMapViewport()
@@ -790,6 +802,7 @@ void GroundLayer::onGeometryChange(const Scene::Geometry &geo)
 
 ZLayer::ZLayer(TilemapPrivate *p, Viewport *viewport)
 : ViewportElement(viewport, 0),
+  base_z(0),
   index(0),
   vboOffset(0),
   vboCount(0),
@@ -800,7 +813,7 @@ ZLayer::ZLayer(TilemapPrivate *p, Viewport *viewport)
 void ZLayer::setIndex(int value)
 {
   index = value;
-  z = calculateZ(p, index);
+  z = base_z + calculateZ(p, index);
   scene->reinsert(*this);
   vboOffset = p->zlayerBases[index] * sizeof(index_t) * 6;
   vboCount = p->zlayerSize(index) * 6;
@@ -836,7 +849,7 @@ void ZLayer::initUpdateZ()
 
 void ZLayer::finiUpdateZ(ZLayer *prev)
 {
-  z = calculateZ(p, index);
+  z = base_z + calculateZ(p, index);
   if (prev)
     scene->insertAfter(*this, *prev);
   else
@@ -999,6 +1012,16 @@ void Tilemap::set_tile_zoom(int value)
 {
   p->tile_zoom = value;
   p->tsize = value * 32 / 100;
+}
+
+void Tilemap::set_z(int value)
+{
+  p->set_z(value);
+}
+
+int Tilemap::get_z()
+{
+  return p->z;
 }
 
 void Tilemap::set_autotiles_speed(int value)

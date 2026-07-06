@@ -25,6 +25,7 @@
 
 #include "util.h"
 #include "etc.h"
+#include "gl-util.h"
 
 class Scene;
 class Bitmap;
@@ -91,15 +92,18 @@ public:
   bool get_block_fullscreen() const;
   bool get_block_ftwelve() const;
   bool get_show_cursor() const;
+  bool obscured_dirty() const;
   void set_fullscreen(bool value);
   void set_block_fullscreen(bool value);
   void set_block_ftwelve(bool value);
   void set_show_cursor(bool value);
+  void set_obscured_dirty(bool value);
   /* <internal> */
   Scene *getScreen() const;
   /* Repaint screen with static image until exitCond is set.
    * Observes reset flag on top of shutdown if "checkReset" */
   void repaintWait(const AtomicFlag &exitCond, bool checkReset = true);
+  const TEX::ID &obscuredTex() const;
   void call_delay();
 
 private:

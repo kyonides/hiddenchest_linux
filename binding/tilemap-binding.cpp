@@ -63,6 +63,7 @@ static VALUE tilemapInitialize(int argc, VALUE *argv, VALUE self)
   rb_iv_set(self, "viewport", argv[0]);
   rb_iv_set(self, "autotiles_speed", RB_INT2FIX(1));
   rb_iv_set(self, "zoom", RB_INT2FIX(100));
+  rb_iv_set(self, "z", RB_INT2FIX(0));
   wrapProperty(self, &t->getAutotiles(), "autotiles", TilemapAutotilesType);
   VALUE autotilesObj = rb_iv_get(self, "autotiles");
   VALUE ary = rb_ary_new2(7);
@@ -84,15 +85,31 @@ RB_METHOD(tilemapUpdate)
 {
   RB_UNUSED_PARAM;
   Tilemap *t = getPrivateData<Tilemap>(self);
+  if (!t)
+    return Qfalse;
   t->update();
   return Qnil;
 }
 
-RB_METHOD(tilemapGetViewport)
+static VALUE tilemapGetViewport(VALUE self)
 {
-  RB_UNUSED_PARAM;
   checkDisposed<Tilemap>(self);
   return rb_iv_get(self, "viewport");
+}
+
+static VALUE tilemap_z_set(VALUE self, VALUE rz)
+{
+  Tilemap *t = getPrivateData<Tilemap>(self);
+  if (!t)
+    return RB_INT2FIX(-1);
+  int z = RB_FIX2INT(rz);
+  t->set_z(z);
+  return rb_iv_set(self, "z", rz);
+}
+
+static VALUE tilemap_z_get(VALUE self)
+{
+  return rb_iv_get(self, "z");
 }
 
 static VALUE tilemap_at_speed_set(VALUE self, VALUE speed)
@@ -156,7 +173,7 @@ void tilemapBindingInit()
   _rb_define_method(klass, "initialize", tilemapInitialize);
   _rb_define_method(klass, "autotiles", tilemapGetAutotiles);
   _rb_define_method(klass, "update", tilemapUpdate);
-  _rb_define_method(klass, "viewport", tilemapGetViewport);
+  rb_define_method(klass, "viewport", tilemapGetViewport, 0);
   INIT_PROP_BIND( Tilemap, Tileset,    "tileset"   );
   INIT_PROP_BIND( Tilemap, MapData,    "map_data"  );
   INIT_PROP_BIND( Tilemap, FlashData,  "flash_data");
@@ -164,6 +181,8 @@ void tilemapBindingInit()
   INIT_PROP_BIND( Tilemap, Visible,    "visible"   );
   INIT_PROP_BIND( Tilemap, OX,         "ox"        );
   INIT_PROP_BIND( Tilemap, OY,         "oy"        );
+  rb_define_method(klass, "z=", RMF(tilemap_z_set), 1);
+  rb_define_method(klass, "z",  RMF(tilemap_z_get), 0);
   rb_define_method(klass, "autotiles_speed=", RMF(tilemap_at_speed_set), 1);
   rb_define_method(klass, "autotiles_speed",  RMF(tilemap_at_speed_get), 0);
   rb_define_method(klass, "zoom=", RMF(tilemap_zoom_set), 1);
