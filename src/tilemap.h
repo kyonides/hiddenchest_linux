@@ -52,6 +52,7 @@ public:
   void update();
   Autotiles &getAutotiles();
   Viewport *getViewport() const;
+  void set_viewport(Viewport *viewport);
   DECL_ATTR( Tileset,    Bitmap* )
   DECL_ATTR( MapData,    Table*  )
   DECL_ATTR( FlashData,  Table*  )

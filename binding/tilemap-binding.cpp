@@ -97,6 +97,16 @@ static VALUE tilemapGetViewport(VALUE self)
   return rb_iv_get(self, "viewport");
 }
 
+static VALUE tilemap_set_viewport(VALUE self, VALUE port)
+{
+  Tilemap *t = getPrivateData<Tilemap>(self);
+  if (!t)
+    return Qfalse;
+  Viewport *vp = getPrivateDataCheck<Viewport>(port, ViewportType);
+  t->set_viewport(vp);
+  return rb_iv_set(self, "viewport", port);
+}
+
 static VALUE tilemap_z_set(VALUE self, VALUE rz)
 {
   Tilemap *t = getPrivateData<Tilemap>(self);
@@ -174,6 +184,7 @@ void tilemapBindingInit()
   _rb_define_method(klass, "autotiles", tilemapGetAutotiles);
   _rb_define_method(klass, "update", tilemapUpdate);
   rb_define_method(klass, "viewport", tilemapGetViewport, 0);
+  rb_define_method(klass, "viewport=", tilemap_set_viewport, 1);
   INIT_PROP_BIND( Tilemap, Tileset,    "tileset"   );
   INIT_PROP_BIND( Tilemap, MapData,    "map_data"  );
   INIT_PROP_BIND( Tilemap, FlashData,  "flash_data");

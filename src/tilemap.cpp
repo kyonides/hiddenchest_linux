@@ -927,6 +927,15 @@ DEF_ATTR_RD_SIMPLE(Tilemap, Visible, bool, p->visible)
 DEF_ATTR_RD_SIMPLE(Tilemap, OX, int, p->origin.x)
 DEF_ATTR_RD_SIMPLE(Tilemap, OY, int, p->origin.y)
 
+void Tilemap::set_viewport(Viewport *viewport)
+{
+  guardDisposed();
+  p->viewport = viewport;
+  p->elem.ground->setViewport(viewport);
+  for (size_t i = 0; i < p->elem.activeLayers; ++i)
+    p->elem.zlayers[i]->setViewport(viewport);
+}
+
 void Tilemap::setTileset(Bitmap *value)
 {
   guardDisposed();

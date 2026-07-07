@@ -1,6 +1,6 @@
 # Increased HiddenChest XP Resolution Map Fix * #
 # * Scripter : Kyonides * #
-# Update:   2026-05-18
+# Update:   2026-07-07
 # Original: 2019-07-16
 
 # * Optional Script Call * #
@@ -112,16 +112,31 @@ class Game_Player < Game_Character
 end
 
 class Spriteset_Map
-  alias :kyon_map_cstm_res_sprst_map_up :update
   def initialize
+    create_viewports
+    create_tilemap
+    create_panorama
+    create_fog
+    create_characters
+    create_weather
+    create_pictures
+    create_timer
+    update
+  end
+
+  def create_viewports
     w, h = Graphics.dimensions
     @viewport1 = Viewport.new(0, 0, w, h)
     @viewport2 = Viewport.new(0, 0, w, h)
     @viewport3 = Viewport.new(0, 0, w, h)
     @viewport2.z = 200
     @viewport3.z = 5000
-    @tilemap = Tilemap.new(@viewport1)
+  end
+
+  def create_tilemap
     @at_speed = $game_map.autotiles_speed
+    @tilemap = Tilemap.new(@viewport1)
+    @tilemap.z = 0
     @tilemap.autotiles_speed = @at_speed
     @tilemap.tileset = RPG::Cache.tileset($game_map.tileset_name)
     for i in 0..6
@@ -133,10 +148,19 @@ class Spriteset_Map
     @tilemap.ox = $game_map.display_x / 4
     @tilemap.oy = $game_map.display_y / 4
     @tilemap.update
+  end
+
+  def create_panorama
     @panorama = Plane.new(@viewport1)
     @panorama.z = -1000
+  end
+
+  def create_fog
     @fog = Plane.new(@viewport1)
     @fog.z = 3000
+  end
+
+  def create_characters
     @character_sprites = []
     events = $game_map.events
     keys = events.keys.sort
@@ -144,28 +168,177 @@ class Spriteset_Map
       @character_sprites << Sprite_Character.new(@viewport1, events[i])
     end
     @character_sprites << Sprite_Character.new(@viewport1, $game_player)
+  end
+
+  def create_weather
     @weather = RPG::Weather.new(@viewport1)
+  end
+
+  def create_pictures
+    pictures = $game_screen.pictures
     @picture_sprites = []
     for i in 1..50
-     @picture_sprites << Sprite_Picture.new(@viewport2,$game_screen.pictures[i])
+      @picture_sprites << Sprite_Picture.new(@viewport2, pictures[i])
     end
+  end
+
+  def create_timer
     @timer_sprite = Sprite_Timer.new
-    update
   end
 
   def update
+    update_autotiles
+    update_panorama
+    update_fog
+    update_tilemap
+    update_panorama_plane
+    update_fog_plane
+    update_characters
+    update_weather
+    update_pictures
+    update_timer
+    update_viewports
+  end
+
+  def update_autotiles
     if $game_map.autotiles_speed != @at_speed
       @at_speed = $game_map.autotiles_speed
       @tilemap.autotiles_speed = @at_speed
     end
-    kyon_map_cstm_res_sprst_map_up
+  end
+
+  def update_panorama
+    if @panorama_name != $game_map.panorama_name or
+       @panorama_hue != $game_map.panorama_hue
+      @panorama_name = $game_map.panorama_name
+      @panorama_hue = $game_map.panorama_hue
+      if @panorama.bitmap != nil
+        @panorama.bitmap.dispose
+        @panorama.bitmap = nil
+      end
+      if @panorama_name != ""
+        @panorama.bitmap = RPG::Cache.panorama(@panorama_name, @panorama_hue)
+      end
+      Graphics.frame_reset
+    end
+  end
+
+  def update_fog
+    if @fog_name != $game_map.fog_name or @fog_hue != $game_map.fog_hue
+      @fog_name = $game_map.fog_name
+      @fog_hue = $game_map.fog_hue
+      if @fog.bitmap != nil
+        @fog.bitmap.dispose
+        @fog.bitmap = nil
+      end
+      if @fog_name != ""
+        @fog.bitmap = RPG::Cache.fog(@fog_name, @fog_hue)
+      end
+      Graphics.frame_reset
+    end
+  end
+
+  def update_tilemap
+    @tilemap.ox = $game_map.display_x / 4
+    @tilemap.oy = $game_map.display_y / 4
+    @tilemap.update
+  end
+
+  def update_panorama_plane
+    @panorama.ox = $game_map.display_x / 8
+    @panorama.oy = $game_map.display_y / 8
+  end
+
+  def update_fog_plane
+    @fog.zoom_x = $game_map.fog_zoom / 100.0
+    @fog.zoom_y = $game_map.fog_zoom / 100.0
+    @fog.opacity = $game_map.fog_opacity
+    @fog.blend_type = $game_map.fog_blend_type
+    @fog.ox = $game_map.display_x / 4 + $game_map.fog_ox
+    @fog.oy = $game_map.display_y / 4 + $game_map.fog_oy
+    @fog.tone = $game_map.fog_tone
+  end
+
+  def update_characters
+    @character_sprites.each {|sprite| sprite.update }
+  end
+
+  def update_weather
+    @weather.type = $game_screen.weather_type
+    @weather.max = $game_screen.weather_max
+    @weather.ox = $game_map.display_x / 4
+    @weather.oy = $game_map.display_y / 4
+    @weather.update
+  end
+
+  def update_pictures
+    @picture_sprites.each {|sprite| sprite.update }
+  end
+
+  def update_timer
+    @timer_sprite.update
   end
 
   def update_viewports
+    @viewport1.tone = $game_screen.tone
+    @viewport1.ox = $game_screen.shake
+    @viewport3.color = $game_screen.flash_color
+    @viewport1.update
+    @viewport3.update
+  end
+
+  def reset_viewports
     w, h = Graphics.dimensions
     @viewport1.rect.set(0, 0, w, h)
     @viewport2.rect.set(0, 0, w, h)
     @viewport3.rect.set(0, 0, w, h)
+  end
+
+  def dispose
+    dispose_tilemap
+    dispose_fog
+    dispose_panorama
+    dispose_characters
+    dispose_weather
+    dispose_pictures
+    dispose_timer
+    dispose_viewports
+  end
+
+  def dispose_tilemap
+    @tilemap.tileset.dispose
+    7.times {|n| @tilemap.autotiles[n].dispose }
+    @tilemap.dispose
+  end
+
+  def dispose_fog
+    @fog.dispose
+  end
+
+  def dispose_panorama
+    @panorama.dispose
+  end
+
+  def dispose_characters
+    @character_sprites.each {|sprite| sprite.dispose }
+  end
+
+  def dispose_weather
+    @weather.dispose
+  end
+
+  def dispose_pictures
+    @picture_sprites
+  end
+
+  def dispose_timer
+    @timer_sprite.dispose
+  end
+
+  def dispose_viewports
+    @viewport1.dispose
+    @viewport2.dispose
+    @viewport3.dispose
   end
 end
 
