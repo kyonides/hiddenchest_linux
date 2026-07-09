@@ -30,12 +30,13 @@
 #include "debugwriter.h"
 #include <physfs.h>
 #include <SDL_sound.h>
-#include <stdio.h>
+#include <iostream>
 #include <string.h>
 #include <algorithm>
 #include <vector>
 #include <stack>
-
+#include "picosha2.h"
+//<stdio.h>
 #ifdef __APPLE__
 #include <iconv.h>
 #endif
@@ -267,7 +268,11 @@ FileSystem::FileSystem(const char *argv0, bool allowSymlinks)
   PHYSFS_registerArchiver(&RGSS1_Archiver);
   PHYSFS_registerArchiver(&RGSS2_Archiver);
   PHYSFS_registerArchiver(&RGSS3_Archiver);
-  if (allowSymlinks) PHYSFS_permitSymbolicLinks(1);
+  if (allowSymlinks)
+    PHYSFS_permitSymbolicLinks(1);
+  sha256 = new ShaHash;
+  sha256->error = "";
+  sha256->msg = "";
 }
 
 FileSystem::~FileSystem()
@@ -557,4 +562,19 @@ bool FileSystem::exists_ext(const char *filename)
       return true;
   }
   return false;
+}
+
+ShaHash *FileSystem::sha256_hex_string(const char *filename)
+{
+  try {
+    sha256->name = filename;
+    sha256->error = "";
+    sha256->msg = "";
+    sha256->hash = picosha2::hash256_hex_string(sha256->name);
+  } catch (const std::exception &e) {
+    sha256->error = "SHA256Error";
+    sha256->msg = e.what();
+    sha256->hash = "-1";
+  }
+  return sha256;
 }

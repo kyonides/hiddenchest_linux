@@ -26,6 +26,7 @@
 #include <ruby/encoding.h>
 #include <ruby/intern.h>
 #include "hcextras.h"
+#include "debugwriter.h"
 
 extern void hc_rb_splash(VALUE exception);
 static VALUE eFileError;
@@ -45,6 +46,14 @@ static void fileIntFreeInstance(void *inst)
 
 rb_data_type_t FileIntType = { "FileIntr",
   { 0, fileIntFreeInstance, 0, 0, { 0 } }, 0, 0, 0 };
+
+static VALUE file_hash_clear(VALUE self)
+{
+  rb_iv_set(self, "@name", rstr(""));
+  rb_iv_set(self, "@error", rstr(""));
+  rb_iv_set(self, "@message", rstr(""));
+  return self;
+}
 
 static VALUE fileIntForPath(const char *path, bool rubyExc)
 {
@@ -183,9 +192,36 @@ RB_METHOD(_marshalLoad)
   return rb_funcall2(marshal, rb_intern("_HC_load_alias"), ARRAY_SIZE(v), v);
 }
 
+static VALUE file_sha256_hash(VALUE self, VALUE filename)
+{
+  const char *fn = RSTRING_PTR(filename);
+  ShaHash *result = shState->fileSystem().sha256_hex_string(fn);
+  const char *sha = result->hash.c_str();
+  const char *err = result->error.c_str();
+  const char *msg = result->msg.c_str();
+  VALUE hash = rb_iv_get(self, "hash_error");
+  VALUE error = rstr(err);
+  VALUE message = rstr(msg);
+  rb_iv_set(hash, "@name", filename);
+  rb_iv_set(hash, "@error", error);
+  rb_iv_set(hash, "@message", message);
+  return rstr(sha);
+}
+
+static VALUE file_hash_error(VALUE self)
+{
+  return rb_iv_get(self, "hash_error");
+}
+
+static VALUE file_clear_hash_error(VALUE self)
+{
+  VALUE hash = rb_iv_get(self, "hash_error");
+  return file_hash_clear(hash);
+}
+
 void fileIntBindingInit()
 {
-  VALUE ary, str, marshal, klass;
+  VALUE ary, str, marshal, klass, hash;
   const char *names[] = {
     "app_logo_s01", "app_logo_s02", "app_logo_s03",
     "app_logo", "gamepad_black_add", "gamepad_black_remove",
@@ -196,6 +232,16 @@ void fileIntBindingInit()
     str = rstr(names[n]);
     rb_ary_push(ary, str);
   }
+  hash = rb_define_class_under(rb_cFile, "HashError", rb_cObject);
+  rb_define_attr(hash, "name", 1, 0);
+  rb_define_attr(hash, "error", 1, 0);
+  rb_define_attr(hash, "message", 1, 0);
+  rb_define_method(hash, "clear", RMF(file_hash_clear), 0);
+  hash = rb_funcall(hash, rb_intern("new"), 0);
+  rb_iv_set(hash, "@name", rstr(""));
+  rb_iv_set(hash, "@error", rstr(""));
+  rb_iv_set(hash, "@message", rstr(""));
+  rb_iv_set(rb_cFile, "hash_error", hash);
   klass = rb_define_class("FileInt", rb_cIO);
   rb_iv_set(klass, "internal_bitmaps", ary);
   module_func(klass, "internal_bitmaps", fileInt_internal_bitmaps, 0);
@@ -206,6 +252,9 @@ void fileIntBindingInit()
   rb_define_method(klass, "close", RMF(fileIntClose), 0);
   rb_define_singleton_method(klass, "exist?", RMF(fileInt_exist), 1);
   rb_define_singleton_method(rb_cFile, "exist_compressed?", RMF(fileInt_exist), 1);
+  rb_define_singleton_method(rb_cFile, "hash256", RMF(file_sha256_hash), 1);
+  rb_define_singleton_method(rb_cFile, "hash_error", RMF(file_hash_error), 0);
+  rb_define_singleton_method(rb_cFile, "clear_hash_error", RMF(file_clear_hash_error), 0);
   module_func(rb_mKernel, "load_data", kernelLoadData, 1);
   module_func(rb_mKernel, "save_data", kernelSaveData, 2);
   /* We overload the built-in 'Marshal::load()' function to silently

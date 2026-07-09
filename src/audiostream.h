@@ -120,7 +120,6 @@ struct AudioStream
   bool closed();
   bool paused();
   bool looping();
-  //AudioStream &operator=(const AudioStream &&o) noexcept;
 
 private:
   float volumes[VolumeTypeCount];
@@ -129,8 +128,6 @@ private:
   void startFadeIn();
   void fadeOutThread();
   void fadeInThread();
-  // /AudioStream(const AudioStream &o);
-  //AudioStream &operator=(const AudioStream &o);
 };
 
 #endif // AUDIOSTREAM_H

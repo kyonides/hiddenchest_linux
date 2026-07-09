@@ -24,13 +24,22 @@
 #define FILESYSTEM_H
 
 #include <SDL_rwops.h>
+#include <string>
 
 struct FileSystemPrivate;
 class SharedFontState;
 
+struct ShaHash {
+  std::string name;
+  std::string hash;
+  std::string error;
+  std::string msg;
+};
+
 class FileSystem
 {
 public:
+
   FileSystem(const char *argv0, bool allowSymlinks);
   ~FileSystem();
   void addPath(const char *path);
@@ -59,9 +68,11 @@ public:
 /* Does not perform extension supplementing */
   bool exists(const char *filename);
   bool exists_ext(const char *filename);
+  ShaHash *sha256_hex_string(const char *filename);
 
 private:
 	FileSystemPrivate *p;
+  ShaHash *sha256;
 };
 
 extern const Uint32 SDL_RWOPS_PHYSFS;
