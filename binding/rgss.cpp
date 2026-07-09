@@ -61,6 +61,7 @@ static void mriBindingReset();
 extern "C" {
 void init_zlib();
 }
+void init_string_sha256();
 void init_mouse();
 void init_game(ch raw_exe_name);
 void init_scripts();
@@ -616,6 +617,7 @@ static void mriBindingExecute()
   RbData rbData;
   shState->setBindingData(&rbData);
   init_zlib();
+  init_string_sha256();
   fileIntBindingInit();
   tableBindingInit();
   etcBindingInit();

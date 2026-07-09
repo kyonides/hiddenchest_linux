@@ -376,6 +376,7 @@ if (BINDING STREQUAL "MRI")
     binding/scripts.cpp
     binding/system.cpp
     binding/hiddenchest.cpp
+    binding/string-binding.cpp
     binding/zlib.c
   )
 else()

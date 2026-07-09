@@ -31,6 +31,7 @@
 #include <physfs.h>
 #include <SDL_sound.h>
 #include <iostream>
+#include <fstream>
 #include <string.h>
 #include <algorithm>
 #include <vector>
@@ -566,15 +567,18 @@ bool FileSystem::exists_ext(const char *filename)
 
 ShaHash *FileSystem::sha256_hex_string(const char *filename)
 {
-  try {
-    sha256->name = filename;
-    sha256->error = "";
-    sha256->msg = "";
-    sha256->hash = picosha2::hash256_hex_string(sha256->name);
-  } catch (const std::exception &e) {
+  sha256->name = filename;
+  sha256->error = "";
+  sha256->msg = "";
+  std::ifstream f(filename, std::ios::binary);
+  if (f.is_open()) {
+    std::vector<unsigned char> s(picosha2::k_digest_size);
+    picosha2::hash256(f, s.begin(), s.end());
+    sha256->hash = picosha2::bytes_to_hex_string(s);
+  } else {
     sha256->error = "SHA256Error";
     sha256->msg = e.what();
-    sha256->hash = "-1";
+    sha256->hash = "-256";
   }
   return sha256;
 }
