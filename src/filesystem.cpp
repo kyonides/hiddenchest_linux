@@ -577,7 +577,7 @@ ShaHash *FileSystem::sha256_hex_string(const char *filename)
     sha256->hash = picosha2::bytes_to_hex_string(s);
   } else {
     sha256->error = "SHA256Error";
-    sha256->msg = e.what();
+    sha256->msg = "Hash could not be calculated: No file found.";
     sha256->hash = "-256";
   }
   return sha256;
