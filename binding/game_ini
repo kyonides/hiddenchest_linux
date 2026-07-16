@@ -111,6 +111,40 @@ module Input
     "Y=G",
     "Z=H"
   ]
+  PRESET_GAMEPAD_BINDINGS = {}
+  PRESET_GAMEPAD_BINDINGS["sony"] = [
+    "Up=Up,JS 11,Axis 1-",
+    "Down=Down,JS 12,Axis 1+",
+    "L=Q,JS 9",
+    "L2=E,Axis 4-",
+    "Left=Left,JS 13,Axis 0-",
+    "Right=Right,JS 14,Axis 0+",
+    "R=W,JS 10",
+    "R2=R,Axis 5-",
+    "A=LeftShift,JS 3",
+    "B=Escape,JS 1",
+    "C=C,Return,Space,JS 0",
+    "X=A,JS 2",
+    "Y=S,JS 4",
+    "Z=D,JS 5"
+  ]
+  PRESET_GAMEPAD_BINDINGS["logi"] = [
+    "Up=Up,Keypad 8,Hat 0:U,Axis 1-",
+    "Down=Down,Numpad 2,Hat 0:D,Axis 1+",
+    "L=Q",
+    "L2=E",
+    "Left=Left,Keypad 4,Hat 0:L,Axis 0-",
+    "Right=Right,Numpad 6,Hat 0:R,Axis 0+",
+    "R=W",
+    "R2=R",
+    "A=LeftShift,JS 3",
+    "B=Escape,X,JS 2",
+    "C=Return,Space,C,JS 1",
+    "X=",
+    "Y=",
+    "Z="
+  ]
+
   class Gamepad
     attr_reader :vendor_fn, :int_name
     def initialize(name, vendor_id, kind, level, state1, state2)
@@ -389,17 +423,47 @@ module Input
     attr_reader :size
   end
 
+  class AllBindings
+    def initialize
+      @data = {}
+    end
+
+    def [](code)
+      @data[code]
+    end
+
+    def []=(code, bindings)
+      @data[code] = bindings
+    end
+
+    def codes
+      @data.map {|k,v| v.code }
+    end
+
+    def default?
+      @data.keys == [KEYBOARD_GENERIC.to_sym]
+    end
+
+    def empty?
+      @data.empty?
+    end
+
+    def key?(code)
+      @data.key?(code)
+    end
+  end
+
   extend self
   attr_reader :bindings, :all_bindings
   def load_init_bindings
-    @all_bindings = {}
+    @all_bindings = AllBindings.new
     ext = Game.data_ext
     files = Dir[Game.glob_kb].sort
     puts "Loading Bindings..."
     if files.any?
       load_all_bindings(files)
     end
-    codes = @all_bindings.map {|k,v| v.code }
+    codes = @all_bindings.codes
     files = Dir[Game.glob_init_kb].sort
     files.each do |file|
       code = File.basename(file, "." + ext)
@@ -419,14 +483,11 @@ module Input
       end
     end
     if @all_bindings.empty?
-      code = KEYBOARD_GENERIC.to_sym
-      @bindings = KeyBindings.new
-      lines = PRESET_BINDINGS.dup
-      parse_bindings_lines(@bindings, lines)
-      @all_bindings[code] = @bindings
+      parse_preset_keyboard_bindings
     end
     if gamepad?
       @gamepad_updates << :add
+      @temp_binding = @all_bindings.default?
       setup_gamepad
     else
       @gamepad_updates << :remove
@@ -554,6 +615,9 @@ module Input
     list = gamepad_basic_values
     list << true
     @gamepad = Gamepad.new(*list)
+    if @temp_binding
+      parse_preset_gamepad_bindings
+    end
     reset_bindings
   end
 
@@ -583,6 +647,27 @@ module Input
   def process_target_button(line)
     line.sub!(/(\w+)\s?=\s?/i, "")
     $1
+  end
+
+  def parse_preset_keyboard_bindings
+    code = KEYBOARD_GENERIC.to_sym
+    @bindings = KeyBindings.new
+    lines = PRESET_BINDINGS.dup
+    parse_bindings_lines(@bindings, lines)
+    @all_bindings[code] = @bindings
+    save_bindings(code)
+  end
+
+  def parse_preset_gamepad_bindings
+    name = @gamepad.vendor_fn.downcase
+    code = @gamepad.internal_name.to_sym
+    @bindings = KeyBindings.new
+    lines = PRESET_GAMEPAD_BINDINGS[name] || PRESET_BINDINGS
+    lines = lines.dup
+    parse_bindings_lines(@bindings, lines)
+    @all_bindings[code] = @bindings
+    save_bindings(code)
+    @temp_binding = nil
   end
 
   def parse_bindings(fn, code)
