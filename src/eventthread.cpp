@@ -92,7 +92,10 @@ bool EventThread::allocUserEvents()
   return true;
 }
 
-EventThread::EventThread() : fullscreen(false), showCursor(false)
+EventThread::EventThread()
+: fullscreen(false),
+  showCursor(false),
+  windowFocused(true)
 {}
 
 void EventThread::process(RGSSThreadData &rtData)
@@ -118,11 +121,11 @@ void EventThread::process(RGSSThreadData &rtData)
     fps.sendUpdates.set();
   bool displayingFPS = false;
   bool cursorInWindow = false;
-  /* Will be updated eventually */
+  // Will be updated eventually
   SDL_Rect gameScreen = { 0, 0, 0, 0 };
-  /* SDL doesn't send an initial FOCUS_GAINED event */
-  bool windowFocused = true;
+  // SDL doesn't send an initial FOCUS_GAINED event
   bool terminate = false;
+  windowFocused = true;
   if (SDL_NumJoysticks() > 0) {
     js = SDL_JoystickOpen(0);
     rtData.joystick = js;
@@ -504,6 +507,11 @@ bool EventThread::getFullscreen() const
 bool EventThread::getShowCursor() const
 {
   return showCursor;
+}
+
+bool EventThread::get_window_focus() const
+{
+  return windowFocused;
 }
 
 void EventThread::notifyFrame()

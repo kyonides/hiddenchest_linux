@@ -7,6 +7,7 @@
 */
 
 #include "resolution.h"
+#include "eventthread.h"
 #include "hcextras.h"
 #include "scripts.h"
 #include "graphics.h"
@@ -223,12 +224,26 @@ static VALUE game_screensaver_enable_set(VALUE self, VALUE state)
   return rb_iv_set(self, "screensaver_enable", state == Qtrue ? Qtrue : Qfalse);
 }
 
+static VALUE game_has_focus(VALUE self)
+{
+  return shState->eThread().get_window_focus() ? Qtrue : Qfalse;
+}
+
+static VALUE game_changed_focus(VALUE self)
+{
+  VALUE focus = shState->eThread().get_window_focus() ? Qtrue : Qfalse;
+  VALUE last = rb_iv_get(self, "focused");
+  rb_iv_set(self, "focused", focus);
+  return last == focus;
+}
+
 void init_game(const char *raw_exe_name)
 {
   VALUE game = rb_define_module("Game");
   rb_iv_set(game, "resizable", Qtrue);
   rb_iv_set(game, "borders", Qtrue);
   rb_iv_set(game, "screensaver_enable", Qfalse);
+  rb_iv_set(game, "focused", Qtrue);
   rb_const_set(game, rb_intern("RAW_EXE_NAME"), rstr(raw_exe_name));
   rb_const_set(game, rb_intern("START_WIDTH"), RB_INT2FIX(START_WIDTH));
   rb_const_set(game, rb_intern("START_HEIGHT"), RB_INT2FIX(START_HEIGHT));
@@ -250,4 +265,6 @@ void init_game(const char *raw_exe_name)
   module_func(game, "window_show_borders=", game_window_borders_set, 1);
   module_func(game, "brightness=", game_display_brightness_set, 1);
   module_func(game, "enable_screensaver=", game_screensaver_enable_set, 1);
+  module_func(game, "has_focus?", game_has_focus, 0);
+  module_func(game, "change_focus?", game_changed_focus, 0);
 }

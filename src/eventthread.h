@@ -84,6 +84,7 @@ public:
   void requestTerminate();
   bool getFullscreen() const;
   bool getShowCursor() const;
+  bool get_window_focus() const;
   void showMessageBox(const char *body, int flags = 0);
   /* RGSS thread calls this once per frame */
   void notifyFrame();
@@ -100,6 +101,7 @@ private:
   void updateCursorState(bool inWindow, const SDL_Rect &screen);
   bool fullscreen;
   bool showCursor;
+  bool windowFocused;
   AtomicFlag msgBoxDone;
 
   struct
