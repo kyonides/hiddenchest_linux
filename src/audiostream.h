@@ -113,6 +113,7 @@ struct AudioStream
   void lockStream();
   void unlockStream();
   void setVolume(VolumeType type, float value);
+  void setVolume(int type, float value);
   float getVolume(VolumeType type);
   float playingOffset();
   bool playing();

@@ -243,6 +243,12 @@ void AudioStream::setVolume(VolumeType type, float value)
   updateVolume();
 }
 
+void AudioStream::setVolume(int type, float value)
+{
+  volumes[type] = value;
+  updateVolume();
+}
+
 float AudioStream::getVolume(VolumeType type)
 {
   return volumes[type];

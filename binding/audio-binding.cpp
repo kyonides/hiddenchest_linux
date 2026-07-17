@@ -171,6 +171,9 @@ static VALUE audio_bgms_volume_get(VALUE self, VALUE pos)
 
 static VALUE audio_bgms_volume_set(VALUE self, VALUE pos, VALUE volume)
 {
+  int n = RB_FIX2INT(pos) - 1;
+  int vol = RB_FIX2INT(volume);
+  shState->audio().set_bgms_volume(n, vol);
   VALUE hash = rb_iv_get(self, "@bgms_volume");
   return rb_hash_aset(hash, pos, volume);
 }
@@ -290,12 +293,17 @@ static VALUE audio_bgmPos(VALUE self)
 
 static VALUE audio_bgm_volume_get(VALUE self)
 {
-  return rb_iv_get(self, "@bgm_volume");
+  VALUE hash = rb_iv_get(self, "@bgms_volume");
+  return rb_hash_aref(hash, RB_INT2FIX(1));
 }
 
 static VALUE audio_bgm_volume_set(VALUE self, VALUE volume)
 {
-  return rb_iv_set(self, "@bgm_volume", volume);
+  VALUE hash = rb_iv_get(self, "@bgms_volume");
+  VALUE pos = RB_INT2FIX(1);
+  int vol = RB_FIX2INT(volume);
+  shState->audio().set_bgm_volume(vol);
+  return rb_hash_aset(hash, pos, volume);;
 }
 
 static VALUE audio_old_bgm_pos_get(VALUE self)
@@ -440,6 +448,9 @@ static VALUE audio_bgss_pos(VALUE self, VALUE pos)
 
 static VALUE audio_bgss_volume_set(VALUE self, VALUE pos, VALUE volume)
 {
+  int n = RB_FIX2INT(pos) - 1;
+  int vol = RB_FIX2INT(volume);
+  shState->audio().set_bgss_volume(n, vol);
   VALUE hash = rb_iv_get(self, "@bgss_volume");
   return rb_hash_aset(hash, pos, volume);
 }
@@ -532,18 +543,23 @@ static VALUE audio_bgs_loop_set(VALUE self, VALUE state)
 
 static VALUE audio_bgs_volume_get(VALUE self)
 {
-  return rb_iv_get(self, "@bgs_volume");
+  VALUE hash = rb_iv_get(self, "@bgss_volume");
+  return rb_hash_aref(hash, RB_INT2FIX(1));
+}
+
+static VALUE audio_bgs_volume_set(VALUE self, VALUE volume)
+{
+  VALUE hash = rb_iv_get(self, "@bgss_volume");
+  VALUE pos = RB_INT2FIX(1);
+  int vol = RB_FIX2INT(volume);
+  shState->audio().set_bgs_volume(vol);
+  return rb_hash_aset(hash, pos, volume);
 }
 
 static VALUE audio_bgsPos(VALUE self)
 {
   VALUE pos = rb_float_new(shState->audio().bgsPos());
   return rb_iv_set(self, "@bgs_pos", pos);
-}
-
-static VALUE audio_bgs_volume_set(VALUE self, VALUE volume)
-{
-  return rb_iv_set(self, "@bgs_volume", volume);
 }
 
 static VALUE audio_old_bgs_pos(VALUE self, VALUE pos)

@@ -90,9 +90,8 @@ static void add_hat_binding(BDescVec &d, uint8_t hat, uint8_t pos, int target)
 static void gamepad_set_sdl_binding(BDescVec &bind, int target, int type, VALUE b)
 {
   VALUE value, rdir;
-  int v, dir;
   value = rb_iv_get(b, "@value");
-  v = RB_FIX2INT(value);
+  int dir, v = RB_FIX2INT(value);
   switch (type)
   {
   case 0:

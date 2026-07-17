@@ -339,6 +339,11 @@ void Audio::set_bgms_loop(int n, bool state)
   p->get_bgm(n)->set_loop(state);
 }
 
+void Audio::set_bgms_volume(int n, int vol)
+{
+  p->get_bgm(n)->setVolume(0, vol / 100.0);
+}
+
 int Audio::bgms_sample_rate(int n)
 {
   return p->get_bgm(n)->sample_rate();
@@ -417,6 +422,11 @@ bool Audio::bgm_looping()
 void Audio::set_bgm_loop(bool state)
 {
   p->bgm1.set_loop(state);
+}
+
+void Audio::set_bgm_volume(int vol)
+{
+  p->bgm1.setVolume(0, vol / 100.0);
 }
 
 int Audio::bgm_sample_rate()
@@ -500,6 +510,11 @@ void Audio::set_bgss_loop(int n, bool state)
   p->get_bgs(n)->set_loop(state);
 }
 
+void Audio::set_bgss_volume(int n, int vol)
+{
+  p->get_bgs(n)->setVolume(0, vol / 100.0);
+}
+
 float Audio::bgss_pos(int n)
 {
   return p->get_bgs(n)->playingOffset();
@@ -558,6 +573,11 @@ bool Audio::bgs_looping()
 void Audio::set_bgs_loop(bool state)
 {
   p->bgs1.set_loop(state);
+}
+
+void Audio::set_bgs_volume(int vol)
+{
+  p->bgs1.setVolume(0, vol / 100.0);
 }
 
 void Audio::bgsFade(int time)

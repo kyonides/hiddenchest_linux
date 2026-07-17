@@ -59,6 +59,7 @@ public:
   bool bgms_paused(int n);
   bool bgms_looping(int n);
   void set_bgms_loop(int n, bool state);
+  void set_bgms_volume(int n, int vol);
   int bgms_sample_rate(int n);
   int bgms_samples(int n);
   double bgms_seconds(int n);
@@ -79,6 +80,7 @@ public:
   bool bgm_paused();
   bool bgm_looping();
   void set_bgm_loop(bool state);
+  void set_bgm_volume(int vol);
   int bgm_sample_rate();
   int bgm_samples();
   double bgm_seconds();
@@ -100,6 +102,7 @@ public:
   bool bgss_paused(int n);
   bool bgss_looping(int n);
   void set_bgss_loop(int n, bool state);
+  void set_bgss_volume(int n, int vol);
   float bgss_pos(int n);
 // BGS
   void bgsPlay(const char *filename,
@@ -117,6 +120,7 @@ public:
   bool bgs_paused();
   bool bgs_looping();
   void set_bgs_loop(bool state);
+  void set_bgs_volume(int vol);
   float bgsPos();
   void mePlay(const char *filename,
               int volume = 100,
