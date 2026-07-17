@@ -4,7 +4,7 @@
 ** This file is part of mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Extended (C) 2018-2024 Kyonides-Arkanthes
+** Extended (C) 2018-2026 Kyonides-Arkanthes
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -218,6 +218,11 @@ void SharedState::set_title(const char *title)
   p->config.game.title = title;
   p->config.windowTitle = title;
   SDL_SetWindowTitle(p->sdlWindow, title);
+}
+
+bool SharedState::window_has_focus() const
+{
+  return p->eThread.get_window_focus();
 }
 
 Scene* SharedState::screen() const

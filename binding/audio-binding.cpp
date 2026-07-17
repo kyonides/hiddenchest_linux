@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Modified  (C) 2018-2024 Kyonides <kyonides@gmail.com>
+** Modified  (C) 2018-2026 Kyonides <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -85,6 +85,14 @@ static VALUE audio_bgms_toggle(VALUE self, VALUE pos, VALUE state)
   else
     audio_bgms_pause(self, pos);
   return state;
+}
+
+static VALUE audio_bgms_auto_toggle(VALUE self, VALUE pos)
+{
+  if (shState->window_has_focus())
+    return audio_bgms_resume(self, pos);
+  else
+    return audio_bgms_pause(self, pos);
 }
 
 static VALUE audio_bgms_playing(VALUE self, VALUE pos)
@@ -253,6 +261,14 @@ static VALUE audio_bgm_toggle(VALUE self, VALUE state)
   return state;
 }
 
+static VALUE audio_bgm_auto_toggle(VALUE self)
+{
+  if (shState->window_has_focus())
+    return audio_bgm_resume(self);
+  else
+    return audio_bgm_pause(self);
+}
+
 static VALUE audio_bgm_playing(VALUE self)
 {
   return shState->audio().bgm_playing() ? Qtrue : Qfalse;
@@ -402,6 +418,14 @@ static VALUE audio_bgss_toggle(VALUE self, VALUE pos, VALUE state)
   return state;
 }
 
+static VALUE audio_bgss_auto_toggle(VALUE self, VALUE pos)
+{
+  if (shState->window_has_focus())
+    return audio_bgss_resume(self, pos);
+  else
+    return audio_bgss_pause(self, pos);
+}
+
 static VALUE audio_bgss_playing(VALUE self, VALUE pos)
 {
   int n = RB_FIX2INT(pos) - 1;
@@ -545,6 +569,14 @@ static VALUE audio_bgs_toggle(VALUE self, VALUE state)
   else
     audio_bgs_pause(self);
   return state;
+}
+
+static VALUE audio_bgs_auto_toggle(VALUE self)
+{
+  if (shState->window_has_focus())
+    return audio_bgs_resume(self);
+  else
+    return audio_bgs_pause(self);
 }
 
 static VALUE audio_bgs_playing(VALUE self)
@@ -758,6 +790,7 @@ void audioBindingInit()
   module_func(md, "bgm_pause", audio_bgm_pause, 0);
   module_func(md, "bgm_resume", audio_bgm_resume, 0);
   module_func(md, "bgm_toggle=", audio_bgm_toggle, 1);
+  module_func(md, "bgm_toggle!", audio_bgm_auto_toggle, 0);
   module_func(md, "bgm_playing?", audio_bgm_playing, 0);
   module_func(md, "bgm_stopped?", audio_bgm_stopped, 0);
   module_func(md, "bgm_closed?", audio_bgm_closed, 0);
@@ -781,6 +814,7 @@ void audioBindingInit()
   module_func(md, "bgms_pause", audio_bgms_pause, 1);
   module_func(md, "bgms_resume", audio_bgms_resume, 1);
   module_func(md, "bgms_toggle", audio_bgms_toggle, 2);
+  module_func(md, "bgms_toggle!", audio_bgms_auto_toggle, 1);
   module_func(md, "bgms_playing?", audio_bgms_playing, 1);
   module_func(md, "bgms_stopped?", audio_bgms_stopped, 1);
   module_func(md, "bgms_closed?", audio_bgms_closed, 1);
@@ -805,6 +839,7 @@ void audioBindingInit()
   module_func(md, "bgs_pause", audio_bgm_pause, 0);
   module_func(md, "bgs_resume", audio_bgm_resume, 0);
   module_func(md, "bgs_toggle=", audio_bgs_toggle, 1);
+  module_func(md, "bgs_toggle!", audio_bgs_auto_toggle, 0);
   module_func(md, "bgs_playing?", audio_bgs_playing, 0);
   module_func(md, "bgs_stopped?", audio_bgs_stopped, 0);
   module_func(md, "bgs_closed?", audio_bgs_closed, 0);
@@ -825,6 +860,7 @@ void audioBindingInit()
   module_func(md, "bgss_pause", audio_bgss_pause, 1);
   module_func(md, "bgss_resume", audio_bgss_resume, 1);
   module_func(md, "bgss_toggle", audio_bgss_toggle, 2);
+  module_func(md, "bgss_toggle!", audio_bgss_auto_toggle, 1);
   module_func(md, "bgss_playing?", audio_bgss_playing, 1);
   module_func(md, "bgss_stopped?", audio_bgss_stopped, 1);
   module_func(md, "bgss_closed?", audio_bgss_closed, 1);

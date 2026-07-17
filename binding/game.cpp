@@ -7,7 +7,6 @@
 */
 
 #include "resolution.h"
-#include "eventthread.h"
 #include "hcextras.h"
 #include "scripts.h"
 #include "graphics.h"
@@ -226,12 +225,12 @@ static VALUE game_screensaver_enable_set(VALUE self, VALUE state)
 
 static VALUE game_has_focus(VALUE self)
 {
-  return shState->eThread().get_window_focus() ? Qtrue : Qfalse;
+  return shState->window_has_focus() ? Qtrue : Qfalse;
 }
 
 static VALUE game_changed_focus(VALUE self)
 {
-  VALUE focus = shState->eThread().get_window_focus() ? Qtrue : Qfalse;
+  VALUE focus = shState->window_has_focus() ? Qtrue : Qfalse;
   VALUE last = rb_iv_get(self, "focused");
   rb_iv_set(self, "focused", focus);
   return last == focus;

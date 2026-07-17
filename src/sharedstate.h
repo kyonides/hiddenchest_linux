@@ -102,6 +102,7 @@ struct SharedState
                     const char *scripts, std::vector<std::string> &rtps);
   const char* get_title();
   void set_title(const char *title);
+  bool window_has_focus() const;
   static SharedState *instance;
   static int rgssVersion;
   // This function will throw an Exception instance
