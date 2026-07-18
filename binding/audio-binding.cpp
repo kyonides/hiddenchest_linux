@@ -744,6 +744,28 @@ static VALUE audio_reset(VALUE self)
   return Qnil;
 }
 
+static VALUE audio_check_focus(VALUE self)
+{
+  VALUE channels, pos;
+  if (shState->window_has_focus()) {
+    for (int n=0; n < 3; n++) {
+      channels = rb_iv_get(self, "channels");
+      pos = rb_ary_entry(channels, n);
+      audio_bgms_resume(self, pos);
+      audio_bgss_resume(self, pos);
+    }
+    return Qnil;
+  } else {
+    for (int n=0; n < 3; n++) {
+      channels = rb_iv_get(self, "channels");
+      pos = rb_ary_entry(channels, n);
+      audio_bgms_pause(self, pos);
+      audio_bgss_pause(self, pos);
+    }
+    return Qnil;
+  }
+}
+
 void audioBindingInit()
 {
   VALUE md, zero_float, pos, new_pos, old_pos, name, volume, looped, number;
@@ -780,6 +802,7 @@ void audioBindingInit()
     rb_hash_aset(volume, number, RB_INT2FIX(80));
     rb_hash_aset(looped, number, Qtrue);
   }
+  rb_iv_set(md, "channels", pos);
 // End of BGM & BGS Channels
   rb_iv_set(md, "@me_volume", RB_INT2FIX(80));
   rb_iv_set(md, "@se", rb_str_new_cstr("Audio/SE/"));
@@ -888,4 +911,5 @@ void audioBindingInit()
   module_func(md, "se_play", audio_sePlay, -1);
   module_func(md, "se_stop", audio_seStop, 0);
   module_func(md, "reset", audio_reset, 0);
+  module_func(md, "check_focus", audio_check_focus, 0);
 }
