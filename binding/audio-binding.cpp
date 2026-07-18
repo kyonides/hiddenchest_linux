@@ -746,30 +746,31 @@ static VALUE audio_reset(VALUE self)
 
 static VALUE audio_check_focus(VALUE self)
 {
-  VALUE channels, pos;
-  if (shState->window_has_focus()) {
-    for (int n=0; n < 3; n++) {
-      channels = rb_iv_get(self, "channels");
-      pos = rb_ary_entry(channels, n);
-      audio_bgms_resume(self, pos);
-      audio_bgss_resume(self, pos);
-    }
+  bool has_focus = shState->window_has_focus();
+  VALUE state = rb_iv_get(self, "focused");
+  VALUE focus = has_focus ? Qtrue : Qfalse;
+  if (focus == state)
     return Qnil;
+  if (has_focus) {
+    for (int n=0; n < 3; n++) {
+      shState->audio().bgms_resume(n);
+      shState->audio().bgss_resume(n);
+    }
   } else {
     for (int n=0; n < 3; n++) {
-      channels = rb_iv_get(self, "channels");
-      pos = rb_ary_entry(channels, n);
-      audio_bgms_pause(self, pos);
-      audio_bgss_pause(self, pos);
+      shState->audio().bgms_pause(n);
+      shState->audio().bgss_pause(n);
     }
-    return Qnil;
   }
+  rb_iv_set(self, "focused", focus);
+  return Qnil;
 }
 
 void audioBindingInit()
 {
   VALUE md, zero_float, pos, new_pos, old_pos, name, volume, looped, number;
   md = rb_define_module("Audio");
+  rb_iv_set(md, "focused", Qtrue);
   zero_float = rb_float_new(0.0);
   pos = rb_ary_new();
   for (int n = 0; n < BGM_CHANNELS; n++)
