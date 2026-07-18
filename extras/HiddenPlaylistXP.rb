@@ -39,7 +39,6 @@ module HiddenPlay
       @playing ? pause : resume
     end
     attr_accessor :title, :channel
-    attr_reader :seconds
   end
 
   class List
