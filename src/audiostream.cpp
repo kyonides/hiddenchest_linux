@@ -61,7 +61,7 @@ AudioStream::~AudioStream()
 }
 
 void AudioStream::play(const std::string &filename,
-  int volume, int pitch, float offset)
+  int volume, int pitch, float offset, int channels)
 {
   if (stream.looped)
     finiFadeOutInt();
@@ -90,7 +90,7 @@ void AudioStream::play(const std::string &filename,
     unlockStream();
     return;
   }
-  /* Requested audio file is different from current one */
+  // Requested audio file is different from current one
   bool diffFile = (filename != current.filename);
   switch (sState)
   {
@@ -106,7 +106,7 @@ void AudioStream::play(const std::string &filename,
     if (diffFile) {
       try {
   // This will throw on errors while opening the data source
-        stream.open(filename);
+        stream.open(filename, channels);
       } catch (const Exception &e) {
         unlockStream();
         throw e;
@@ -127,6 +127,13 @@ void AudioStream::play(const std::string &filename,
     stream.play(offset);
   else
     noResumeStop = false;
+  unlockStream();
+}
+
+void AudioStream::read(const std::string &filename, AudioData &ad)
+{
+  lockStream();
+  stream.read(filename, ad);
   unlockStream();
 }
 

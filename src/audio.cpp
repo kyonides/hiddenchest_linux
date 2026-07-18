@@ -21,19 +21,20 @@
 */
 
 #include "audio.h"
+#include "audio_data.h"
 #include "audiostream.h"
 #include "soundemitter.h"
 #include "sharedstate.h"
 #include "sharedmidistate.h"
 #include "eventthread.h"
 #include "sdl-util.h"
-#include <string>
 #include <SDL_thread.h>
 #include <SDL_timer.h>
 //#include "ok_ogg.xxd"#include "wrong_ogg.xxd"
 
 struct AudioPrivate
 {
+  AudioStream temp;
   AudioStream bgm1;
   AudioStream bgm2;
   AudioStream bgm3;
@@ -62,7 +63,8 @@ struct AudioPrivate
   } meWatch;
 
   AudioPrivate(RGSSThreadData &rtData)
-  : bgm1(ALStream::Looped, "bgm"),
+  : temp(ALStream::NotLooped, "temp"),
+    bgm1(ALStream::Looped, "bgm"),
     bgm2(ALStream::Looped, "bgm"),
     bgm3(ALStream::Looped, "bgm"),
     bgs1(ALStream::Looped, "bgs"),
@@ -278,10 +280,18 @@ struct AudioPrivate
 Audio::Audio(RGSSThreadData &rtData)
 : p(new AudioPrivate(rtData))
 {}
-// BGM Channels
-void Audio::bgms_play(int n, const char *filename, int volume, int pitch, float pos)
+// Quick Read Audio File
+AudioData Audio::read(const char *filename)
 {
-  p->get_bgm(n)->play(filename, volume, pitch, pos);
+  AudioData ad;
+  p->temp.read(filename, ad);
+  return ad;
+}
+
+// BGM Channels
+void Audio::bgms_play(int n, const char *filename, int volume, int pitch, float pos, int channels)
+{
+  p->get_bgm(n)->play(filename, volume, pitch, pos, channels);
 }
 
 void Audio::bgms_stop(int n)
@@ -364,9 +374,9 @@ float Audio::bgms_pos(int n)
   return p->get_bgm(n)->playingOffset();
 }
 // BGM
-void Audio::bgmPlay(const char *filename, int volume, int pitch, float pos)
+void Audio::bgmPlay(const char *filename, int volume, int pitch, float pos, int channels)
 {
-  p->bgm1.play(filename, volume, pitch, pos);
+  p->bgm1.play(filename, volume, pitch, pos, channels);
 }
 
 void Audio::bgmStop()
@@ -450,9 +460,9 @@ float Audio::bgmPos()
 }
 // End of BGM
 // BGS Channels
-void Audio::bgss_play(int n, const char *filename, int volume, int pitch, float pos)
+void Audio::bgss_play(int n, const char *filename, int volume, int pitch, float pos, int channels)
 {
-  p->get_bgs(n)->play(filename, volume, pitch, pos);
+  p->get_bgs(n)->play(filename, volume, pitch, pos, channels);
 }
 
 void Audio::bgss_stop(int n)
@@ -520,9 +530,9 @@ float Audio::bgss_pos(int n)
   return p->get_bgs(n)->playingOffset();
 }
 // BGS
-void Audio::bgsPlay(const char *filename, int volume, int pitch, float pos)
+void Audio::bgsPlay(const char *filename, int volume, int pitch, float pos, int channels)
 {
-  p->bgs1.play(filename, volume, pitch, pos);
+  p->bgs1.play(filename, volume, pitch, pos, channels);
 }
 
 void Audio::bgsStop()

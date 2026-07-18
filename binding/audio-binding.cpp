@@ -21,12 +21,31 @@
 */
 
 #include "audio.h"
+#include "audio_data.h"
 #include "sharedstate.h"
 #include "exception.h"
 #include "binding-util.h"
 #include "filesystem.h"
 #include "hcextras.h"
 #include "debugwriter.h"
+// Quick Read Audio File
+static VALUE audio_read_filetype(VALUE self, VALUE obj, VALUE rpath)
+{
+  AudioData ad;
+  const char *path = RSTRING_PTR(rpath);
+  GUARD_EXC( ad = shState->audio().read(path); )
+  VALUE filetype = rstr(ad.type.c_str());
+  VALUE file_ext = rstr(ad.ext.c_str());
+  VALUE seconds = DBL2NUM(ad.seconds);
+  VALUE samples = RB_INT2FIX(ad.samples);
+  VALUE sample_rate = RB_INT2FIX(ad.sample_rate);
+  rb_iv_set(obj, "@type", filetype);
+  rb_iv_set(obj, "@ext", file_ext);
+  rb_iv_set(obj, "@seconds", seconds);
+  rb_iv_set(obj, "@samples", samples);
+  rb_iv_set(obj, "@sample_rate", sample_rate);
+  return Qnil;
+}
 // BGM Channels
 static VALUE audio_bgms_play(int argc, VALUE* argv, VALUE self)
 {
@@ -34,12 +53,13 @@ static VALUE audio_bgms_play(int argc, VALUE* argv, VALUE self)
   int volume = 100;
   int pitch = 100;
   double pos = 0.0;
+  int channels = 2;
   int n = 0;
   VALUE hash = rb_iv_get(self, "@bgms_names");
   rb_hash_aset(hash, argv[0], argv[1]);
-  rb_get_args(argc, argv, "iz|iif", &n, &filename, &volume, &pitch, &pos RB_ARG_END);
+  rb_get_args(argc, argv, "iz|iifi", &n, &filename, &volume, &pitch, &pos, &channels RB_ARG_END);
   n--;
-  GUARD_EXC( shState->audio().bgms_play(n, filename, volume, pitch, pos); )
+  GUARD_EXC( shState->audio().bgms_play(n, filename, volume, pitch, pos, channels); )
   return Qnil;
 }
 
@@ -222,9 +242,10 @@ static VALUE audio_bgmPlay(int argc, VALUE* argv, VALUE self)
   int volume = 100;
   int pitch = 100;
   double pos = 0.0;
+  int channels = 2;
   rb_iv_set(self, "@bgm_names", argv[0]);
-  rb_get_args(argc, argv, "z|iif", &filename, &volume, &pitch, &pos RB_ARG_END);
-  GUARD_EXC( shState->audio().bgmPlay(filename, volume, pitch, pos); )
+  rb_get_args(argc, argv, "z|iifi", &filename, &volume, &pitch, &pos, &channels RB_ARG_END);
+  GUARD_EXC( shState->audio().bgmPlay(filename, volume, pitch, pos, channels); )
   return Qnil;
 }
 
@@ -366,11 +387,12 @@ static VALUE audio_bgss_play(int argc, VALUE* argv, VALUE self)
   int volume = 100;
   int pitch = 100;
   double pos = 0.0;
+  int channels = 2;
   VALUE hash = rb_iv_get(self, "@bgss_names");
   rb_hash_aset(hash, argv[0], argv[1]);
-  rb_get_args(argc, argv, "iz|iif", &n, &filename, &volume, &pitch, &pos RB_ARG_END);
+  rb_get_args(argc, argv, "iz|iifi", &n, &filename, &volume, &pitch, &pos, &channels RB_ARG_END);
   n--;
-  GUARD_EXC( shState->audio().bgss_play(n, filename, volume, pitch, pos); )
+  GUARD_EXC( shState->audio().bgss_play(n, filename, volume, pitch, pos, channels); )
   return Qnil;
 }
 
@@ -533,8 +555,9 @@ static VALUE audio_bgsPlay(int argc, VALUE* argv, VALUE self)
   int volume = 100;
   int pitch = 100;
   double pos = 0.0;
-  rb_get_args(argc, argv, "z|iif", &filename, &volume, &pitch, &pos RB_ARG_END);
-  GUARD_EXC( shState->audio().bgsPlay(filename, volume, pitch, pos); )
+  int channels = 2;
+  rb_get_args(argc, argv, "z|iifi", &filename, &volume, &pitch, &pos, &channels RB_ARG_END);
+  GUARD_EXC( shState->audio().bgsPlay(filename, volume, pitch, pos, channels); )
   return Qnil;
 }
 
@@ -913,4 +936,5 @@ void audioBindingInit()
   module_func(md, "se_stop", audio_seStop, 0);
   module_func(md, "reset", audio_reset, 0);
   module_func(md, "check_focus", audio_check_focus, 0);
+  module_func(md, "read", audio_read_filetype, 2);
 }

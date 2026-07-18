@@ -62,10 +62,11 @@ public:
     virtual bool tryRead(SDL_RWops &ops, const char *ext) = 0;
   };
 
+  void quick_read(OpenHandler &handler, const char *filename);
   void openRead(OpenHandler &handler, const char *filename);
-/* Circumvents extension supplementing */
+// Circumvents extension supplementing
   void openReadRaw(SDL_RWops &ops, const char *filename, bool freeOnClose = false);
-/* Does not perform extension supplementing */
+// Does not perform extension supplementing
   bool exists(const char *filename);
   bool exists_ext(const char *filename);
   ShaHash *sha256_hex_string(const char *filename);

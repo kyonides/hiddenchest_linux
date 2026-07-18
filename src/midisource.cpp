@@ -522,10 +522,12 @@ struct MidiSource : ALDataSource, MidiReadHandler
   double sec;
   // MidiReadHandler (track that's currently being read)
   int16_t curTrack;
+  ALenum format;
 
-MidiSource(SDL_RWops &ops, bool looped)
+MidiSource(SDL_RWops &ops, bool looped, ALenum format)
   : freq(SYNTH_SAMPLERATE),
     looped(looped),
+    format(format),
     max_ticks(0),
     dpb(480),
     pitchShift(0),
@@ -711,7 +713,6 @@ MidiSource(SDL_RWops &ops, bool looped)
        * and schedule new ones if the queue isn't empty */
       for (size_t i = 0; i < tracks.size(); ++i) {
         Track &track = tracks[i];
-
         /* We have to loop and ensure that the final scheduled
          * event lies in the future, as multiple events might
          * have to be activated at once */
@@ -733,7 +734,7 @@ MidiSource(SDL_RWops &ops, bool looped)
       }
       size_t nextEvent = (size_t) -1;
       bool allInvalid = true;
-      /* Search all tracks for the temporally nearest event */
+      // Search all tracks for the temporally nearest event
       for (size_t i = 0; i < tracks.size(); ++i) {
         Track &track = tracks[i];
         if (!track.valid)
@@ -746,7 +747,7 @@ MidiSource(SDL_RWops &ops, bool looped)
         if (remDelta < nextEvent)
           nextEvent = std::max<uint32_t>(remDelta, 1);
       }
-      /* Calculate amount of ticks we'll render next */
+      // Calculate amount of ticks we'll render next
       size_t genTicks = allInvalid ? remTicks : std::min(remTicks, nextEvent);
       if (genTicks == 0)
         continue;
@@ -761,8 +762,9 @@ MidiSource(SDL_RWops &ops, bool looped)
         if (tracks[i].valid)
           tracks[i].remDeltas -= intDeltas;
     }
+    ALsizei f = format == AL_FORMAT_MONO16 ? freq * 2 : freq;
     // Fill AL buffer
-    AL::Buffer::uploadData(buf, AL_FORMAT_STEREO16, synthBuf, sizeof(synthBuf), freq);
+    AL::Buffer::uploadData(buf, format, synthBuf, sizeof(synthBuf), f);
     if (tracks[longestI].atEnd)
       return EndOfStream;
     return NoError;
@@ -782,7 +784,7 @@ MidiSource(SDL_RWops &ops, bool looped)
   {
     return sec;
   }
-  /* Midi sources cannot seek, and so always reset to beginning */
+  // Midi sources cannot seek, and so always reset to beginning
   void seekToOffset(float)
   {
     // Reset synth
@@ -806,7 +808,8 @@ MidiSource(SDL_RWops &ops, bool looped)
 };
 
 ALDataSource *createMidiSource(SDL_RWops &ops,
-                               bool looped)
+                               bool looped, int channels)
 {
-  return new MidiSource(ops, looped);
+  ALenum new_format = channels == 2 ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16;
+  return new MidiSource(ops, looped, new_format);
 }

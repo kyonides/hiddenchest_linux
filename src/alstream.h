@@ -29,6 +29,7 @@
 #include <SDL_rwops.h>
 
 struct ALDataSource;
+struct AudioData;
 
 #define STREAM_BUFS 3
 
@@ -82,7 +83,8 @@ struct ALStream
   ALStream(LoopMode loopMode, const std::string &threadId);
   ~ALStream();
   void close();
-  void open(const std::string &filename);
+  void open(const std::string &filename, int channels = 2);
+  void read(const std::string &filename, AudioData &ad);
   void stop();
   void play(float offset = 0);
   void pause();
@@ -101,7 +103,8 @@ struct ALStream
 
 private:
   void closeSource();
-  void openSource(const std::string &filename);
+  void openSource(const std::string &filename, int channels);
+  void read_source(const std::string &filename, AudioData &ad);
   void stopStream();
   void startStream(float offset);
   void pauseStream();

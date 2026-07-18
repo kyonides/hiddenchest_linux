@@ -20,6 +20,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "audio_data.h"
 #include "alstream.h"
 #include "sharedstate.h"
 #include "sharedmidistate.h"
@@ -79,7 +80,7 @@ void ALStream::close()
   }
 }
 
-void ALStream::open(const std::string &filename)
+void ALStream::open(const std::string &filename, int channels)
 {
   checkStopped();
   switch (state) {
@@ -89,9 +90,21 @@ void ALStream::open(const std::string &filename)
   case Stopped:
     closeSource();
   case Closed:
-    openSource(filename);
+    openSource(filename, channels);
   }
   state = Stopped;
+}
+
+void ALStream::read(const std::string &filename, AudioData &ad)
+{
+  checkStopped();
+  if (state == Closed) {
+    read_source(filename, ad);
+    delete source;
+  } else {
+    ad.type = "fail";
+    ad.ext = "";
+  }
 }
 
 void ALStream::stop()
@@ -212,11 +225,17 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
 {
   SDL_RWops *srcOps;
   bool looped;
+  int channels;
   ALDataSource *source;
   std::string errorMsg;
+  std::string filetype;
+  std::string file_ext;
 
-  ALStreamOpenHandler(SDL_RWops &srcOps, bool looped)
-  : srcOps(&srcOps), looped(looped), source(0)
+  ALStreamOpenHandler(SDL_RWops &srcOps, bool looped, int channels=2)
+  : srcOps(&srcOps),
+    looped(looped),
+    channels(channels),
+    source(0)
   {}
 
   bool tryRead(SDL_RWops &ops, const char *ext)
@@ -224,34 +243,57 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
     * as we will continue reading data from it later */
     *srcOps = ops;
     // Try to read ogg file signature
-    char sig[5] = { 0 };
-    SDL_RWread(srcOps, sig, 1, 4);
+    char sig[14] = { 0 };
+    SDL_RWread(srcOps, sig, 1, 14);
     SDL_RWseek(srcOps, 0, RW_SEEK_SET);
+    file_ext = ext;
     try {
-      if (!strcmp(sig, "OggS")) {
+      if (!strncmp(sig, "OggS", 4)) {
+        filetype = "ogg";
         source = createVorbisSource(*srcOps, looped);
         return true;
       }
-      if (!strcmp(sig, "MThd")) {
+      if (!strncmp(sig, "MThd", 4)) {
+        filetype = "midi";
         shState->midiState().initIfNeeded(shState->config());
         if (HAVE_FLUID) {
-          source = createMidiSource(*srcOps, looped);
+          source = createMidiSource(*srcOps, looped, channels);
           return true;
         }
       }
+      if (!strncmp(sig, "ID3", 3))
+        filetype = "mp3";
+      char *tag2 = sig + 8;
+      if (!strncmp(tag2, "WAVE", 4))
+        filetype = "wave";
+      if (!filetype.size())
+        filetype = "unknown";
       source = createSDLSource(*srcOps, ext, STREAM_BUF_SIZE, looped);
     } catch (const Exception &e) {
 // All source constructors will close the passed ops before throwing errors
       errorMsg = e.msg;
+      filetype = "fail";
       return false;
     }
     return true;
   }
 };
 
-void ALStream::openSource(const std::string &filename)
+void ALStream::read_source(const std::string &filename, AudioData &ad)
 {
-  ALStreamOpenHandler handler(srcOps, looped);
+  ALStreamOpenHandler handler(srcOps, looped, 2);
+  needsRewind.clear();
+  shState->fileSystem().openRead(handler, filename.c_str());
+  ad.type = handler.filetype;
+  ad.ext = handler.file_ext;
+  ad.sample_rate = handler.source->sampleRate();
+  ad.samples = handler.source->samples();
+  ad.seconds = handler.source->seconds();
+}
+
+void ALStream::openSource(const std::string &filename, int channels)
+{
+  ALStreamOpenHandler handler(srcOps, looped, channels);
   shState->fileSystem().openRead(handler, filename.c_str());
   source = handler.source;
   needsRewind.clear();

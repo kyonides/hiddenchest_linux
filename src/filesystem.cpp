@@ -1,23 +1,23 @@
 /*
 ** filesystem.cpp
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Extended (C) 2019 Kyonides Arkantehs <kyonides@gmail.com>
+** Extended (C) 2019-2026 Kyonides Arkanthes <kyonides@gmail.com>
 **
-** mkxp is free software: you can redistribute it and/or modify
+** HiddenChest is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
 ** the Free Software Foundation, either version 2 of the License, or
 ** (at your option) any later version.
 **
-** mkxp is distributed in the hope that it will be useful,
+** HiddenChest is distributed in the hope that it will be useful,
 ** but WITHOUT ANY WARRANTY; without even the implied warranty of
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ** GNU General Public License for more details.
 **
 ** You should have received a copy of the GNU General Public License
-** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
+** along with HiddenChest. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "filesystem.h"
@@ -37,6 +37,7 @@
 #include <vector>
 #include <stack>
 #include "picosha2.h"
+#include "audio_data.h"
 //<stdio.h>
 #ifdef __APPLE__
 #include <iconv.h>
@@ -219,8 +220,10 @@ static const char* findExt(const char *filename)
 {
   size_t len;
   for (len = strlen(filename); len > 0; --len) {
-    if (filename[len] == '/') return 0;
-    if (filename[len] == '.') return &filename[len+1];
+    if (filename[len] == '/')
+      return 0;
+    if (filename[len] == '.')
+      return &filename[len+1];
   }
   return 0;
 }
@@ -392,17 +395,20 @@ fontSetEnumCB (void *data, const char *dir, const char *fname)
   FontSetsCBData *d = static_cast<FontSetsCBData*>(data);
   // Only consider filenames with font extensions
   const char *ext = findExt(fname);
-  if (!ext) return PHYSFS_ENUM_OK;
+  if (!ext)
+    return PHYSFS_ENUM_OK;
   char lowExt[8];
   size_t i;
   for (i = 0; i < sizeof(lowExt)-1 && ext[i]; ++i)
     lowExt[i] = tolower(ext[i]);
   lowExt[i] = '\0';
-  if (strcmp(lowExt, "ttf") && strcmp(lowExt, "otf")) return PHYSFS_ENUM_OK;
+  if (strcmp(lowExt, "ttf") && strcmp(lowExt, "otf"))
+    return PHYSFS_ENUM_OK;
   char filename[512];
   snprintf(filename, sizeof(filename), "%s/%s", dir, fname);
   PHYSFS_File *handle = PHYSFS_openRead(filename);
-  if (!handle) return PHYSFS_ENUM_ERROR;
+  if (!handle)
+    return PHYSFS_ENUM_ERROR;
   SDL_RWops ops;
   initReadOps(handle, ops, false);
   d->sfs->initFontSetCB(ops, filename);
@@ -462,7 +468,8 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename)
   OpenReadEnumData &data = *static_cast<OpenReadEnumData*>(d);
   char buffer[512];
   const char *fullPath;
-  if (data.stopSearching) return PHYSFS_ENUM_STOP;
+  if (data.stopSearching)
+    return PHYSFS_ENUM_STOP;
   /* If there's not even a partial match, continue searching */
   if (strncmp(filename, data.filename, data.filenameN) != 0)
     return PHYSFS_ENUM_OK;
@@ -476,9 +483,11 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename)
   /* If fname matches up to a following '.' (meaning the rest is part
    * of the extension), or up to a following '\0' (full match), we've
    * found our file */
-  if (last != '.' && last != '\0') return PHYSFS_ENUM_STOP;
+  if (last != '.' && last != '\0')
+    return PHYSFS_ENUM_STOP;
   // If the path cache is active, translate from lower case to mixed case path
-  if (data.pathTrans) fullPath = (*data.pathTrans)[fullPath].c_str();
+  if (data.pathTrans)
+    fullPath = (*data.pathTrans)[fullPath].c_str();
   PHYSFS_File *phys = PHYSFS_openRead(fullPath);
   if (!phys) {
   /* Failing to open this file here means there must be a deeper rooted problem
@@ -489,7 +498,8 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename)
   }
   initReadOps(phys, data.ops, false);
   const char *ext = findExt(filename);
-  if (data.handler.tryRead(data.ops, ext)) data.stopSearching = true;
+  if (data.handler.tryRead(data.ops, ext))
+    data.stopSearching = true;
   ++data.matchCount;
   return PHYSFS_ENUM_OK;
 }

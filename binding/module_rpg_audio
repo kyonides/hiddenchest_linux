@@ -1,18 +1,46 @@
 module RPG
   class AudioFile
-    def initialize(name = "", volume = 100, pitch = 100)
+    def initialize(name = "", volume = 100, pitch = 100, pos = 0, ch = 2)
       @name = name
       @volume = volume
       @pitch = pitch
+      @pos = pos
+      @channels = ch
+      @type = ""
+      @ext = ""
     end
-    attr_accessor :name
-    attr_accessor :volume
-    attr_accessor :pitch
+    def read(dir)
+      Audio.read(self, "Audio/#{dir.upcase}/" + @name)
+    end
+    def pos
+      @pos ||= 0
+    end
+    def channels
+      @channels ||= 2
+    end
+    def type
+      @type ||= ""
+    end
+    def ext
+      @ext ||= ""
+    end
+    def seconds
+      @seconds ||= 0.0
+    end
+    def samples
+      @samples ||= 0
+    end
+    def sample_rate
+      @sample_rate ||= 0
+    end
+    attr_accessor :name, :volume, :pitch
+    attr_writer :pos, :channels, :type, :ext, :seconds, :samples, :sample_rate
   end
 
   class BGM < AudioFile
     @@last = BGM.new
     def play(pos = 0)
+      @pos = pos
       if @name.empty?
         Audio.bgm_stop
         @@last = BGM.new
@@ -28,6 +56,9 @@ module RPG
     end
     def replay
       play(@pos)
+    end
+    def read
+      Audio.read(self, "Audio/BGM/" + @name)
     end
     def self.pause
       Audio.bgm_pause
@@ -50,6 +81,7 @@ module RPG
   class BGS < AudioFile
     @@last = BGS.new
     def play(pos = 0)
+      @pos = pos
       if @name.empty?
         Audio.bgs_stop
         @@last = BGS.new
@@ -60,6 +92,9 @@ module RPG
     end
     def replay
       play(@pos)
+    end
+    def read
+      Audio.read(self, "Audio/BGS/" + @name)
     end
     def self.pause
       Audio.bgs_pause
@@ -86,6 +121,9 @@ module RPG
       else
         Audio.me_play("Audio/ME/" + @name, @volume, @pitch)
       end
+    end
+    def read
+      Audio.read(self, "Audio/ME/" + @name)
     end
     def self.stop
       Audio.me_stop

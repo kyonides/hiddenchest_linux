@@ -38,16 +38,20 @@
 
 struct AudioPrivate;
 struct RGSSThreadData;
+struct AudioData;
 
 class Audio
 {
 public:
+// Quick Read Audio File
+  AudioData read(const char *filename);
 // BGM Channels
   void bgms_play(int n,
                  const char *filename,
                  int volume = 100,
                  int pitch = 100,
-                 float pos = 0);
+                 float pos = 0,
+                 int channels = 2);
   void bgms_stop(int n);
   void bgms_fade(int n, int time);
   void bgms_close(int n);
@@ -68,7 +72,8 @@ public:
   void bgmPlay(const char *filename,
                int volume = 100,
                int pitch = 100,
-               float pos = 0);
+               float pos = 0,
+               int channels = 2);
   void bgmStop();
   void bgmFade(int time);
   void bgm_close();
@@ -90,7 +95,8 @@ public:
                  const char *filename,
                  int volume = 100,
                  int pitch = 100,
-                 float pos = 0);
+                 float pos = 0,
+                 int channels = 2);
   void bgss_stop(int n);
   void bgss_fade(int n, int time);
   void bgss_close(int n);
@@ -108,7 +114,8 @@ public:
   void bgsPlay(const char *filename,
                int volume = 100,
                int pitch = 100,
-               float pos = 0);
+               float pos = 0,
+               int channels = 2);
   void bgsStop();
   void bgsFade(int time);
   void bgs_close();

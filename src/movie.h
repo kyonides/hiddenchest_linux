@@ -34,6 +34,7 @@ struct MovieOpenHandler : FileSystem::OpenHandler
   SDL_RWops *srcOps;
   MovieOpenHandler(SDL_RWops &srcOps);
   bool tryRead(SDL_RWops &ops, const char *ext);
+  bool quick_read(SDL_RWops &ops, const char *ext);
 };
 
 #endif

@@ -97,7 +97,8 @@ struct AudioStream
 
   AudioStream(ALStream::LoopMode loopMode, const std::string &threadId);
   ~AudioStream();
-  void play(const std::string &filename, int volume, int pitch, float offset=0);
+  void play(const std::string &filename, int volume, int pitch, float offset=0, int channels=2);
+  void read(const std::string &filename, AudioData &ad);
   void stop();
   void close();
   void pause();
@@ -107,9 +108,8 @@ struct AudioStream
   int samples();
   double seconds();
   void fadeOut(int duration);
-  /* Any access to this classes 'stream' member,
-   * whether state query or modification, must be
-   * protected by a 'lock'/'unlock' pair */
+  /* Any access to this classes 'stream' member, whether state query or
+   * modification, must be protected by a 'lock'/'unlock' pair */
   void lockStream();
   void unlockStream();
   void setVolume(VolumeType type, float value);

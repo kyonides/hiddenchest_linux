@@ -1,8 +1,8 @@
 # * HiddenPlayList XP * #
 #   Scripter : Kyonides Arkanthes
-#   2026-06-30
+#   2026-07-18
 
-# * REQUIRES HiddenChest v1.2.12 * #
+# * REQUIRES HiddenChest v1.2.15 or later * #
 
 # This scriptlet allows you to play a list of songs one after another.
 
@@ -18,8 +18,11 @@ module HiddenPlay
     DIR = "Audio/BGM/"
     def play
       Audio.bgms_play(@channel, DIR + @name, @volume, @pitch)
-      @seconds ||= Audio.bgms_seconds(@channel)
       @playing = true
+    end
+
+    def read
+      Audio.read(self, DIR + @name)
     end
 
     def pause
@@ -158,6 +161,7 @@ module HiddenPlay
           audio.name = texts.shift.chomp
           audio.volume = VOLUME
           audio.channel = LIST_BGM_CHANNEL
+          audio.read
           list.files << audio
         end
         @lists << list

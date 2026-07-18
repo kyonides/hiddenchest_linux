@@ -178,43 +178,39 @@ template<class C>
 static inline VALUE
 objectLoad(int argc, VALUE *argv, VALUE self)
 {
-	const char *data;
-	int dataLen;
-	rb_get_args(argc, argv, "s", &data, &dataLen RB_ARG_END);
-
-	VALUE obj = rb_obj_alloc(self);
-
-	C *c = 0;
-
-	GUARD_EXC( c = C::deserialize(data, dataLen); );
-
-	setPrivateData(obj, c);
-
-	return obj;
+  const char *data;
+  int dataLen;
+  rb_get_args(argc, argv, "s", &data, &dataLen RB_ARG_END);
+  VALUE obj = rb_obj_alloc(self);
+  C *c = 0;
+  GUARD_EXC( c = C::deserialize(data, dataLen); );
+  setPrivateData(obj, c);
+  return obj;
 }
 
 static inline VALUE
 rb_bool_new(bool value)
 {
-	return value ? Qtrue : Qfalse;
+  return value ? Qtrue : Qfalse;
 }
 
 inline void
 rb_float_arg(VALUE arg, double *out, int argPos = 0)
 {
-	switch (rb_type(arg))
-	{
-	case RUBY_T_FLOAT :
-		*out = RFLOAT_VALUE(arg);
-		break;
-
-	case RUBY_T_FIXNUM :
-		*out = FIX2INT(arg);
-		break;
-
-	default:
-		rb_raise(rb_eTypeError, "Argument %d: Expected float", argPos);
-	}
+  switch (rb_type(arg))
+  {
+  case RUBY_T_FLOAT :
+    *out = RFLOAT_VALUE(arg);
+    break;
+  case RUBY_T_FIXNUM :
+    *out = FIX2INT(arg);
+    break;
+  case RUBY_T_NIL :
+    *out = 0.0;
+    break;
+  default:
+    rb_raise(rb_eTypeError, "Argument %d: Expected float", argPos);
+  }
 }
 
 inline void
