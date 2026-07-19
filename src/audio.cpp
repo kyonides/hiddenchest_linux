@@ -287,8 +287,12 @@ AudioData Audio::read(const char *filename)
   p->temp.read(filename, ad);
   return ad;
 }
-
 // BGM Channels
+void Audio::bgms_set_loop(int n, int start, int len)
+{
+  p->get_bgm(n)->loop_set(start, len);
+}
+
 void Audio::bgms_play(int n, const char *filename, int volume, int pitch, float pos, int channels)
 {
   p->get_bgm(n)->play(filename, volume, pitch, pos, channels);
@@ -374,6 +378,11 @@ float Audio::bgms_pos(int n)
   return p->get_bgm(n)->playingOffset();
 }
 // BGM
+void Audio::bgm_set_loop(int start, int len)
+{
+  p->bgm1.loop_set(start, len);
+}
+
 void Audio::bgmPlay(const char *filename, int volume, int pitch, float pos, int channels)
 {
   p->bgm1.play(filename, volume, pitch, pos, channels);
@@ -460,6 +469,11 @@ float Audio::bgmPos()
 }
 // End of BGM
 // BGS Channels
+void Audio::bgss_set_loop(int n, int start, int len)
+{
+  p->get_bgs(n)->loop_set(start, len);
+}
+
 void Audio::bgss_play(int n, const char *filename, int volume, int pitch, float pos, int channels)
 {
   p->get_bgs(n)->play(filename, volume, pitch, pos, channels);
@@ -530,6 +544,11 @@ float Audio::bgss_pos(int n)
   return p->get_bgs(n)->playingOffset();
 }
 // BGS
+void Audio::bgs_set_loop(int start, int len)
+{
+  p->bgs1.loop_set(start, len);
+}
+
 void Audio::bgsPlay(const char *filename, int volume, int pitch, float pos, int channels)
 {
   p->bgs1.play(filename, volume, pitch, pos, channels);

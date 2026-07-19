@@ -797,7 +797,11 @@ MidiSource(SDL_RWops &ops, bool looped, ALenum format)
       tracks[i].reset();
   }
 
+  void seek_to_loop_start() {}
+
   uint32_t loopStartFrames() { return 0; }
+
+  void loop_set(int start, int length) {}
 
   bool setPitch(float value)
   {

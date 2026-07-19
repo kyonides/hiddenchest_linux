@@ -62,6 +62,7 @@ struct VorbisSource : ALDataSource
   {
     uint32_t start;
     uint32_t length;
+    uint32_t olength;
     uint32_t end;
     bool valid;
     bool requested;
@@ -103,7 +104,7 @@ struct VorbisSource : ALDataSource
     smpls = (int) smpls32;
     if (!loop.requested)
       return;
-    /* Try to extract loop info */
+    // Try to extract loop info
     for (int i = 0; i < vf.vc->comments; ++i) {
       char *comment = vf.vc->user_comments[i];
       char *sep = strstr(comment, "=");
@@ -114,8 +115,10 @@ struct VorbisSource : ALDataSource
       *sep = '\0';
       if (!strcmp(comment, "LOOPSTART"))
         loop.start = strtol(sep+1, 0, 10);
-      if (!strcmp(comment, "LOOPLENGTH"))
+      if (!strcmp(comment, "LOOPLENGTH")) {
         loop.length = strtol(sep+1, 0, 10);
+        loop.olength = loop.length;
+      }
       *sep = '=';
     }
     loop.end = loop.start + loop.length;
@@ -152,8 +155,21 @@ struct VorbisSource : ALDataSource
     currentFrame = seconds * info.rate;
     if (loop.valid && currentFrame > loop.end)
       currentFrame = loop.start;
-    /* If seeking fails, just seek back to start */
+    // If seeking fails, just seek back to start
     if (ov_pcm_seek(&vf, currentFrame) != 0)
+      ov_raw_seek(&vf, 0);
+  }
+
+  void seek_to_loop_start()
+  {
+    if (!loop.valid || !loop.start) {
+      ov_raw_seek(&vf, 0);
+      currentFrame = 0;
+      return;
+    }
+    currentFrame = loop.start;
+    int result = ov_pcm_seek(&vf, currentFrame);
+    if (result != 0)
       ov_raw_seek(&vf, 0);
   }
 
@@ -173,14 +189,15 @@ struct VorbisSource : ALDataSource
       long res = ov_read(&vf, static_cast<char*>(bufPtr),
                          canRead, 0, sizeof(int16_t), 1, 0);
       if (res < 0) {
-        /* Read error */
+        // Read error
         retStatus = ALDataSource::Error;
         break;
       }
-      if (res == 0) { /* EOF */
+      // EOF
+      if (res == 0) {
         if (loop.requested) {
           retStatus = ALDataSource::WrapAround;
-          seekToOffset(0);
+          seek_to_loop_start();//seekToOffset(0);
         } else {
           retStatus = ALDataSource::EndOfStream;
         }
@@ -188,10 +205,11 @@ struct VorbisSource : ALDataSource
          * we might be EOF without actually having read
          * any data at all yet (which mustn't happen),
          * so we try to continue reading some data. */
-        if (bufUsed > 0) break;
+        if (bufUsed > 0)
+          break;
         if (readAgain) {
-                /* We're still not getting data though.
-                 * Just error out to prevent an endless loop */
+          /* We're still not getting data though.
+           * Just error out to prevent an endless loop */
           retStatus = ALDataSource::Error;
           break;
         }
@@ -201,15 +219,15 @@ struct VorbisSource : ALDataSource
       bufPtr = &sampleBuf[bufUsed];
       currentFrame += (res / info.frameSize);
       if (loop.valid && currentFrame >= loop.end) {
-        /* Determine how many frames we're
-         * over the loop end */
+        // Determine how many frames we're over the loop end
         int discardFrames = currentFrame - loop.end;
         bufUsed -= discardFrames * info.channels;
         retStatus = ALDataSource::WrapAround;
-        /* Seek to loop start */
+        // Seek to loop start
         currentFrame = loop.start;
-        if (ov_pcm_seek(&vf, currentFrame) != 0)
-                retStatus = ALDataSource::Error;
+        int result = ov_pcm_seek(&vf, currentFrame);
+        if (result != 0)
+          retStatus = ALDataSource::Error;
         break;
       }
       canRead -= res;
@@ -220,12 +238,20 @@ struct VorbisSource : ALDataSource
     return retStatus;
   }
 
+  void loop_set(int start, int length)
+  {
+    loop.start = (uint32_t)start;
+    if (length > 16)
+      loop.length = (uint32_t)length;
+    else
+      loop.length = loop.olength - loop.start;
+    loop.end = loop.start + loop.length;
+    loop.valid = (loop.start && loop.length);
+  }
+
   uint32_t loopStartFrames()
   {
-    if (loop.valid)
-      return loop.start;
-    else
-      return 0;
+    return loop.valid ? loop.start : 0;
   }
 
   bool setPitch(float)

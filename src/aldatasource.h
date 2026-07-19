@@ -42,6 +42,8 @@ struct ALDataSource
   /* If the source doesn't support seeking, it will
    * reset back to the beginning */
   virtual void seekToOffset(float seconds) = 0;
+  virtual void seek_to_loop_start() = 0;
+  virtual void loop_set(int start, int length) = 0;
   /* The frame count right after wrap around */
   virtual uint32_t loopStartFrames() = 0;
   /* Returns false if not supported */

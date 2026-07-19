@@ -30,8 +30,12 @@ struct SDLSoundSource : ALDataSource
   SDL_RWops &srcOps;
   uint8_t sampleSize;
   uint32_t smpls;
+  uint32_t start;
+  uint32_t length;
+  uint32_t end;
   double sec;
   bool looped;
+  bool valid;
   ALenum alFormat;
   ALsizei alFreq;
 
@@ -103,9 +107,25 @@ struct SDLSoundSource : ALDataSource
       Sound_Seek(sample, static_cast<uint32_t>(seconds * 1000));
   }
 
+  void seek_to_loop_start()
+  {
+    if (!valid || !start)
+      Sound_Rewind(sample);
+    else
+      Sound_Seek(sample, static_cast<uint32_t>(start * 1000));
+  }
+
+  void loop_set(int lstart, int llength)
+  {
+    start = lstart;
+    length = llength;
+    end = start + length;
+    valid = (start && length);
+  }
+// Loops from the beginning of the file or from start
   uint32_t loopStartFrames()
-  {/* Loops from the beginning of the file */
-    return 0;
+  {
+    return valid ? start : 0;
   }
 
   bool setPitch(float)

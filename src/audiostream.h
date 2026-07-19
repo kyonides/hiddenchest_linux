@@ -97,6 +97,7 @@ struct AudioStream
 
   AudioStream(ALStream::LoopMode loopMode, const std::string &threadId);
   ~AudioStream();
+  void loop_set(int start, int len);
   void play(const std::string &filename, int volume, int pitch, float offset=0, int channels=2);
   void read(const std::string &filename, AudioData &ad);
   void stop();

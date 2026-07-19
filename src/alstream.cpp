@@ -172,6 +172,17 @@ void ALStream::set_loop(bool state)
   looped = state;
 }
 
+void ALStream::loop_set(int start, int len)
+{
+  if (!source || state == Closed || state == Stopped)
+    return;
+  switch (state) {
+  case Paused:
+  case Playing:
+    source->loop_set(start, len);
+  }
+}
+
 int ALStream::sample_rate()
 {
   return !source ? 0 : source->sampleRate();
@@ -416,6 +427,7 @@ void ALStream::streamData()
   ALDataSource::Status status;
   if (threadTermReq)
     return;
+  Debug() << "Needs Rewind?";
   if (needsRewind)
     source->seekToOffset(startOffset);
   float old_volume = AL::Source::get_volume(alSrc);

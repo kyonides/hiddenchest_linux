@@ -46,6 +46,7 @@ public:
 // Quick Read Audio File
   AudioData read(const char *filename);
 // BGM Channels
+  void bgms_set_loop(int n, int start, int len);
   void bgms_play(int n,
                  const char *filename,
                  int volume = 100,
@@ -69,6 +70,7 @@ public:
   double bgms_seconds(int n);
   float bgms_pos(int n);
 // End of BGM Channels
+  void bgm_set_loop(int start, int len);
   void bgmPlay(const char *filename,
                int volume = 100,
                int pitch = 100,
@@ -91,6 +93,7 @@ public:
   double bgm_seconds();
   float bgmPos();
 // BGS Channels
+  void bgss_set_loop(int n, int start, int len);
   void bgss_play(int n,
                  const char *filename,
                  int volume = 100,
@@ -111,6 +114,7 @@ public:
   void set_bgss_volume(int n, int vol);
   float bgss_pos(int n);
 // BGS
+  void bgs_set_loop(int start, int len);
   void bgsPlay(const char *filename,
                int volume = 100,
                int pitch = 100,

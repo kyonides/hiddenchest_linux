@@ -91,6 +91,7 @@ struct ALStream
   void setVolume(float value);
   void setPitch(float value);
   void set_loop(bool state);
+  void loop_set(int start, int len);
   int sample_rate();
   int samples();
   double seconds();

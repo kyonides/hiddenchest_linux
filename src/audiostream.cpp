@@ -137,6 +137,13 @@ void AudioStream::read(const std::string &filename, AudioData &ad)
   unlockStream();
 }
 
+void AudioStream::loop_set(int start, int len)
+{
+  lockStream();
+  stream.loop_set(start, len);
+  unlockStream();
+}
+
 void AudioStream::stop()
 {
   finiFadeOutInt();

@@ -47,6 +47,17 @@ static VALUE audio_read_filetype(VALUE self, VALUE obj, VALUE rpath)
   return Qnil;
 }
 // BGM Channels
+static VALUE audio_bgms_set_loop(VALUE self, VALUE pos, VALUE rstart, VALUE length)
+{
+  int n = RB_FIX2INT(pos) - 1;
+  int start = 0;
+  int len = 0;
+  VALUE args[] = { rstart, length };
+  rb_get_args(2, args, "ii", &start, &len RB_ARG_END);
+  GUARD_EXC( shState->audio().bgms_set_loop(n, start, len); )
+  return Qnil;
+}
+
 static VALUE audio_bgms_play(int argc, VALUE* argv, VALUE self)
 {
   const char *filename;
@@ -234,8 +245,18 @@ static VALUE audio_bgms_fade(VALUE self, VALUE pos, VALUE fade_time)
   shState->audio().bgms_fade(n, time);
   return Qnil;
 }
-// End of BGM2
+// End of BGM Channels
 // BGM
+static VALUE audio_bgm_set_loop(VALUE self, VALUE rstart, VALUE length)
+{
+  int start = 0;
+  int len = 0;
+  VALUE args[] = { rstart, length };
+  rb_get_args(2, args, "ii", &start, &len RB_ARG_END);
+  GUARD_EXC( shState->audio().bgm_set_loop(start, len); )
+  return Qnil;
+}
+
 static VALUE audio_bgmPlay(int argc, VALUE* argv, VALUE self)
 {
   const char *filename;
@@ -380,6 +401,17 @@ static VALUE audio_bgmFade(int argc, VALUE* argv, VALUE self)
   return Qnil;
 }
 // BGS Channels
+static VALUE audio_bgss_set_loop(VALUE self, VALUE pos, VALUE rstart, VALUE length)
+{
+  int n = RB_FIX2INT(pos) - 1;
+  int start = 0;
+  int len = 0;
+  VALUE args[] = { rstart, length };
+  rb_get_args(2, args, "ii", &start, &len RB_ARG_END);
+  GUARD_EXC( shState->audio().bgss_set_loop(n, start, len); )
+  return Qnil;
+}
+
 static VALUE audio_bgss_play(int argc, VALUE* argv, VALUE self)
 {
   const char *filename;
@@ -549,6 +581,16 @@ static VALUE audio_bgss_fade(int argc, VALUE* argv, VALUE self)
 }
 // End of BGS Channels
 // BGS
+static VALUE audio_bgs_set_loop(VALUE self, VALUE rstart, VALUE length)
+{
+  int start = 0;
+  int len = 0;
+  VALUE args[] = { rstart, length };
+  rb_get_args(2, args, "ii", &start, &len RB_ARG_END);
+  GUARD_EXC( shState->audio().bgs_set_loop(start, len); )
+  return Qnil;
+}
+
 static VALUE audio_bgsPlay(int argc, VALUE* argv, VALUE self)
 {
   const char *filename;
@@ -831,6 +873,7 @@ void audioBindingInit()
   rb_iv_set(md, "@me_volume", RB_INT2FIX(80));
   rb_iv_set(md, "@se", rb_str_new_cstr("Audio/SE/"));
   rb_iv_set(md, "@se_volume", RB_INT2FIX(80));
+  module_func(md, "bgm_set_loop", audio_bgm_set_loop, 2);
   module_func(md, "bgm_play", audio_bgmPlay, -1);
   module_func(md, "bgm_stop", audio_bgmStop, 0);
   module_func(md, "bgm_close", audio_bgm_close, 0);
@@ -854,6 +897,7 @@ void audioBindingInit()
   module_func(md, "old_bgm_pos", audio_old_bgm_pos_get, 0);
   module_func(md, "bgm_name", audio_bgm_name, 0);
 // BGM Channels
+  module_func(md, "bgms_set_loop", audio_bgms_set_loop, 3);
   module_func(md, "bgms_play", audio_bgms_play, -1);
   module_func(md, "bgms_stop_all", audio_bgms_stop_all, 0);
   module_func(md, "bgms_stop", audio_bgms_stop, 1);
@@ -880,6 +924,7 @@ void audioBindingInit()
   module_func(md, "old_bgms_pos", audio_old_bgms_pos, 1);
   module_func(md, "bgms_names", audio_bgms_names, 1);
 // End of BGM Channels
+  module_func(md, "bgs_set_loop", audio_bgs_set_loop, 2);
   module_func(md, "bgs_play", audio_bgsPlay, -1);
   module_func(md, "bgs_stop", audio_bgsStop, 0);
   module_func(md, "bgs_close", audio_bgs_close, 0);
@@ -900,6 +945,7 @@ void audioBindingInit()
   module_func(md, "bgs_name", audio_bgs_name, 0);
   module_func(md, "bgs_pos", audio_bgsPos, 0);
 // BGS Channels
+  module_func(md, "bgss_set_loop", audio_bgss_set_loop, 3);
   module_func(md, "bgss_play", audio_bgss_play, -1);
   module_func(md, "bgss_stop_all", audio_bgss_stop_all, 0);
   module_func(md, "bgss_stop", audio_bgss_stop, 1);

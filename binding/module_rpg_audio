@@ -8,6 +8,11 @@ module RPG
       @channels = ch
       @type = ""
       @ext = ""
+      @seconds = 0.0
+      @samples = 0
+      @sample_rate = 0
+      @loop_start = 0
+      @loop_length = 0
     end
     def read(dir)
       Audio.read(self, "Audio/#{dir.upcase}/" + @name)
@@ -33,6 +38,32 @@ module RPG
     def sample_rate
       @sample_rate ||= 0
     end
+    def loop_start
+      @loop_start ||= 0
+    end
+    def loop_length
+      @loop_length ||= 0
+    end
+    def set_loop(dir, start, length)
+      @loop_start = start
+      @loop_length = length
+      case dir.downcase
+      when "bgm"
+        Audio.bgm_set_loop(start, length)
+      when "bgs"
+        Audio.bgs_set_loop(start, length)
+      end
+    end
+    def set_channel_loop(channel, dir, start, length)
+      @loop_start = start
+      @loop_length = length
+      case dir.downcase
+      when "bgm"
+        Audio.bgms_set_loop(channel, start, length)
+      when "bgs"
+        Audio.bgss_set_loop(channel, start, length)
+      end
+    end
     attr_accessor :name, :volume, :pitch
     attr_writer :pos, :channels, :type, :ext, :seconds, :samples, :sample_rate
   end
@@ -46,11 +77,7 @@ module RPG
         @@last = BGM.new
       else
         full_path = "Audio/BGM/" + @name
-        if Audio.bgm_loop
-          Audio.bgm_play(full_path, @volume, @pitch, pos)
-        else
-          Audio.me_play(full_path, @volume, @pitch)
-        end
+        Audio.bgm_play(full_path, @volume, @pitch, pos)
         @@last = self.clone
       end
     end
@@ -74,6 +101,16 @@ module RPG
     def self.last
       @@last.pos = Audio.bgm_pos
       @@last
+    end
+    def set_loop(start, length)
+      @loop_start = start
+      @loop_length = length
+      Audio.bgm_set_loop(start, length)
+    end
+    def set_channel_loop(channel, start, length)
+      @loop_start = start
+      @loop_length = length
+      Audio.bgms_set_loop(channel, start, length)
     end
     attr_accessor :pos
   end
@@ -110,6 +147,16 @@ module RPG
     def self.last
       @@last.pos = Audio.bgs_pos
       @@last
+    end
+    def set_loop(dir, start, length)
+      @loop_start = start
+      @loop_length = length
+      Audio.bgs_set_loop(start, length)
+    end
+    def set_channel_loop(channel, start, length)
+      @loop_start = start
+      @loop_length = length
+      Audio.bgss_set_loop(channel, start, length)
     end
     attr_accessor :pos
   end
