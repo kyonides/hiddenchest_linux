@@ -20,6 +20,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <al.h>
 #include "audio.h"
 #include "audio_data.h"
 #include "sharedstate.h"
@@ -28,6 +29,12 @@
 #include "filesystem.h"
 #include "hcextras.h"
 #include "debugwriter.h"
+
+static VALUE audio_openal_error(VALUE self)
+{
+  int error = (int) alGetError(); 
+  return RB_INT2FIX(error);
+}
 // Quick Read Audio File
 static VALUE audio_read_filetype(VALUE self, VALUE obj, VALUE rpath)
 {
@@ -817,12 +824,12 @@ static VALUE audio_check_focus(VALUE self)
   if (focus == state)
     return Qnil;
   if (has_focus) {
-    for (int n=0; n < 3; n++) {
+    for (int n=0; n < BGM_CHANNELS; n++) {
       shState->audio().bgms_resume(n);
       shState->audio().bgss_resume(n);
     }
   } else {
-    for (int n=0; n < 3; n++) {
+    for (int n=0; n < BGM_CHANNELS; n++) {
       shState->audio().bgms_pause(n);
       shState->audio().bgss_pause(n);
     }
@@ -873,6 +880,7 @@ void audioBindingInit()
   rb_iv_set(md, "@me_volume", RB_INT2FIX(80));
   rb_iv_set(md, "@se", rb_str_new_cstr("Audio/SE/"));
   rb_iv_set(md, "@se_volume", RB_INT2FIX(80));
+  module_func(md, "openal_error", audio_openal_error, 0);
   module_func(md, "bgm_set_loop", audio_bgm_set_loop, 2);
   module_func(md, "bgm_play", audio_bgmPlay, -1);
   module_func(md, "bgm_stop", audio_bgmStop, 0);

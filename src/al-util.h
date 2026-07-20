@@ -65,6 +65,11 @@ namespace Buffer
     alDeleteBuffers(1, &id.al);
   }
 
+  inline ALenum is_buffer(Buffer::ID id)
+  {
+    return alIsBuffer(id.al);
+  }
+
   inline void uploadData(Buffer::ID id, ALenum format, const ALvoid *data, ALsizei size, ALsizei freq)
   {
     alBufferData(id.al, format, data, size, freq);
@@ -109,6 +114,11 @@ namespace Source
     alDeleteSources(1, &id.al);
   }
 
+  inline ALenum is_source(Source::ID id)
+  {
+    return alIsSource(id.al);
+  }
+
   inline void attachBuffer(Source::ID id, Buffer::ID buffer)
   {
     alSourcei(id.al, AL_BUFFER, buffer.al);
@@ -135,6 +145,13 @@ namespace Source
   {
     alSourceUnqueueBuffers(id.al, 1, &buffer.al);
     return buffer;
+  }
+
+  inline ALuint* unqueue_buffers(Source::ID id, int n)
+  {
+    ALuint *old_buffers = new ALuint[n];
+    alSourceUnqueueBuffers(id.al, n, old_buffers);
+    return old_buffers;
   }
 
   inline int queued_buffers(Source::ID id)

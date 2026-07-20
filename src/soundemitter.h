@@ -34,32 +34,17 @@ struct Config;
 
 struct SoundEmitter
 {
-	typedef BoostHash<std::string, SoundBuffer*> BufferHash;
+  const size_t srcCount;
+  std::vector<AL::Source::ID> alSrcs;
+  std::vector<SoundBuffer*> atchBufs;
+  SoundEmitter(const Config &conf);
+  ~SoundEmitter();
 
-	IntruList<SoundBuffer> buffers;
-	BufferHash bufferHash;
+  void play(const std::string &filename,
+            int volume,
+            int pitch);
 
-	/* Byte count sum of all cached / playing buffers */
-	uint32_t bufferBytes;
-
-	const size_t srcCount;
-	std::vector<AL::Source::ID> alSrcs;
-	std::vector<SoundBuffer*> atchBufs;
-
-	/* Indices of sources, sorted by priority (lowest first) */
-	std::vector<size_t> srcPrio;
-
-	SoundEmitter(const Config &conf);
-	~SoundEmitter();
-
-	void play(const std::string &filename,
-	          int volume,
-	          int pitch);
-
-	void stop();
-
-private:
-	SoundBuffer *allocateBuffer(const std::string &filename);
+  void stop();
 };
 
 #endif // SOUNDEMITTER_H

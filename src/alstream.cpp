@@ -326,11 +326,9 @@ void ALStream::stopStream()
   AL::Source::stop(alSrc);
   AL::Source::rewind(alSrc);
   source->seekToOffset(startOffset);
-  if (!looped) {
-    int buffers_left = AL::Source::queued_buffers(alSrc);
-    while (buffers_left--)
-      AL::Source::unqueueBuffer(alSrc);
-  }
+  //for (int i = 0; i < STREAM_BUFS; i++) {
+  //  AL::Buffer::del(alBuf[i]);
+  //  alBuf[i] = AL::Buffer::gen(); }
   procFrames = 0;
   startOffset = 0;
   setVolume(0);
@@ -394,7 +392,7 @@ void ALStream::checkStopped()
   state = Stopped;
 }
 
-void ALStream::queue_first_buffers(bool first_buffer)
+ void ALStream::queue_first_buffers()
 {
   ALDataSource::Status status;
   AL::Buffer::ID buffer = AL::Buffer::ID(0);
@@ -408,10 +406,6 @@ void ALStream::queue_first_buffers(bool first_buffer)
     if (status == ALDataSource::Error)
       return;
     AL::Source::queueBuffer(alSrc, buf);
-    if (first_buffer) {
-      resumeStream();
-      streamInited.set();
-    }
     if (threadTermReq)
       return;
     if (status == ALDataSource::EndOfStream) {
@@ -419,23 +413,28 @@ void ALStream::queue_first_buffers(bool first_buffer)
       return;
     }
   }
+  resumeStream();
+  streamInited.set();
 }
 // thread func
 void ALStream::streamData()
 {// Fill up queue
+  int error = 0;
   bool skip_buffer = false;
   ALDataSource::Status status;
   if (threadTermReq)
     return;
-  Debug() << "Needs Rewind?";
   if (needsRewind)
     source->seekToOffset(startOffset);
   float old_volume = AL::Source::get_volume(alSrc);
-  queue_first_buffers(true);
+  queue_first_buffers();
   // Wait for buffers to be consumed, then refill and queue them up again
   while (true) {
     shState->rtData().syncPoint.passSecondarySync();
     ALint procBufs = AL::Source::getProcBufferCount(alSrc);
+    if (!procBufs)
+      procBufs += 3;
+    error = (int)alGetError();
     while (procBufs--) {
       if (threadTermReq)
         break;

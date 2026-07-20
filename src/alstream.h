@@ -111,7 +111,7 @@ private:
   void pauseStream();
   void resumeStream();
   void checkStopped();
-  void queue_first_buffers(bool first_buffer);
+  void queue_first_buffers();
   // thread function
   void streamData();
 };

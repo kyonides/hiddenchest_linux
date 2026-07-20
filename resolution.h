@@ -1,1 +1,0 @@
-/home/kyonides/Dev/hiddenchest_linux/src/resolution.h

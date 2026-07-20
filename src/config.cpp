@@ -159,7 +159,7 @@ Config::Config()
 	midi.soundFont = "";
 	midi.chorus = false;
 	midi.reverb = false;
-	SE.sourceCount = 12;
+	SE.sourceCount = 6;
 	customScript = "";
 	pathCache = true;
 	font_cache = false;
