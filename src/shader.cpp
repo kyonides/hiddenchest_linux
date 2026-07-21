@@ -36,6 +36,7 @@
 #include "plane.frag.xxd"
 #include "gray.frag.xxd"
 #include "grayscale.frag.xxd"
+#include "invert_grayscale.frag.xxd"
 #include "alpha_mask.frag.xxd"
 #include "basic_color.frag.xxd"
 #include "sepia.frag.xxd"
@@ -494,6 +495,12 @@ void AlphaMaskShader::set_mask(const TEX::ID value)
 GrayScaleShader::GrayScaleShader()
 {
   INIT_SHADER(simple, grayscale, GrayScaleShader);
+  ShaderBase::init();
+}
+
+InvGrayScaleShader::InvGrayScaleShader()
+{
+  INIT_SHADER(simple, invert_grayscale, InvGrayScaleShader);
   ShaderBase::init();
 }
 

@@ -767,7 +767,8 @@ void Bitmap::invert_colors()
 {
   guardDisposed();
   GUARD_MEGA;
-  if (!p->surface) makeSurface();
+  if (!p->surface)
+    makeSurface();
   SDL_PixelFormat *fmt = p->format;
   int w = p->gl.width, h = p->gl.height;
   uint8_t invert[w * 4];
@@ -844,7 +845,7 @@ void Bitmap::gray_out()
   p->onModified();
 }
 
-void Bitmap::grayscale()
+void Bitmap::grayscale(bool invert)
 {
   guardDisposed();
   TEXFBO newTex = shState->texPool().request(width(), height());
@@ -852,7 +853,11 @@ void Bitmap::grayscale()
   Quad &quad = shState->gpQuad();
   quad.setTexPosRect(texRect, texRect);
   quad.setColor(Vec4(1, 1, 1, 1));
-  GrayScaleShader &shader = shState->shaders().grayscale;
+  ShaderBase shader;
+  if (invert)
+    shader = shState->shaders().invert_grayscale;
+  else
+    shader = shState->shaders().grayscale;
   shader.bind();
   FBO::bind(newTex.fbo);
   p->pushSetViewport(shader);

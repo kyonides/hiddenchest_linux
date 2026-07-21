@@ -76,7 +76,7 @@ public:
   void hueChange(int hue);
   void turn_sepia();
   void gray_out();
-  void grayscale();
+  void grayscale(bool invert = false);
   void apply_alpha_mask(const Bitmap &source);
   enum TextAlign
   {

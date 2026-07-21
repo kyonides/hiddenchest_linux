@@ -205,6 +205,12 @@ public:
   GrayScaleShader();
 };
 
+class InvGrayScaleShader : public ShaderBase
+{
+public:
+  InvGrayScaleShader();
+};
+
 class GrayShader : public ShaderBase
 {
 public:
@@ -413,6 +419,7 @@ struct ShaderSet
   PlaneShader plane;
   GrayShader gray;
   GrayScaleShader grayscale;
+  InvGrayScaleShader invert_grayscale;
   AlphaMaskShader alpha_mask;
   SepiaShader sepia;
   BasicColorShader basic_color;
