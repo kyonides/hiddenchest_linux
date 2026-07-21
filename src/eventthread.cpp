@@ -4,7 +4,7 @@
 ** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Extended (C) 2018-2024 Kyonides-Arkanthes <kyonides@gmail.com>
+** Extended (C) 2018-2026 Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -190,6 +190,9 @@ void EventThread::process(RGSSThreadData &rtData)
         updateCursorState(cursorInWindow && windowFocused, gameScreen);
         break;
       case SDL_WINDOWEVENT_CLOSE :
+        if (shState->get_block_close())
+          break;
+        Debug() << "Window is closing...";
         terminate = true;
         break;
       case SDL_WINDOWEVENT_FOCUS_GAINED :
@@ -204,6 +207,9 @@ void EventThread::process(RGSSThreadData &rtData)
       }
       break;
     case SDL_QUIT :
+      if (event.window.event == SDL_WINDOWEVENT_CLOSE)
+        if (shState->get_block_close())
+          break;
       terminate = true;
       Debug() << "EventThread termination requested";
       break;

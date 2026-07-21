@@ -3,7 +3,7 @@
 **
 ** This file is part of HiddenChest.
 **
-** Copyright (C) 2018-2026 Kyonides Arkanthes
+** Copyright (C) 2018-2026 Kyonides Arkanthes <kyonides@gmail.com>
 */
 
 #include "resolution.h"
@@ -19,6 +19,10 @@
 #include "exception.h"
 #include "debugwriter.h"
 #include <zlib.h>
+
+#ifdef __WINDOWS__
+#include <SDL2/SDL_syswm.h>
+#endif
 
 struct SDL_Window;
 VALUE zero = RB_INT2FIX(0);
@@ -50,7 +54,7 @@ static VALUE game_set_title(VALUE self, VALUE title)
   return rb_iv_set(self, "title", title);
 }
 
-static VALUE game_set_icon(VALUE self, VALUE icon_name)
+static VALUE game_window_set_icon(VALUE self, VALUE icon_name)
 {
   icon_name = rb_funcall(icon_name, rb_intern("to_s"), 0);
   const char *icon = RSTRING_PTR(icon_name);
@@ -65,8 +69,9 @@ static VALUE game_set_icon(VALUE self, VALUE icon_name)
 
 static VALUE game_set_internal_values(VALUE self)
 {
-  VALUE sys, sfonts, rversion, width, height, ver, user_path;
+  VALUE win, sys, sfonts, rversion, width, height, ver, user_path;
   VALUE scr, path, enc_ary, rtp_ary, icon, sfont, subimg;
+  win = rb_define_module_under(self, "Window");
   sys = rb_define_module("System");
   sfonts = rb_const_get(sys, rb_intern("SOUNDFONT_DIR"));
   rversion = rb_const_get(self, rb_intern("RGSS_VERSION"));
@@ -77,6 +82,8 @@ static VALUE game_set_internal_values(VALUE self)
   enc_ary = rb_const_get(self, rb_intern("ENCRYPTED_NAMES"));
   rtp_ary = rb_const_get(self, rb_intern("RTP"));
   subimg = rb_const_get(self, rb_intern("SUBIMAGEFIX"));
+  icon = rb_const_get(self, rb_intern("ICON"));
+  game_window_set_icon(win, icon);
   sfont = rb_iv_get(self, "@soundfont");
   user_path = rb_iv_get(self, "@user_path");
   user_path = rb_str_plus(user_path, rstr("/"));
@@ -169,6 +176,20 @@ static VALUE game_sound_font_by_pos(VALUE self, VALUE n)
   return game_sound_font_init(self, RB_FIX2INT(n));
 }
 
+static VALUE game_screensaver_enable(VALUE self)
+{
+  return rb_iv_get(self, "screensaver_enable");
+}
+
+static VALUE game_screensaver_enable_set(VALUE self, VALUE state)
+{
+  if (state == Qtrue)
+    SDL_EnableScreenSaver();
+  else
+    SDL_DisableScreenSaver();
+  return rb_iv_set(self, "screensaver_enable", state == Qtrue ? Qtrue : Qfalse);
+}
+
 static VALUE game_window_resizable(VALUE self)
 {
   return rb_iv_get(self, "resizable");
@@ -179,16 +200,11 @@ static VALUE game_window_borders(VALUE self)
   return rb_iv_get(self, "borders");
 }
 
-static VALUE game_display_brightness(VALUE self)
+static VALUE game_window_brightness(VALUE self)
 {
   double n = SDL_GetWindowBrightness(shState->sdlWindow());
   int b = static_cast<int>(n * 100);
   return RB_INT2FIX(b);
-}
-
-static VALUE game_screensaver_enable(VALUE self)
-{
-  return rb_iv_get(self, "screensaver_enable");
 }
 
 static VALUE game_window_resizable_set(VALUE self, VALUE state)
@@ -205,7 +221,7 @@ static VALUE game_window_borders_set(VALUE self, VALUE state)
   return rb_iv_set(self, "borders", state);
 }
 
-static VALUE game_display_brightness_set(VALUE self, VALUE value)
+static VALUE game_window_brightness_set(VALUE self, VALUE value)
 {
   value = rb_funcall(value, rb_intern("to_i"), 0);
   int n = clamp(10, RB_FIX2INT(value), 100);
@@ -214,21 +230,40 @@ static VALUE game_display_brightness_set(VALUE self, VALUE value)
   return RB_INT2FIX(n);
 }
 
-static VALUE game_screensaver_enable_set(VALUE self, VALUE state)
+static VALUE game_window_block_close(VALUE self)
 {
-  if (state == Qtrue)
-    SDL_EnableScreenSaver();
-  else
-    SDL_DisableScreenSaver();
-  return rb_iv_set(self, "screensaver_enable", state == Qtrue ? Qtrue : Qfalse);
+  return rb_iv_get(self, "block_close");
 }
 
-static VALUE game_has_focus(VALUE self)
+static VALUE game_window_block_close_set(VALUE self, VALUE rstate)
+{
+  if (rb_iv_get(self, "block_close") == rstate)
+    return rstate;
+  shState->set_block_close(rstate == Qtrue);
+  Debug() << "Block Close Window?" << shState->get_block_close();
+#ifdef __WINDOWS__
+  SDL_SysWMinfo wmInfo;
+  SDL_VERSION(&wmInfo.version);
+  if (SDL_GetWindowWMInfo(shState->sdlWindow()) {
+    if (wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
+      HWND hwnd = wmInfo.info.win.window;
+      HMENU hmenu = GetSystemMenu(hwnd, FALSE);
+      if (hmenu != 0) {
+        const UINT state = rstate == Qtrue ? MF_ENABLED : (MF_DISABLED | MF_GRAYED);
+        EnableMenuItem(hmenu, SC_CLOSE, MF_BYCOMMAND | state);
+      }
+    }
+  }
+#endif
+  return rb_iv_set(self, "block_close", rstate);
+}
+
+static VALUE game_window_has_focus(VALUE self)
 {
   return shState->window_has_focus() ? Qtrue : Qfalse;
 }
 
-static VALUE game_changed_focus(VALUE self)
+static VALUE game_window_changed_focus(VALUE self)
 {
   VALUE focus = shState->window_has_focus() ? Qtrue : Qfalse;
   VALUE last = rb_iv_get(self, "focused");
@@ -239,14 +274,15 @@ static VALUE game_changed_focus(VALUE self)
 void init_game(const char *raw_exe_name)
 {
   VALUE game = rb_define_module("Game");
-  rb_iv_set(game, "resizable", Qtrue);
-  rb_iv_set(game, "borders", Qtrue);
+  VALUE win = rb_define_module_under(game, "Window");
   rb_iv_set(game, "screensaver_enable", Qfalse);
-  rb_iv_set(game, "focused", Qtrue);
+  rb_iv_set(win, "resizable", Qtrue);
+  rb_iv_set(win, "borders", Qtrue);
+  rb_iv_set(win, "focused", Qtrue);
+  rb_iv_set(win, "block_close", Qfalse);
   rb_const_set(game, rb_intern("RAW_EXE_NAME"), rstr(raw_exe_name));
   rb_const_set(game, rb_intern("START_WIDTH"), RB_INT2FIX(START_WIDTH));
   rb_const_set(game, rb_intern("START_HEIGHT"), RB_INT2FIX(START_HEIGHT));
-  module_func(game, "icon=", game_set_icon, 1);
   module_func(game, "title=", game_set_title, 1);
   module_func(game, "title", game_get_title, 0);
   module_func(game, "set_internal_values", game_set_internal_values, 0);
@@ -256,14 +292,17 @@ void init_game(const char *raw_exe_name)
   module_func(game, "soundfont=", game_sound_font_set, 1);
   module_func(game, "choose_soundfont", game_sound_font_by_pos, 1);
   module_func(game, "change_soundfont", game_sound_font_by_pos, 1);
-  module_func(game, "window_resizable?", game_window_resizable, 0);
-  module_func(game, "window_show_borders?", game_window_borders, 0);
-  module_func(game, "brightness", game_display_brightness, 0);
   module_func(game, "enable_screensaver?", game_screensaver_enable, 0);
-  module_func(game, "window_resizable=", game_window_resizable_set, 1);
-  module_func(game, "window_show_borders=", game_window_borders_set, 1);
-  module_func(game, "brightness=", game_display_brightness_set, 1);
   module_func(game, "enable_screensaver=", game_screensaver_enable_set, 1);
-  module_func(game, "has_focus?", game_has_focus, 0);
-  module_func(game, "change_focus?", game_changed_focus, 0);
+  module_func(win, "icon=", game_window_set_icon, 1);
+  module_func(win, "resizable?", game_window_resizable, 0);
+  module_func(win, "show_borders?", game_window_borders, 0);
+  module_func(win, "brightness", game_window_brightness, 0);
+  module_func(win, "resizable=", game_window_resizable_set, 1);
+  module_func(win, "show_borders=", game_window_borders_set, 1);
+  module_func(win, "brightness=", game_window_brightness_set, 1);
+  module_func(win, "block_close", game_window_block_close, 0);
+  module_func(win, "block_close=", game_window_block_close_set, 1);
+  module_func(win, "has_focus?", game_window_has_focus, 0);
+  module_func(win, "change_focus?", game_window_changed_focus, 0);
 }

@@ -1,10 +1,10 @@
 /*
 ** sharedstate.cpp
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest and mkxp.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
-** Extended (C) 2018-2026 Kyonides-Arkanthes
+** Extended (C) 2018-2026 Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -84,6 +84,7 @@ struct SharedStatePrivate
   TEX::ID globalTex;
   int globalTexW, globalTexH;
   bool globalTexDirty;
+  bool block_close;
   TEXFBO gpTexFBO;
   TEXFBO atlasTex;
   Quad gpQuad;
@@ -103,7 +104,8 @@ struct SharedStatePrivate
         audio(*threadData),
         _glState(threadData->config),
         fontState(threadData->config),
-        stampCounter(0)
+        stampCounter(0),
+        block_close(false)
   {
     startupTime = std::chrono::steady_clock::now();
     // Shaders have been compiled in ShaderSet's constructor
@@ -121,11 +123,10 @@ struct SharedStatePrivate
     TEX::allocEmpty(globalTexW, globalTexH);
     globalTexDirty = false;
     TEXFBO::init(gpTexFBO);
-    /* Reuse starting values */
+    // Reuse starting values
     TEXFBO::allocEmpty(gpTexFBO, globalTexW, globalTexH);
     TEXFBO::linkFBO(gpTexFBO);
-    /* RGSS3 games will call setup_midi, so there's
-     * no need to do it on startup */
+    // RGSS3 games will call setup_midi, so there's no need to do it on startup
     if (rgssVer != 3)
       midiState.initIfNeeded(threadData->config);
   }
@@ -223,6 +224,16 @@ void SharedState::set_title(const char *title)
 bool SharedState::window_has_focus() const
 {
   return p->eThread.get_window_focus();
+}
+
+bool SharedState::get_block_close() const
+{
+  return p->block_close;
+}
+
+void SharedState::set_block_close(bool state)
+{
+  p->block_close = state;
 }
 
 Scene* SharedState::screen() const

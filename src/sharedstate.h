@@ -103,6 +103,8 @@ struct SharedState
   const char* get_title();
   void set_title(const char *title);
   bool window_has_focus() const;
+  bool get_block_close() const;
+  void set_block_close(bool state);
   static SharedState *instance;
   static int rgssVersion;
   // This function will throw an Exception instance

@@ -1065,20 +1065,18 @@ begin
     Input.load_init_bindings
   end
   puts "Completed setup successfully."
-  Game.window_show_borders = true
+  Game::Window.show_borders = true
   puts "Resize the game window"
   Graphics.resize(Game::WIDTH, Game::HEIGHT)
   Graphics.wait(4)
   Graphics.transition(1)
   Graphics.freeze
-  Game.icon = Game::ICON
   Game.title = Game::TITLE
   Graphics.show_window
 rescue => e
   puts e.full_message
   Game.setup
   Input.load_init_bindings
-  Game.icon = Game::ICON || ""
   Game.title = Game::TITLE || ""
   Graphics.wait(4)
   Graphics.transition(1)
