@@ -292,6 +292,13 @@ static VALUE bitmap_gray_out(VALUE self)
   return self;
 }
 
+static VALUE bitmap_grayscale(VALUE self)
+{
+  Bitmap *b = getPrivateData<Bitmap>(self);
+  GUARD_EXC( b->grayscale(); );
+  return self;
+}
+
 static VALUE bitmap_turn_sepia(VALUE self)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
@@ -542,6 +549,7 @@ void bitmapBindingInit()
   rb_define_method(klass, "set_pixel", RMF(bitmapSetPixel), -1);
   rb_define_method(klass, "hue_change", RMF(bitmapHueChange), 1);
   rb_define_method(klass, "gray_out", RMF(bitmap_gray_out), 0),
+  rb_define_method(klass, "grayscale", RMF(bitmap_grayscale), 0),
   rb_define_method(klass, "turn_sepia", RMF(bitmap_turn_sepia), 0);
   rb_define_method(klass, "invert!", RMF(bitmap_invert), 0);
   rb_define_method(klass, "draw_text", RMF(bitmap_draw_text), -1);

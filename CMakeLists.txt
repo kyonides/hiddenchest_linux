@@ -246,6 +246,7 @@ set(EMBEDDED_INPUT
   shader/sprite.frag
   shader/plane.frag
   shader/gray.frag
+  shader/grayscale.frag
   shader/sepia.frag
   shader/basic_color.frag
   shader/bitmapBlit.frag

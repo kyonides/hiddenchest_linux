@@ -844,6 +844,27 @@ void Bitmap::gray_out()
   p->onModified();
 }
 
+void Bitmap::grayscale()
+{
+  guardDisposed();
+  TEXFBO newTex = shState->texPool().request(width(), height());
+  FloatRect texRect(rect());
+  Quad &quad = shState->gpQuad();
+  quad.setTexPosRect(texRect, texRect);
+  quad.setColor(Vec4(1, 1, 1, 1));
+  GrayScaleShader &shader = shState->shaders().grayscale;
+  shader.bind();
+  FBO::bind(newTex.fbo);
+  p->pushSetViewport(shader);
+  p->bindTexture(shader);
+  p->blitQuad(quad);
+  p->popViewport();
+  TEX::unbind();
+  shState->texPool().release(p->gl);
+  p->gl = newTex;
+  p->onModified();
+}
+
 void Bitmap::apply_this_shader(ShaderBase &shader, bool enable=false, Vec4 vec=Vec4())
 {
   TEXFBO text = shState->texPool().request(p->gl.width, p->gl.height);

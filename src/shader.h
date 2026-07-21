@@ -188,6 +188,12 @@ private:
   GLint u_tone, u_color, u_flash, u_opacity;
 };
 
+class GrayScaleShader : public ShaderBase
+{
+public:
+  GrayScaleShader();
+};
+
 class GrayShader : public ShaderBase
 {
 public:
@@ -395,6 +401,7 @@ struct ShaderSet
   SpriteShader sprite;
   PlaneShader plane;
   GrayShader gray;
+  GrayScaleShader grayscale;
   SepiaShader sepia;
   BasicColorShader basic_color;
   GradientShader gradient;

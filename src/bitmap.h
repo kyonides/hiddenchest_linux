@@ -75,6 +75,7 @@ public:
   void invert_colors();
   void hueChange(int hue);
   void gray_out();
+  void grayscale();
   void turn_sepia();
   enum TextAlign
   {

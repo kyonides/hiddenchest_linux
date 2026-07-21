@@ -35,6 +35,7 @@
 #include "bitmapBlit.frag.xxd"
 #include "plane.frag.xxd"
 #include "gray.frag.xxd"
+#include "grayscale.frag.xxd"
 #include "basic_color.frag.xxd"
 #include "sepia.frag.xxd"
 #include "gradient.frag.xxd"
@@ -469,6 +470,12 @@ void PlaneShader::setFlash(const Vec4 &flash)
 void PlaneShader::setOpacity(float value)
 {
   gl.Uniform1f(u_opacity, value);
+}
+
+GrayScaleShader::GrayScaleShader()
+{
+  INIT_SHADER(simple, grayscale, GrayScaleShader);
+  ShaderBase::init();
 }
 
 GrayShader::GrayShader()
