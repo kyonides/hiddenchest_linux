@@ -188,6 +188,17 @@ private:
   GLint u_tone, u_color, u_flash, u_opacity;
 };
 
+class AlphaMaskShader : public ShaderBase
+{
+public:
+  AlphaMaskShader();
+  void set_source();
+  void set_mask(const TEX::ID value);
+
+private:
+  GLint u_source, u_mask_tex;
+};
+
 class GrayScaleShader : public ShaderBase
 {
 public:
@@ -402,6 +413,7 @@ struct ShaderSet
   PlaneShader plane;
   GrayShader gray;
   GrayScaleShader grayscale;
+  AlphaMaskShader alpha_mask;
   SepiaShader sepia;
   BasicColorShader basic_color;
   GradientShader gradient;

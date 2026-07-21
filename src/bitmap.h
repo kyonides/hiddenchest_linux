@@ -74,9 +74,10 @@ public:
   void replaceRaw(void *pixel_data, int size);
   void invert_colors();
   void hueChange(int hue);
+  void turn_sepia();
   void gray_out();
   void grayscale();
-  void turn_sepia();
+  void apply_alpha_mask(const Bitmap &source);
   enum TextAlign
   {
     Left = 0,

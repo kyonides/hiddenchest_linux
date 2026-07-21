@@ -402,10 +402,10 @@ void Bitmap::stretchBlt(const IntRect &destRect,
                         const Bitmap &source, const IntRect &sourceRect,
                         int opacity)
 {
-  guardDisposed();
-  GUARD_MEGA;
-  if (source.isDisposed())
-    return;
+  guardDisposed();////
+  GUARD_MEGA;////
+  if (source.isDisposed())////
+    return;////
   opacity = clamp(opacity, 0, 255);
   if (opacity == 0)
     return;
@@ -863,6 +863,30 @@ void Bitmap::grayscale()
   shState->texPool().release(p->gl);
   p->gl = newTex;
   p->onModified();
+}
+
+void Bitmap::apply_alpha_mask(const Bitmap &source)
+{
+  guardDisposed();
+  GUARD_MEGA;
+  if (source.isDisposed())
+    return;
+  FloatRect tex_rect(rect());
+  Quad &quad = shState->gpQuad();
+  quad.setTexPosRect(tex_rect, tex_rect);
+  quad.setColor(Vec4(1, 1, 1, 1));
+  AlphaMaskShader &shader = shState->shaders().alpha_mask;
+  shader.bind();
+  shader.set_source();
+  shader.set_mask(source.p->gl.tex);
+  p->pushSetViewport(shader);
+  p->bindTexture(shader);
+  p->blitQuad(quad);
+  p->popViewport();
+  TEX::unbind();
+  p->addTaintedArea(rect());
+  p->onModified();
+  return;
 }
 
 void Bitmap::apply_this_shader(ShaderBase &shader, bool enable=false, Vec4 vec=Vec4())

@@ -36,6 +36,7 @@
 #include "plane.frag.xxd"
 #include "gray.frag.xxd"
 #include "grayscale.frag.xxd"
+#include "alpha_mask.frag.xxd"
 #include "basic_color.frag.xxd"
 #include "sepia.frag.xxd"
 #include "gradient.frag.xxd"
@@ -470,6 +471,24 @@ void PlaneShader::setFlash(const Vec4 &flash)
 void PlaneShader::setOpacity(float value)
 {
   gl.Uniform1f(u_opacity, value);
+}
+
+AlphaMaskShader::AlphaMaskShader()
+{
+  INIT_SHADER(simple, alpha_mask, AlphaMaskShader);
+  ShaderBase::init();
+  GET_U(source);
+  GET_U(mask_tex);
+}
+
+void AlphaMaskShader::set_source()
+{
+  gl.Uniform1i(u_source, 0);
+}
+
+void AlphaMaskShader::set_mask(const TEX::ID value)
+{
+  setTexUniform(u_mask_tex, 1, value);
 }
 
 GrayScaleShader::GrayScaleShader()
