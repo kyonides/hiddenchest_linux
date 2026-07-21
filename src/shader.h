@@ -203,12 +203,10 @@ class GrayScaleShader : public ShaderBase
 {
 public:
   GrayScaleShader();
-};
+  void set_factor(float value);
 
-class InvGrayScaleShader : public ShaderBase
-{
-public:
-  InvGrayScaleShader();
+private:
+  GLint u_factor;
 };
 
 class GrayShader : public ShaderBase
@@ -419,7 +417,6 @@ struct ShaderSet
   PlaneShader plane;
   GrayShader gray;
   GrayScaleShader grayscale;
-  InvGrayScaleShader invert_grayscale;
   AlphaMaskShader alpha_mask;
   SepiaShader sepia;
   BasicColorShader basic_color;

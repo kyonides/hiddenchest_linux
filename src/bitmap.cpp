@@ -853,12 +853,9 @@ void Bitmap::grayscale(bool invert)
   Quad &quad = shState->gpQuad();
   quad.setTexPosRect(texRect, texRect);
   quad.setColor(Vec4(1, 1, 1, 1));
-  ShaderBase shader;
-  if (invert)
-    shader = shState->shaders().invert_grayscale;
-  else
-    shader = shState->shaders().grayscale;
+  GrayScaleShader &shader = shState->shaders().grayscale;
   shader.bind();
+  shader.set_factor(invert ? 1.0 : 0.0);
   FBO::bind(newTex.fbo);
   p->pushSetViewport(shader);
   p->bindTexture(shader);

@@ -496,12 +496,12 @@ GrayScaleShader::GrayScaleShader()
 {
   INIT_SHADER(simple, grayscale, GrayScaleShader);
   ShaderBase::init();
+  GET_U(factor);
 }
 
-InvGrayScaleShader::InvGrayScaleShader()
+void GrayScaleShader::set_factor(float value)
 {
-  INIT_SHADER(simple, invert_grayscale, InvGrayScaleShader);
-  ShaderBase::init();
+  gl.Uniform1f(u_factor, value);
 }
 
 GrayShader::GrayShader()

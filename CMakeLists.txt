@@ -247,7 +247,6 @@ set(EMBEDDED_INPUT
   shader/plane.frag
   shader/gray.frag
   shader/grayscale.frag
-  shader/invert_grayscale.frag
   shader/alpha_mask.frag
   shader/sepia.frag
   shader/basic_color.frag
