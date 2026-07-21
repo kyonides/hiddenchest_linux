@@ -78,6 +78,7 @@ public:
   void gray_out();
   void grayscale(bool invert = false);
   void apply_alpha_mask(const Bitmap &source);
+  void thermal();
   enum TextAlign
   {
     Left = 0,

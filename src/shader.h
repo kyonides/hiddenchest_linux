@@ -261,6 +261,12 @@ private:
   GLint u_opacity;
 };
 
+class ThermalShader : public ShaderBase
+{
+public:
+  ThermalShader();
+};
+
 class VignetteShader : public ShaderBase
 {
 public:
@@ -418,6 +424,7 @@ struct ShaderSet
   GrayShader gray;
   GrayScaleShader grayscale;
   AlphaMaskShader alpha_mask;
+  ThermalShader thermal;
   SepiaShader sepia;
   BasicColorShader basic_color;
   GradientShader gradient;

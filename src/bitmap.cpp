@@ -891,6 +891,26 @@ void Bitmap::apply_alpha_mask(const Bitmap &source)
   return;
 }
 
+void Bitmap::thermal()
+{
+  guardDisposed();
+  GUARD_MEGA;
+  FloatRect tex_rect(rect());
+  Quad &quad = shState->gpQuad();
+  quad.setTexPosRect(tex_rect, tex_rect);
+  quad.setColor(Vec4(1, 1, 1, 1));
+  ThermalShader &shader = shState->shaders().thermal;
+  shader.bind();
+  p->pushSetViewport(shader);
+  p->bindTexture(shader);
+  p->blitQuad(quad);
+  p->popViewport();
+  TEX::unbind();
+  p->addTaintedArea(rect());
+  p->onModified();
+  return;
+}
+
 void Bitmap::apply_this_shader(ShaderBase &shader, bool enable=false, Vec4 vec=Vec4())
 {
   TEXFBO text = shState->texPool().request(p->gl.width, p->gl.height);

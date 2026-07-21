@@ -1,7 +1,6 @@
 
 uniform sampler2D source;
 uniform sampler2D mask_tex;
-
 varying vec2 v_texCoord;
 
 void main()

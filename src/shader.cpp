@@ -43,6 +43,7 @@
 #include "gradient.frag.xxd"
 #include "gradient_map.frag.xxd"
 #include "gradient_sprite.frag.xxd"
+#include "thermal.frag.xxd"
 #include "vignette.frag.xxd"
 #include "vignette_gray.frag.xxd"
 #include "vignette_sepia.frag.xxd"
@@ -68,6 +69,7 @@
 #include "blurH.vert.xxd"
 #include "blurV.vert.xxd"
 #include "tilemapvx.vert.xxd"
+#include "thermal.vert.xxd"
 #include "debugwriter.h"
 
 #define INIT_SHADER(vert, frag, name) \
@@ -87,14 +89,15 @@ static void write_log(const std::string &name, const std::string &log)
   file.close();
 }
 
-static void printShaderLog(GLuint shader)
+static void printShaderLog(GLuint shader, const char *name)
 {
   GLint logLength;
   gl.GetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
   std::string log(logLength, '\0');
   gl.GetShaderInfoLog(shader, log.size(), 0, &log[0]);
   std::clog << "Shader log:\n" << log;
-  write_log("Shader", log);
+  std::string shader_name = std::string(name) + " Shader";
+  write_log(shader_name, log);
 }
 
 static void printProgramLog(GLuint program)
@@ -171,7 +174,7 @@ void Shader::init(const unsigned char *vert, int vertSize,
   gl.CompileShader(vertShader);
   gl.GetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
   if (!success) {
-    printShaderLog(vertShader);
+    printShaderLog(vertShader, vertName);
     throw Exception(Exception::HiddenChestError,
       "GLSL: An error occured while compiling vertex shader '%s' in program '%s'",
       vertName, programName);
@@ -180,7 +183,7 @@ void Shader::init(const unsigned char *vert, int vertSize,
   gl.CompileShader(fragShader);
   gl.GetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
   if (!success) {
-    printShaderLog(fragShader);
+    printShaderLog(fragShader, fragName);
     throw Exception(Exception::HiddenChestError,
       "GLSL: An error occured while compiling fragment shader '%s' in program '%s'",
       fragName, programName);
@@ -593,6 +596,12 @@ GradientMapShader::GradientMapShader()
 void GradientMapShader::set_opacity(int opaque)
 {
   gl.Uniform1f(u_opacity, opaque / 255.0f);
+}
+
+ThermalShader::ThermalShader()
+{
+  INIT_SHADER(simple, thermal, ThermalShader);
+  ShaderBase::init();
 }
 
 VignetteShader::VignetteShader()

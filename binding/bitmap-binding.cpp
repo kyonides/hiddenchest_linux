@@ -314,6 +314,13 @@ static VALUE bitmap_apply_alpha_mask(VALUE self, VALUE other)
   return self;
 }
 
+static VALUE bitmap_thermal(VALUE self)
+{
+  Bitmap *b = getPrivateData<Bitmap>(self);
+  GUARD_EXC( b->thermal(); );
+  return self;
+}
+
 static VALUE bitmap_turn_sepia(VALUE self)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
@@ -567,6 +574,7 @@ void bitmapBindingInit()
   rb_define_method(klass, "grayscale", RMF(bitmap_grayscale), 0),
   rb_define_method(klass, "invert_grayscale", RMF(bitmap_invert_grayscale), 0),
   rb_define_method(klass, "apply_alpha_mask", RMF(bitmap_apply_alpha_mask), 1);
+  rb_define_method(klass, "thermal", RMF(bitmap_thermal), 0);
   rb_define_method(klass, "turn_sepia", RMF(bitmap_turn_sepia), 0);
   rb_define_method(klass, "invert!", RMF(bitmap_invert), 0);
   rb_define_method(klass, "draw_text", RMF(bitmap_draw_text), -1);

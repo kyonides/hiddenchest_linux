@@ -265,6 +265,7 @@ set(EMBEDDED_INPUT
   shader/tex.frag
   shader/tilemap.vert
   shader/tilemapvx.vert
+  shader/thermal.vert
   shader/blur.frag
   shader/blurH.vert
   shader/blurV.vert
@@ -273,7 +274,7 @@ set(EMBEDDED_INPUT
   shader/gradient.frag
   shader/gradient_map.frag
   shader/gradient_sprite.frag
-  #shader/thermal.frag
+  shader/thermal.frag
   shader/vignette.frag
   shader/vignette_black.frag
   shader/vignette_blue.frag

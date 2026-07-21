@@ -26,12 +26,11 @@ void main ()
   
     vec3 visionColor = vec3(0.1, 0.95, 0.2);
     finalColor.rgb = (c + (n*0.2)) * visionColor * m;
-   }
-   else
-   {
-    finalColor = texture2D(sceneBuffer, 
-                   gl_TexCoord[0].st);
-   }
+  }
+  else
+  {
+    finalColor = texture2D(sceneBuffer, gl_TexCoord[0].st);
+  }
   gl_FragColor.rgb = finalColor.rgb;
   gl_FragColor.a = 1.0;
 }
