@@ -265,7 +265,6 @@ set(EMBEDDED_INPUT
   shader/tex.frag
   shader/tilemap.vert
   shader/tilemapvx.vert
-  shader/thermal.vert
   shader/blur.frag
   shader/blurH.vert
   shader/blurV.vert
