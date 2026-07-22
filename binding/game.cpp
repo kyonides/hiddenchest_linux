@@ -240,17 +240,17 @@ static VALUE game_window_block_close_set(VALUE self, VALUE rstate)
   if (rb_iv_get(self, "block_close") == rstate)
     return rstate;
   shState->set_block_close(rstate == Qtrue);
-  Debug() << "Block Close Window?" << shState->get_block_close();
 #ifdef __WINDOWS__
   SDL_SysWMinfo wmInfo;
   SDL_VERSION(&wmInfo.version);
-  if (SDL_GetWindowWMInfo(shState->sdlWindow()) {
+  if (SDL_GetWindowWMInfo(shState->sdlWindow(), &wmInfo)) {
     if (wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
       HWND hwnd = wmInfo.info.win.window;
       HMENU hmenu = GetSystemMenu(hwnd, FALSE);
       if (hmenu != 0) {
         const UINT state = rstate == Qtrue ? MF_ENABLED : (MF_DISABLED | MF_GRAYED);
         EnableMenuItem(hmenu, SC_CLOSE, MF_BYCOMMAND | state);
+        DrawMenuBar(hwnd);
       }
     }
   }

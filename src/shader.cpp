@@ -36,7 +36,6 @@
 #include "plane.frag.xxd"
 #include "gray.frag.xxd"
 #include "grayscale.frag.xxd"
-#include "invert_grayscale.frag.xxd"
 #include "alpha_mask.frag.xxd"
 #include "basic_color.frag.xxd"
 #include "sepia.frag.xxd"
@@ -69,7 +68,6 @@
 #include "blurH.vert.xxd"
 #include "blurV.vert.xxd"
 #include "tilemapvx.vert.xxd"
-#include "thermal.vert.xxd"
 #include "debugwriter.h"
 
 #define INIT_SHADER(vert, frag, name) \
