@@ -248,7 +248,7 @@ static VALUE game_window_block_close_set(VALUE self, VALUE rstate)
       HWND hwnd = wmInfo.info.win.window;
       HMENU hmenu = GetSystemMenu(hwnd, FALSE);
       if (hmenu != 0) {
-        const UINT state = rstate == Qtrue ? MF_ENABLED : (MF_DISABLED | MF_GRAYED);
+        const UINT state = rstate == Qtrue ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED;
         EnableMenuItem(hmenu, SC_CLOSE, MF_BYCOMMAND | state);
         DrawMenuBar(hwnd);
       }
