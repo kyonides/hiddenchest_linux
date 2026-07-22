@@ -36,6 +36,9 @@
 #include "debugwriter.h"
 #include <iostream>
 #include <string.h>
+#ifdef __WINDOWS__
+#include <SDL2/SDL_syswm.h>
+#endif
 
 typedef void (ALC_APIENTRY *LPALCDEVICEPAUSESOFT) (ALCdevice *device);
 typedef void (ALC_APIENTRY *LPALCDEVICERESUMESOFT) (ALCdevice *device);
@@ -63,6 +66,19 @@ initALCFunctions(ALCdevice *alcDev)
 }
 
 #define HAVE_ALC_DEVICE_PAUSE alc.DevicePause
+
+#ifdef __WINDOWS__
+void CALLBACK no_close_hook(void* data, void* hwnd, unsigned int msg, Uint64 param, Sint64 none)
+{
+  if (msg == WM_SYSCOMMAND) {
+    if ((param & 0xFFF0) == SC_CLOSE) {
+      if ((GetKeyState(VK_MENU) & 0x8000) == 0) {
+        *static_cast<unsigned int*>(data) = WM_NULL; 
+      }
+    }
+  }
+}
+#endif
 
 uint8_t EventThread::keyStates[];
 EventThread::JoyState EventThread::joyState;

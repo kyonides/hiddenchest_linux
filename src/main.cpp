@@ -45,6 +45,11 @@
 
 int initial_section = 0;
 
+#ifdef __WINDOWS__
+extern void CALLBACK no_close_hook(void* data, void* hwnd, unsigned int msg,
+                                   Uint64 param, Sint64 none);
+#endif
+
 static void
 rgssThreadError(RGSSThreadData *rtData, const std::string &msg)
 {
@@ -218,6 +223,10 @@ int main(int argc, char *argv[])
     SDL_Log("SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
     return 1;
   }
+#ifdef __WINDOWS__
+  unsigned int dummyMsg = 0;
+  SDL_SetWindowsMessageHook(no_close_hook, &dummyMsg);
+#endif
   SDL_Window *win;
   Uint32 winFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_INPUT_FOCUS;
   if (conf.winResizable)
