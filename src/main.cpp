@@ -78,7 +78,7 @@ int rgssThreadFun(void *userdata)
   const Config &conf = threadData->config;
   SDL_Window *win = threadData->window;
   SDL_GLContext glCtx;
-  /* Setup GL context */
+  // Setup GL context
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   if (conf.debugMode)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
@@ -103,7 +103,7 @@ int rgssThreadFun(void *userdata)
   bool vsync = conf.vsync || conf.syncToRefreshrate;
   SDL_GL_SetSwapInterval(vsync ? 1 : 0);
   GLDebugLogger dLogger;
-  /* Setup AL context */
+  // Setup AL context
   ALCcontext *alcCtx = alcCreateContext(threadData->alcDev, 0);
   if (!alcCtx) {
     rgssThreadError(threadData, "Error creating OpenAL context");
@@ -119,11 +119,13 @@ int rgssThreadFun(void *userdata)
     SDL_GL_DeleteContext(glCtx);
     return 0;
   }
-  /* Start script execution */
+  // Start script execution
   scriptBinding->execute();
   threadData->rqTermAck.set();
   threadData->ethread->requestTerminate();
   SharedState::finiInstance();
+  // Get rid of current OpenAL context
+  alcMakeContextCurrent(NULL);
   alcDestroyContext(alcCtx);
   SDL_GL_DeleteContext(glCtx);
   return 0;

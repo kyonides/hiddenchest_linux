@@ -59,6 +59,7 @@ struct SDLSoundSource : ALDataSource
   ~SDLSoundSource()
   {
     Sound_FreeSample(sample);
+    sample = 0;
   }
 
   Status fillBuffer(AL::Buffer::ID alBuffer)

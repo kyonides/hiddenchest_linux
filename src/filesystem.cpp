@@ -141,14 +141,16 @@ static inline PHYSFS_File *sdlPHYS(SDL_RWops *ops)
 static Sint64 SDL_RWopsSize(SDL_RWops *ops)
 {
   PHYSFS_File *f = sdlPHYS(ops);
-  if (!f) return -1;
+  if (!f)
+    return -1;
   return PHYSFS_fileLength(f);
 }
 
 static Sint64 SDL_RWopsSeek(SDL_RWops *ops, int64_t offset, int whence)
 {
   PHYSFS_File *f = sdlPHYS(ops);
-  if (!f) return -1;
+  if (!f)
+    return -1;
   int64_t base;
   switch (whence)
   {
@@ -164,32 +166,45 @@ static Sint64 SDL_RWopsSeek(SDL_RWops *ops, int64_t offset, int whence)
     break;
   }
   int result = PHYSFS_seek(f, base + offset);
-  return (result != 0) ? PHYSFS_tell(f) : -1;
+  return result != 0 ? PHYSFS_tell(f) : -1;
 }
 
 static size_t SDL_RWopsRead(SDL_RWops *ops, void *buffer, size_t size, size_t maxnum)
 {
   PHYSFS_File *f = sdlPHYS(ops);
-  if (!f) return 0;
+  if (!f)
+    return 0;
   PHYSFS_sint64 result = PHYSFS_readBytes(f, buffer, size*maxnum);
-  return (result != -1) ? (result / size) : 0;
+  return result != -1 ? (result / size) : 0;
 }
 
 static size_t SDL_RWopsWrite(SDL_RWops *ops, const void *buffer, size_t size, size_t num)
 {
   PHYSFS_File *f = sdlPHYS(ops);
-  if (!f) return 0;
+  if (!f)
+    return 0;
   PHYSFS_sint64 result = PHYSFS_writeBytes(f, buffer, size*num);
-  return (result != -1) ? (result / size) : 0;
+  return result != -1 ? (result / size) : 0;
 }
 
 static int SDL_RWopsClose(SDL_RWops *ops)
 {
+  if (!PHYSFS_isInit() || !ops)
+    return -1;
   PHYSFS_File *f = sdlPHYS(ops);
-  if (!f) return -1;
-  int result = PHYSFS_close(f);
-  ops->hidden.unknown.data1 = 0;
-  return (result != 0) ? 0 : -1;
+  if (!f || f == nullptr)
+    return -1;
+  int result;
+  try {
+    result = PHYSFS_close(f);
+    ops->hidden.unknown.data1 = 0;
+    f = nullptr;
+  } catch (const Exception &e) {
+    Debug() << "PHYSFS Close File Error:" << e.msg;
+    Debug() << PHYSFS_getLastError();
+    result = 0;
+  }
+  return result != 0 ? 0 : -1;
 }
 
 static int SDL_RWopsCloseFree(SDL_RWops *ops)
@@ -282,7 +297,7 @@ FileSystem::FileSystem(const char *argv0, bool allowSymlinks)
 FileSystem::~FileSystem()
 {
   delete p;
-  if (PHYSFS_deinit() == 0)
+  if (!PHYSFS_deinit())
     Debug() << "PhyFS failed to deinit.";
 }
 

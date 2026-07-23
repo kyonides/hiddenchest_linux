@@ -37,6 +37,7 @@ struct SoundOpenHandler : FileSystem::OpenHandler
     Sound_Sample *sample = Sound_NewSample(&ops, ext, 0, STREAM_BUF_SIZE);
     if (!sample) {
       SDL_RWclose(&ops);
+      void *ops;
       return false;
     }
     /* Do all of the decoding in the handler so we don't have
@@ -45,6 +46,7 @@ struct SoundOpenHandler : FileSystem::OpenHandler
     uint8_t sampleSize = formatSampleSize(sample->actual.format);
     if (!decBytes || !sampleSize) {
       Sound_FreeSample(sample);
+      sample = 0;
       return false;
     }
     uint32_t sampleCount = decBytes / sampleSize;
@@ -58,6 +60,7 @@ struct SoundOpenHandler : FileSystem::OpenHandler
     AL::Buffer::uploadData(buffer->alBuffer, alFormat, sample->buffer,
                            bytes, sample->actual.rate);
     Sound_FreeSample(sample);
+    sample = 0;
     return true;
   }
 };
