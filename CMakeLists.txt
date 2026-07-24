@@ -248,6 +248,7 @@ set(EMBEDDED_INPUT
   shader/gray.frag
   shader/grayscale.frag
   shader/alpha_mask.frag
+  shader/color_mask.frag
   shader/sepia.frag
   shader/basic_color.frag
   shader/bitmapBlit.frag
@@ -260,6 +261,7 @@ set(EMBEDDED_INPUT
   shader/minimal.vert
   shader/simple.vert
   shader/simpleColor.vert
+  shader/simple_rect.vert
   shader/sprite.vert
   shader/tex.vert
   shader/tex.frag
@@ -282,6 +284,7 @@ set(EMBEDDED_INPUT
   shader/vignette_red.frag
   shader/vignette_sepia.frag
   shader/vignette_yellow.frag
+  shader/rounded_rect.frag
   shader/obscured.frag
   assets/FreeSans.ttf
   assets/icon.png

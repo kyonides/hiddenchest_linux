@@ -199,6 +199,18 @@ private:
   GLint u_source, u_mask_tex;
 };
 
+class ColorMaskShader : public ShaderBase
+{
+public:
+  ColorMaskShader();
+  void set_source();
+  void set_range(float range);
+  void set_color(float r, float g, float b);
+
+private:
+  GLint u_source, u_range, u_color;
+};
+
 class GrayScaleShader : public ShaderBase
 {
 public:
@@ -317,6 +329,19 @@ public:
   BlackVignetteShader();
 };
 
+class RoundedRectShader : public ShaderBase
+{
+public:
+  RoundedRectShader();
+  void set_pos(const Vec2 &pos);
+  void set_rect_wh(const Vec2 &rect_wh);
+  void set_color(const Vec4 &color);
+  void set_radius(float radius);
+
+private:
+  GLint u_pos, u_rect_wh, u_color, u_radius;
+};
+
 class TilemapShader : public ShaderBase
 {
 public:
@@ -424,6 +449,7 @@ struct ShaderSet
   GrayShader gray;
   GrayScaleShader grayscale;
   AlphaMaskShader alpha_mask;
+  ColorMaskShader color_mask;
   ThermalShader thermal;
   SepiaShader sepia;
   BasicColorShader basic_color;
@@ -438,6 +464,7 @@ struct ShaderSet
   BlueVignetteShader vignette_blue;
   YellowVignetteShader vignette_yellow;
   BlackVignetteShader vignette_black;
+  RoundedRectShader rounded_rect;
   TilemapShader tilemap;
   FlashMapShader flashMap;
   TransShader trans;

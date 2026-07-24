@@ -53,8 +53,7 @@ static VALUE bitmapInitialize(int argc, VALUE* argv, VALUE self)
 {
   rb_iv_set(self, "stub", Qfalse);
   Bitmap *b = 0;
-  switch (argc)
-  {
+  switch (argc) {
   case 0:
     bitmap_try( b = new Bitmap(1); );
     break;
@@ -242,6 +241,31 @@ static VALUE bitmap_fill_rect(int argc, VALUE* argv, VALUE self)
   return self;
 }
 
+static VALUE bitmap_fill_rounded_rect(int argc, VALUE* argv, VALUE self)
+{
+  Bitmap *b = getPrivateData<Bitmap>(self);
+  VALUE rbcolor;
+  Color *color;
+  if (argc == 3) {
+    Rect *rect;
+    int radius = RB_FIX2INT(argv[2]);
+    rbcolor = argv[1];
+    VALUE rbrect = argv[0];
+    if (rbrect == hc_sym("rect"))
+      rect = bitmap_c_rect(self);
+    else
+      rect = getPrivateDataCheck<Rect>(rbrect, RectType);
+    color = getPrivateDataCheck<Color>(rbcolor, ColorType);
+    GUARD_EXC( b->fill_rounded_rect(rect->toIntRect(), color->norm, radius); );
+  } else {
+    int x, y, width, height, radius;
+    rb_get_args(argc, argv, "iiiio", &x, &y, &width, &height, &rbcolor, &radius RB_ARG_END);
+    color = getPrivateDataCheck<Color>(rbcolor, ColorType);
+    GUARD_EXC( b->fill_rounded_rect(x, y, width, height, color->norm, radius); );
+  }
+  return self;
+}
+
 static VALUE bitmapClear(VALUE self)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
@@ -306,11 +330,39 @@ static VALUE bitmap_invert_grayscale(VALUE self)
   return self;
 }
 
-static VALUE bitmap_apply_alpha_mask(VALUE self, VALUE other)
+static VALUE bitmap_alpha_mask(VALUE self, VALUE other)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
   Bitmap *o = getPrivateDataCheck<Bitmap>(other, BitmapType);
-  GUARD_EXC( b->apply_alpha_mask(*o); );
+  GUARD_EXC( b->alpha_mask(*o); );
+  return self;
+}
+
+static VALUE bitmap_color_mask(int argc, VALUE* argv, VALUE self)
+{
+  Bitmap *b = getPrivateData<Bitmap>(self);
+  int rng;
+  Color *c;
+  if (!b || rb_iv_get(self, "disposed"))
+    return Qnil;
+  switch (argc) {
+  case 0:
+  case 1:
+  case 3:
+    break;
+  case 2:
+    rng = RB_FIX2INT(argv[0]);
+    c = getPrivateDataCheck<Color>(argv[1], ColorType);
+    GUARD_EXC( b->color_mask(rng, c->red, c->green, c->blue); );
+    break;
+  case 4:
+    rng = RB_FIX2INT(argv[0]);
+    int r = RB_FIX2INT(argv[1]);
+    int g = RB_FIX2INT(argv[2]);
+    int bl = RB_FIX2INT(argv[3]);
+    GUARD_EXC( b->color_mask(rng, r, g, bl); );
+    break;
+  }
   return self;
 }
 
@@ -573,7 +625,8 @@ void bitmapBindingInit()
   rb_define_method(klass, "gray_out", RMF(bitmap_gray_out), 0),
   rb_define_method(klass, "grayscale", RMF(bitmap_grayscale), 0),
   rb_define_method(klass, "invert_grayscale", RMF(bitmap_invert_grayscale), 0),
-  rb_define_method(klass, "apply_alpha_mask", RMF(bitmap_apply_alpha_mask), 1);
+  rb_define_method(klass, "alpha_mask", RMF(bitmap_alpha_mask), 1);
+  rb_define_method(klass, "color_mask", RMF(bitmap_color_mask), -1);
   rb_define_method(klass, "thermal", RMF(bitmap_thermal), 0);
   rb_define_method(klass, "turn_sepia", RMF(bitmap_turn_sepia), 0);
   rb_define_method(klass, "invert!", RMF(bitmap_invert), 0);
@@ -581,6 +634,7 @@ void bitmapBindingInit()
   rb_define_method(klass, "text_size", RMF(bitmap_text_size), 1);
   rb_define_method(klass, "text_width", RMF(bitmap_text_width), 1);
   rb_define_method(klass, "text_height", RMF(bitmap_text_height), 1);
+  rb_define_method(klass, "fill_rounded_rect", RMF(bitmap_fill_rounded_rect), -1);
   rb_define_method(klass, "gradient_fill_rect", RMF(bitmapGradientFillRect), -1);
   rb_define_method(klass, "storm_fill_rect", RMF(bitmapStormFillRect), 1);
   rb_define_method(klass, "snow_fill_rect", RMF(bitmapSnowFillRect), 0);

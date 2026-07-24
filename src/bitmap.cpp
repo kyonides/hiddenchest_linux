@@ -219,6 +219,27 @@ struct BitmapPrivate
     glState.scissorTest.pop();
   }
 
+  void fill_rounded_rect(const IntRect &rect, const Vec4 &color, float radius)
+  {
+    float norm_radius = std::min(rect.w, rect.h) * 0.5f;
+    radius = clamp<float>(radius, 0.0f, norm_radius) / 100.0f;
+    glState.blend.pushSet(true);
+    RoundedRectShader &shader = shState->shaders().rounded_rect;
+    shader.bind();
+    shader.set_pos(Vec2(rect.x, rect.y));
+    shader.set_rect_wh(Vec2(rect.w, rect.h));
+    shader.set_color(color);
+    shader.set_radius(radius);
+    pushSetViewport(shader);
+    bindTexture(shader);
+    bindFBO();
+    Quad &quad = shState->gpQuad();
+    quad.setPosRect(rect);
+    quad.setColor(Vec4(1, 1, 1, 1));
+    quad.draw();
+    glState.blend.pop();
+  }
+
   static void ensureFormat(SDL_Surface *&surf, Uint32 format)
   {
     if (surf->format->format == format) return;
@@ -507,6 +528,23 @@ void Bitmap::fillRect(const IntRect &rect, const Vec4 &color)
   guardDisposed();
   GUARD_MEGA;
   p->fillRect(rect, color);
+  if (color.w == 0) // Clear op
+    p->substractTaintedArea(rect);
+  else // Fill op
+    p->addTaintedArea(rect);
+  p->onModified();
+}
+
+void Bitmap::fill_rounded_rect(int x, int y, int width, int height, const Vec4 &color, float radius)
+{
+  fill_rounded_rect(IntRect(x, y, width, height), color, radius);
+}
+
+void Bitmap::fill_rounded_rect(const IntRect &rect, const Vec4 &color, float radius)
+{
+  guardDisposed();
+  GUARD_MEGA;
+  p->fill_rounded_rect(rect, color, radius);
   if (color.w == 0) // Clear op
     p->substractTaintedArea(rect);
   else // Fill op
@@ -867,7 +905,7 @@ void Bitmap::grayscale(bool invert)
   p->onModified();
 }
 
-void Bitmap::apply_alpha_mask(const Bitmap &source)
+void Bitmap::alpha_mask(const Bitmap &source)
 {
   guardDisposed();
   GUARD_MEGA;
@@ -881,6 +919,33 @@ void Bitmap::apply_alpha_mask(const Bitmap &source)
   shader.bind();
   shader.set_source();
   shader.set_mask(source.p->gl.tex);
+  p->pushSetViewport(shader);
+  p->bindTexture(shader);
+  p->blitQuad(quad);
+  p->popViewport();
+  TEX::unbind();
+  p->addTaintedArea(rect());
+  p->onModified();
+  return;
+}
+
+void Bitmap::color_mask(int rng, int r, int g, int b)
+{
+  guardDisposed();
+  GUARD_MEGA;
+  float range = clamp<float>(rng, 0.0f, 100.0f) / 100.0f;
+  float red = clamp<int>(r, 0, 255) / 255.0f;
+  float green = clamp<int>(g, 0, 255) / 255.0f;
+  float blue = clamp<int>(b, 0, 255) / 255.0f;
+  FloatRect tex_rect(rect());
+  Quad &quad = shState->gpQuad();
+  quad.setTexPosRect(tex_rect, tex_rect);
+  quad.setColor(Vec4(1, 1, 1, 1));
+  ColorMaskShader &shader = shState->shaders().color_mask;
+  shader.bind();
+  shader.set_source();
+  shader.set_range(range);
+  shader.set_color(red, green, blue);
   p->pushSetViewport(shader);
   p->bindTexture(shader);
   p->blitQuad(quad);

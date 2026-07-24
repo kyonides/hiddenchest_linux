@@ -271,6 +271,32 @@ static VALUE game_window_changed_focus(VALUE self)
   return last == focus;
 }
 
+static VALUE game_window_set_xy(VALUE self, VALUE sx, VALUE sy)
+{
+  int x = RB_FIX2INT(sx);
+  int y = RB_FIX2INT(sy);
+  shState->graphics().center_window(x, y);
+  return Qnil;
+}
+
+static VALUE game_window_center(VALUE self)
+{
+  shState->graphics().center_window();
+  return Qnil;
+}
+
+static VALUE game_window_show(VALUE self)
+{
+  SDL_ShowWindow(shState->sdlWindow());
+  return Qnil;
+}
+  
+static VALUE game_window_hide(VALUE self)
+{
+  SDL_HideWindow(shState->sdlWindow());
+  return Qnil;
+}
+
 void init_game(const char *raw_exe_name)
 {
   VALUE game = rb_define_module("Game");
@@ -305,4 +331,8 @@ void init_game(const char *raw_exe_name)
   module_func(win, "block_close=", game_window_block_close_set, 1);
   module_func(win, "has_focus?", game_window_has_focus, 0);
   module_func(win, "change_focus?", game_window_changed_focus, 0);
+  module_func(win, "set_xy", game_window_set_xy, 2);
+  module_func(win, "center", game_window_center, 0);
+  module_func(win, "show", game_window_show, 0);
+  module_func(win, "hide", game_window_hide, 0);
 }

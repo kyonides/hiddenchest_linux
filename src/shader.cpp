@@ -37,6 +37,7 @@
 #include "gray.frag.xxd"
 #include "grayscale.frag.xxd"
 #include "alpha_mask.frag.xxd"
+#include "color_mask.frag.xxd"
 #include "basic_color.frag.xxd"
 #include "sepia.frag.xxd"
 #include "gradient.frag.xxd"
@@ -51,6 +52,7 @@
 #include "vignette_blue.frag.xxd"
 #include "vignette_yellow.frag.xxd"
 #include "vignette_black.frag.xxd"
+#include "rounded_rect.frag.xxd"
 #include "obscured.frag.xxd"
 #include "flatColor.frag.xxd"
 #include "simple.frag.xxd"
@@ -61,6 +63,7 @@
 #include "minimal.vert.xxd"
 #include "simple.vert.xxd"
 #include "simpleColor.vert.xxd"
+#include "simple_rect.vert.xxd"
 #include "sprite.vert.xxd"
 #include "tilemap.vert.xxd"
 #include "blur.frag.xxd"
@@ -493,6 +496,30 @@ void AlphaMaskShader::set_mask(const TEX::ID value)
   setTexUniform(u_mask_tex, 1, value);
 }
 
+ColorMaskShader::ColorMaskShader()
+{
+  INIT_SHADER(simple, color_mask, ColorMaskShader);
+  ShaderBase::init();
+  GET_U(source);
+  GET_U(range);
+  GET_U(color);
+}
+
+void ColorMaskShader::set_source()
+{
+  gl.Uniform1i(u_source, 0);
+}
+
+void ColorMaskShader::set_range(float range)
+{
+  gl.Uniform1f(u_range, range);
+}
+
+void ColorMaskShader::set_color(float r, float g, float b)
+{
+  setVec4Uniform(u_color, Vec4(r, g, b, 1.0f));
+}
+
 GrayScaleShader::GrayScaleShader()
 {
   INIT_SHADER(simple, grayscale, GrayScaleShader);
@@ -661,6 +688,36 @@ BlackVignetteShader::BlackVignetteShader()
   INIT_SHADER(simple, vignette_black, BlackVignetteShader);
   ShaderBase::init();
   GET_U(resolution);
+}
+
+RoundedRectShader::RoundedRectShader()
+{
+  INIT_SHADER(simple_rect, rounded_rect, RoundedRectShader);
+  ShaderBase::init();
+  GET_U(pos);
+  GET_U(rect_wh);
+  GET_U(color);
+  GET_U(radius);
+}
+
+void RoundedRectShader::set_pos(const Vec2 &pos)
+{
+  gl.Uniform2f(u_pos, pos.x, pos.y);
+}
+
+void RoundedRectShader::set_rect_wh(const Vec2 &rect_wh)
+{
+  gl.Uniform2f(u_rect_wh, rect_wh.x, rect_wh.y);
+}
+
+void RoundedRectShader::set_color(const Vec4 &color)
+{
+  setVec4Uniform(u_color, color);
+}
+
+void RoundedRectShader::set_radius(float radius)
+{
+  gl.Uniform1f(u_radius, radius);
 }
 
 TilemapShader::TilemapShader()

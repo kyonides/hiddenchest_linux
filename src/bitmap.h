@@ -54,6 +54,8 @@ public:
                   int opacity = 255);
   void fillRect(int x, int y, int width, int height, const Vec4 &color);
   void fillRect(const IntRect &rect, const Vec4 &color);
+  void fill_rounded_rect(int x, int y, int width, int height, const Vec4 &color, float radius);
+  void fill_rounded_rect(const IntRect &rect, const Vec4 &color, float radius);
   void gradientFillRect(int x, int y, int width, int height,
                         const Vec4 &color1, const Vec4 &color2,
                         bool vertical = false);
@@ -77,7 +79,8 @@ public:
   void turn_sepia();
   void gray_out();
   void grayscale(bool invert = false);
-  void apply_alpha_mask(const Bitmap &source);
+  void alpha_mask(const Bitmap &source);
+  void color_mask(int rng, int r, int g, int b);
   void thermal();
   enum TextAlign
   {
