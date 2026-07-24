@@ -285,6 +285,7 @@ set(EMBEDDED_INPUT
   shader/vignette_sepia.frag
   shader/vignette_yellow.frag
   shader/rounded_rect.frag
+  shader/circle.frag
   shader/obscured.frag
   assets/FreeSans.ttf
   assets/icon.png

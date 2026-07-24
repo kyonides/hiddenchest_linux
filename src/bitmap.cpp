@@ -222,12 +222,32 @@ struct BitmapPrivate
   void fill_rounded_rect(const IntRect &rect, const Vec4 &color, float radius)
   {
     float norm_radius = std::min(rect.w, rect.h) * 0.5f;
-    radius = clamp<float>(radius, 0.0f, norm_radius) / 100.0f;
+    radius = clamp<float>(radius, 0.0f, norm_radius);
     glState.blend.pushSet(true);
     RoundedRectShader &shader = shState->shaders().rounded_rect;
     shader.bind();
     shader.set_pos(Vec2(rect.x, rect.y));
     shader.set_rect_wh(Vec2(rect.w, rect.h));
+    shader.set_color(color);
+    shader.set_radius(radius);
+    pushSetViewport(shader);
+    bindTexture(shader);
+    bindFBO();
+    Quad &quad = shState->gpQuad();
+    quad.setPosRect(rect);
+    quad.setColor(Vec4(1, 1, 1, 1));
+    quad.draw();
+    glState.blend.pop();
+  }
+
+  void fill_circle(const IntRect &rect, const Vec4 &color, float radius)
+  {
+    float norm_radius = std::min(rect.w, rect.h) * 0.5f;
+    radius = clamp<float>(radius, 0.0f, norm_radius);
+    glState.blend.pushSet(true);
+    CircleShader &shader = shState->shaders().circle;
+    shader.bind();
+    shader.set_pos(Vec2(rect.x, rect.y));
     shader.set_color(color);
     shader.set_radius(radius);
     pushSetViewport(shader);
@@ -545,6 +565,23 @@ void Bitmap::fill_rounded_rect(const IntRect &rect, const Vec4 &color, float rad
   guardDisposed();
   GUARD_MEGA;
   p->fill_rounded_rect(rect, color, radius);
+  if (color.w == 0) // Clear op
+    p->substractTaintedArea(rect);
+  else // Fill op
+    p->addTaintedArea(rect);
+  p->onModified();
+}
+
+void Bitmap::fill_circle(int x, int y, int width, int height, const Vec4 &color, float radius)
+{
+  fill_circle(IntRect(x, y, width, height), color, radius);
+}
+
+void Bitmap::fill_circle(const IntRect &rect, const Vec4 &color, float radius)
+{
+  guardDisposed();
+  GUARD_MEGA;
+  p->fill_circle(rect, color, radius);
   if (color.w == 0) // Clear op
     p->substractTaintedArea(rect);
   else // Fill op

@@ -342,6 +342,18 @@ private:
   GLint u_pos, u_rect_wh, u_color, u_radius;
 };
 
+class CircleShader : public ShaderBase
+{
+public:
+  CircleShader();
+  void set_pos(const Vec2 &pos);
+  void set_color(const Vec4 &color);
+  void set_radius(float radius);
+
+private:
+  GLint u_pos, u_color, u_radius;
+};
+
 class TilemapShader : public ShaderBase
 {
 public:
@@ -465,6 +477,7 @@ struct ShaderSet
   YellowVignetteShader vignette_yellow;
   BlackVignetteShader vignette_black;
   RoundedRectShader rounded_rect;
+  CircleShader circle;
   TilemapShader tilemap;
   FlashMapShader flashMap;
   TransShader trans;

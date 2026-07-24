@@ -52,6 +52,8 @@ public:
   void stretchBlt(const IntRect &destRect,
                   const Bitmap &source, const IntRect &sourceRect,
                   int opacity = 255);
+  void fill_circle(int x, int y, int width, int height, const Vec4 &color, float radius);
+  void fill_circle(const IntRect &rect, const Vec4 &color, float radius);
   void fillRect(int x, int y, int width, int height, const Vec4 &color);
   void fillRect(const IntRect &rect, const Vec4 &color);
   void fill_rounded_rect(int x, int y, int width, int height, const Vec4 &color, float radius);

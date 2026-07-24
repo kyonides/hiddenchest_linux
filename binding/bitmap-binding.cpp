@@ -259,9 +259,34 @@ static VALUE bitmap_fill_rounded_rect(int argc, VALUE* argv, VALUE self)
     GUARD_EXC( b->fill_rounded_rect(rect->toIntRect(), color->norm, radius); );
   } else {
     int x, y, width, height, radius;
-    rb_get_args(argc, argv, "iiiio", &x, &y, &width, &height, &rbcolor, &radius RB_ARG_END);
+    rb_get_args(argc, argv, "iiiioi", &x, &y, &width, &height, &rbcolor, &radius RB_ARG_END);
     color = getPrivateDataCheck<Color>(rbcolor, ColorType);
     GUARD_EXC( b->fill_rounded_rect(x, y, width, height, color->norm, radius); );
+  }
+  return self;
+}
+
+static VALUE bitmap_fill_circle(int argc, VALUE* argv, VALUE self)
+{
+  Bitmap *b = getPrivateData<Bitmap>(self);
+  VALUE rbcolor;
+  Color *color;
+  if (argc == 3) {
+    Rect *rect;
+    int radius = RB_FIX2INT(argv[2]);
+    rbcolor = argv[1];
+    VALUE rbrect = argv[0];
+    if (rbrect == hc_sym("rect"))
+      rect = bitmap_c_rect(self);
+    else
+      rect = getPrivateDataCheck<Rect>(rbrect, RectType);
+    color = getPrivateDataCheck<Color>(rbcolor, ColorType);
+    GUARD_EXC( b->fill_circle(rect->toIntRect(), color->norm, radius); );
+  } else {
+    int x, y, width, height, radius;
+    rb_get_args(argc, argv, "iiiioi", &x, &y, &width, &height, &rbcolor, &radius RB_ARG_END);
+    color = getPrivateDataCheck<Color>(rbcolor, ColorType);
+    GUARD_EXC( b->fill_circle(x, y, width, height, color->norm, radius); );
   }
   return self;
 }
@@ -634,6 +659,7 @@ void bitmapBindingInit()
   rb_define_method(klass, "text_size", RMF(bitmap_text_size), 1);
   rb_define_method(klass, "text_width", RMF(bitmap_text_width), 1);
   rb_define_method(klass, "text_height", RMF(bitmap_text_height), 1);
+  rb_define_method(klass, "fill_circle", RMF(bitmap_fill_circle), -1);
   rb_define_method(klass, "fill_rounded_rect", RMF(bitmap_fill_rounded_rect), -1);
   rb_define_method(klass, "gradient_fill_rect", RMF(bitmapGradientFillRect), -1);
   rb_define_method(klass, "storm_fill_rect", RMF(bitmapStormFillRect), 1);

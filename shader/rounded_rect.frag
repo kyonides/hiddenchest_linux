@@ -15,7 +15,7 @@ void main() {
   // Center of the rectangle
   vec2 rect_center = pos + (rect_wh * 0.5);
   vec2 center_space = v_texCoord - rect_center;
-  float distance = rounded_rect_sdf(center_space, rect_wh * 0.5, radius * 100.0);
+  float distance = rounded_rect_sdf(center_space, rect_wh * 0.5, radius);
   float delta = fwidth(distance);
   float alpha = smoothstep(delta, -delta, distance);
   if (alpha == 0.0) discard;

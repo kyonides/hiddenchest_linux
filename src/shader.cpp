@@ -53,6 +53,7 @@
 #include "vignette_yellow.frag.xxd"
 #include "vignette_black.frag.xxd"
 #include "rounded_rect.frag.xxd"
+#include "circle.frag.xxd"
 #include "obscured.frag.xxd"
 #include "flatColor.frag.xxd"
 #include "simple.frag.xxd"
@@ -716,6 +717,30 @@ void RoundedRectShader::set_color(const Vec4 &color)
 }
 
 void RoundedRectShader::set_radius(float radius)
+{
+  gl.Uniform1f(u_radius, radius);
+}
+
+CircleShader::CircleShader()
+{
+  INIT_SHADER(simple_rect, circle, CircleShader);
+  ShaderBase::init();
+  GET_U(pos);
+  GET_U(color);
+  GET_U(radius);
+}
+
+void CircleShader::set_pos(const Vec2 &pos)
+{
+  gl.Uniform2f(u_pos, pos.x, pos.y);
+}
+
+void CircleShader::set_color(const Vec4 &color)
+{
+  setVec4Uniform(u_color, color);
+}
+
+void CircleShader::set_radius(float radius)
 {
   gl.Uniform1f(u_radius, radius);
 }
