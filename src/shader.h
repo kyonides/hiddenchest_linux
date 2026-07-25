@@ -354,6 +354,34 @@ private:
   GLint u_pos, u_color, u_radius;
 };
 
+class TriangleShader : public ShaderBase
+{
+public:
+  TriangleShader();
+  void set_center(const Vec2 &center);
+  void set_rect_wh(const Vec2 &rect_wh);
+  void set_color(const Vec4 &color);
+  void set_radius(float radius);
+  void set_angle(float angle);
+
+private:
+  GLint u_center, u_rect_wh, u_color, u_radius, u_angle;
+};
+
+class PolygonShader : public ShaderBase
+{
+public:
+  PolygonShader();
+  void set_pos(const Vec2 &pos);
+  void set_rect_wh(const Vec2 &rect_wh);
+  void set_color(const Vec4 &color);
+  void set_radius(float radius);
+  void set_sides(int sides);
+
+private:
+  GLint u_pos, u_rect_wh, u_color, u_radius, u_sides;
+};
+
 class TilemapShader : public ShaderBase
 {
 public:
@@ -478,6 +506,8 @@ struct ShaderSet
   BlackVignetteShader vignette_black;
   RoundedRectShader rounded_rect;
   CircleShader circle;
+  TriangleShader triangle;
+  PolygonShader polygon;
   TilemapShader tilemap;
   FlashMapShader flashMap;
   TransShader trans;

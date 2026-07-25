@@ -291,6 +291,60 @@ static VALUE bitmap_fill_circle(int argc, VALUE* argv, VALUE self)
   return self;
 }
 
+static VALUE bitmap_fill_triangle(int argc, VALUE* argv, VALUE self)
+{
+  Bitmap *b = getPrivateData<Bitmap>(self);
+  VALUE rbcolor;
+  Color *color;
+  int radius = 1, angle = 0;
+  if (argc == 3 ||argc == 4) {
+    if (argc == 4)
+      angle = RB_FIX2INT(argv[3]);
+    Rect *rect;
+    radius = RB_FIX2INT(argv[2]);
+    rbcolor = argv[1];
+    VALUE rbrect = argv[0];
+    if (rbrect == hc_sym("rect"))
+      rect = bitmap_c_rect(self);
+    else
+      rect = getPrivateDataCheck<Rect>(rbrect, RectType);
+    color = getPrivateDataCheck<Color>(rbcolor, ColorType);
+    GUARD_EXC( b->fill_triangle(rect->toIntRect(), color->norm, radius, angle); );
+  } else {
+    int x, y, width, height;
+    rb_get_args(argc, argv, "iiiioii", &x, &y, &width, &height, &rbcolor, &radius, &angle RB_ARG_END);
+    color = getPrivateDataCheck<Color>(rbcolor, ColorType);
+    GUARD_EXC( b->fill_triangle(x, y, width, height, color->norm, radius, angle); );
+  }
+  return self;
+}
+
+static VALUE bitmap_fill_polygon(int argc, VALUE* argv, VALUE self)
+{
+  Bitmap *b = getPrivateData<Bitmap>(self);
+  VALUE rbcolor;
+  Color *color;
+  if (argc == 4) {
+    Rect *rect;
+    int sides = RB_FIX2INT(argv[3]);
+    int radius = RB_FIX2INT(argv[2]);
+    rbcolor = argv[1];
+    VALUE rbrect = argv[0];
+    if (rbrect == hc_sym("rect"))
+      rect = bitmap_c_rect(self);
+    else
+      rect = getPrivateDataCheck<Rect>(rbrect, RectType);
+    color = getPrivateDataCheck<Color>(rbcolor, ColorType);
+    GUARD_EXC( b->fill_polygon(rect->toIntRect(), color->norm, radius, sides); );
+  } else {
+    int x, y, width, height, radius, sides;
+    rb_get_args(argc, argv, "iiiioi", &x, &y, &width, &height, &rbcolor, &radius, &sides RB_ARG_END);
+    color = getPrivateDataCheck<Color>(rbcolor, ColorType);
+    GUARD_EXC( b->fill_polygon(x, y, width, height, color->norm, radius, sides); );
+  }
+  return self;
+}
+
 static VALUE bitmapClear(VALUE self)
 {
   Bitmap *b = getPrivateData<Bitmap>(self);
@@ -659,6 +713,8 @@ void bitmapBindingInit()
   rb_define_method(klass, "text_size", RMF(bitmap_text_size), 1);
   rb_define_method(klass, "text_width", RMF(bitmap_text_width), 1);
   rb_define_method(klass, "text_height", RMF(bitmap_text_height), 1);
+  rb_define_method(klass, "fill_polygon", RMF(bitmap_fill_polygon), -1);
+  rb_define_method(klass, "fill_triangle", RMF(bitmap_fill_triangle), -1);
   rb_define_method(klass, "fill_circle", RMF(bitmap_fill_circle), -1);
   rb_define_method(klass, "fill_rounded_rect", RMF(bitmap_fill_rounded_rect), -1);
   rb_define_method(klass, "gradient_fill_rect", RMF(bitmapGradientFillRect), -1);

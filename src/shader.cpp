@@ -54,6 +54,8 @@
 #include "vignette_black.frag.xxd"
 #include "rounded_rect.frag.xxd"
 #include "circle.frag.xxd"
+#include "triangle.frag.xxd"
+#include "polygon.frag.xxd"
 #include "obscured.frag.xxd"
 #include "flatColor.frag.xxd"
 #include "simple.frag.xxd"
@@ -65,6 +67,7 @@
 #include "simple.vert.xxd"
 #include "simpleColor.vert.xxd"
 #include "simple_rect.vert.xxd"
+#include "polygon.vert.xxd"
 #include "sprite.vert.xxd"
 #include "tilemap.vert.xxd"
 #include "blur.frag.xxd"
@@ -741,6 +744,78 @@ void CircleShader::set_color(const Vec4 &color)
 }
 
 void CircleShader::set_radius(float radius)
+{
+  gl.Uniform1f(u_radius, radius);
+}
+
+TriangleShader::TriangleShader()
+{
+  INIT_SHADER(simple_rect, triangle, TriangleShader);
+  ShaderBase::init();
+  GET_U(center);
+  GET_U(rect_wh);
+  GET_U(color);
+  GET_U(radius);
+  GET_U(angle);
+}
+
+void TriangleShader::set_center(const Vec2 &center)
+{
+  gl.Uniform2f(u_center, center.x, center.y);
+}
+
+void TriangleShader::set_rect_wh(const Vec2 &rect_wh)
+{
+  gl.Uniform2f(u_rect_wh, rect_wh.x, rect_wh.y);
+}
+
+void TriangleShader::set_color(const Vec4 &color)
+{
+  setVec4Uniform(u_color, color);
+}
+
+void TriangleShader::set_radius(float radius)
+{
+  gl.Uniform1f(u_radius, radius);
+}
+
+void TriangleShader::set_angle(float angle)
+{
+  gl.Uniform1f(u_angle, angle);
+}
+
+PolygonShader::PolygonShader()
+{
+  INIT_SHADER(polygon, polygon, PolygonShader);
+  ShaderBase::init();
+  GET_U(pos);
+  GET_U(rect_wh);
+  GET_U(sides);
+  GET_U(color);
+  GET_U(radius);
+}
+
+void PolygonShader::set_pos(const Vec2 &pos)
+{
+  gl.Uniform2f(u_pos, pos.x, pos.y);
+}
+
+void PolygonShader::set_rect_wh(const Vec2 &rect_wh)
+{
+  gl.Uniform2f(u_rect_wh, rect_wh.x, rect_wh.y);
+}
+
+void PolygonShader::set_sides(int sides)
+{
+  gl.Uniform1i(u_sides, sides);
+}
+
+void PolygonShader::set_color(const Vec4 &color)
+{
+  setVec4Uniform(u_color, color);
+}
+
+void PolygonShader::set_radius(float radius)
 {
   gl.Uniform1f(u_radius, radius);
 }

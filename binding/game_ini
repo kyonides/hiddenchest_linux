@@ -797,6 +797,12 @@ module Game
     @save_dir = dir
   end
 
+  def shot_path=(dir)
+    @shot_path = make_path(dir, @shot_dir)
+    Dir.mkdir(@shot_path) unless Dir.exist?(@shot_path)
+    Graphics.screenshot_dir = @shot_path
+  end
+    
   def movie_dir=(dir)
     @movie_path = dir + "/"
     @movie_dir = dir

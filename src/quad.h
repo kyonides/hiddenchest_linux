@@ -130,6 +130,17 @@ struct Quad
     gl.DrawElements(GL_TRIANGLES, 6, _GL_INDEX_TYPE, 0);
     GLMeta::vaoUnbind(vao);
   }
+
+  void draw_triangle()
+  {
+    if (vboDirty) {
+      updateBuffer();
+      vboDirty = false;
+    }
+    GLMeta::vaoBind(vao);
+    gl.DrawElements(GL_TRIANGLES, 3, _GL_INDEX_TYPE, 0);
+    GLMeta::vaoUnbind(vao);
+  }
 };
 
 #endif // QUAD_H

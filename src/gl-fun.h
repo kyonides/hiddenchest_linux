@@ -23,12 +23,12 @@
 #ifndef GLFUN_H
 #define GLFUN_H
 
-#ifdef GLES2_HEADER
-#include <SDL_opengles2.h>
-#define APIENTRYP GL_APIENTRYP
-#else
+//#ifdef GLES2_HEADER
+//#include <SDL_opengles2.h>
+//#define APIENTRYP GL_APIENTRYP
+//#else
 #include <SDL_opengl.h>
-#endif
+//#endif
 
 /* Etc */
 typedef GLenum (APIENTRYP _PFNGLGETERRORPROC) (void);
@@ -46,6 +46,8 @@ typedef void (APIENTRYP _PFNGLBLENDFUNCPROC) (GLenum sfactor, GLenum dfactor);
 typedef void (APIENTRYP _PFNGLBLENDFUNCSEPARATEPROC) (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
 typedef void (APIENTRYP _PFNGLBLENDEQUATIONPROC) (GLenum mode);
 typedef void (APIENTRYP _PFNGLDRAWELEMENTSPROC) (GLenum mode, GLsizei count, GLenum type, const GLvoid *indices);
+typedef void (APIENTRYP _PFNGLBEGINPROC) (GLenum mode);
+typedef void (APIENTRYP _PFNGLENDPROC) (void);
 
 /* Texture */
 typedef void (APIENTRYP _PFNGLGENTEXTURESPROC) (GLsizei n, GLuint *textures);
@@ -99,6 +101,7 @@ typedef void (APIENTRYP _PFNGLBINDATTRIBLOCATIONPROC) (GLuint program, GLuint in
 typedef void (APIENTRYP _PFNGLENABLEVERTEXATTRIBARRAYPROC) (GLuint);
 typedef void (APIENTRYP _PFNGLDISABLEVERTEXATTRIBARRAYPROC) (GLuint);
 typedef void (APIENTRYP _PFNGLVERTEXATTRIBPOINTERPROC) (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer);
+typedef void (APIENTRYP _PFNGLVERTEX2FPROC) (GLfloat x, GLfloat y);
 
 /* Framebuffer object */
 typedef void (APIENTRYP _PFNGLGENFRAMEBUFFERSPROC) (GLsizei n, GLuint* framebuffers);
@@ -201,7 +204,7 @@ typedef void (APIENTRYP _PFNGLRELEASESHADERCOMPILERPROC) (void);
   /* Vertex array object */ \
   GL_FUN(GenVertexArrays, _PFNGLGENVERTEXARRAYSPROC) \
   GL_FUN(DeleteVertexArrays, _PFNGLDELETEVERTEXARRAYSPROC) \
-  GL_FUN(BindVertexArray, _PFNGLBINDVERTEXARRAYPROC)
+  GL_FUN(BindVertexArray, _PFNGLBINDVERTEXARRAYPROC) \
 
 #define GL_DEBUG_KHR_FUN \
   GL_FUN(DebugMessageCallback, _PFNGLDEBUGMESSAGECALLBACKPROC)
@@ -220,6 +223,9 @@ struct GLFunctions
   GL_VAO_FUN
   GL_DEBUG_KHR_FUN
   GL_GREMEMDY_FUN
+  //GL_FUN(Begin, _PFNGLBEGINPROC)
+  //GL_FUN(End, _PFNGLENDPROC)
+  //GL_FUN(Vertex2f, _PFNGLVERTEX2FPROC)
   bool glsles;
   bool unpack_subimage;
   bool npot_repeat;

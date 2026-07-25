@@ -58,6 +58,9 @@ void subRectImageEnd();
   void vaoFini(VAO &vao);
   void vaoBind(VAO &vao);
   void vaoUnbind(VAO &vao);
+  //void begin(GLenum value);
+  //void end();
+  //void vertex2f(GLfloat x, GLfloat y);
   // EXT_framebuffer_blit
   void blitBegin(TEXFBO &target);
   void blitBeginScreen(const Vec2i &size);

@@ -262,6 +262,7 @@ set(EMBEDDED_INPUT
   shader/simple.vert
   shader/simpleColor.vert
   shader/simple_rect.vert
+  shader/polygon.vert
   shader/sprite.vert
   shader/tex.vert
   shader/tex.frag
@@ -286,6 +287,8 @@ set(EMBEDDED_INPUT
   shader/vignette_yellow.frag
   shader/rounded_rect.frag
   shader/circle.frag
+  shader/triangle.frag
+  shader/polygon.frag
   shader/obscured.frag
   assets/FreeSans.ttf
   assets/icon.png

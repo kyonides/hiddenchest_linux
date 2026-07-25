@@ -52,12 +52,23 @@ public:
   void stretchBlt(const IntRect &destRect,
                   const Bitmap &source, const IntRect &sourceRect,
                   int opacity = 255);
-  void fill_circle(int x, int y, int width, int height, const Vec4 &color, float radius);
+  void fill_polygon(int x, int y, int width, int height, const Vec4 &color,
+                    float radius, int sides);
+  void fill_polygon(const IntRect &rect, const Vec4 &color,
+                    float radius, int sides);
+  void fill_circle(int x, int y, int width, int height,
+                   const Vec4 &color, float radius);
   void fill_circle(const IntRect &rect, const Vec4 &color, float radius);
+  void fill_triangle(int x, int y, int width, int height,
+                     const Vec4 &color, float radius, float angle=0);
+  void fill_triangle(const IntRect &rect, const Vec4 &color,
+                     float radius, float angle=0);
   void fillRect(int x, int y, int width, int height, const Vec4 &color);
   void fillRect(const IntRect &rect, const Vec4 &color);
-  void fill_rounded_rect(int x, int y, int width, int height, const Vec4 &color, float radius);
-  void fill_rounded_rect(const IntRect &rect, const Vec4 &color, float radius);
+  void fill_rounded_rect(int x, int y, int width, int height,
+                         const Vec4 &color, float radius);
+  void fill_rounded_rect(const IntRect &rect,
+                         const Vec4 &color, float radius);
   void gradientFillRect(int x, int y, int width, int height,
                         const Vec4 &color1, const Vec4 &color2,
                         bool vertical = false);

@@ -110,7 +110,22 @@ void vaoUnbind(VAO &vao)
     IBO::unbind();
   }
 }
+/*
+void begin(GLenum mode)
+{
+  gl.Begin(mode);
+}
 
+void end()
+{
+  gl.End();
+}
+
+void vertex2f(GLfloat x, GLfloat y)
+{
+  gl.Vertex2f(x, y);
+}
+*/
 #define HAVE_NATIVE_BLIT gl.BlitFramebuffer
 
 static void _blitBegin(FBO::ID fbo, const Vec2i &size)

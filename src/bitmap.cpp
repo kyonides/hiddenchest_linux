@@ -59,12 +59,20 @@ else*/
 //#include <SDL_opengl.h>
 //endif */
 // End of addition
+#define PI 3.14159265358979323846f
+
 #define GUARD_MEGA \
 { \
   if (p->megaSurface) \
     throw Exception(Exception::HiddenChestError, \
                     "Operation not supported for mega surfaces"); \
 }
+
+struct SimpleVertex
+{
+  float x;
+  float y;
+};
 
 struct IntBitmap
 {
@@ -105,7 +113,7 @@ static IntRect normalizedRect(const IntRect &rect)
 struct BitmapPrivate
 {
   Bitmap *self;
-  TEXFBO gl;
+  TEXFBO tex_gl;
   Font *font;
   /* "Mega surfaces" are a hack to allow Tilesets to be used
    * whose Bitmaps don't fit into a regular texture. They're
@@ -140,7 +148,8 @@ struct BitmapPrivate
 
   void allocSurface()
   {
-    surface = SDL_CreateRGBSurface(0, gl.width, gl.height, format->BitsPerPixel,
+    surface = SDL_CreateRGBSurface(0, tex_gl.width, tex_gl.height,
+                                   format->BitsPerPixel,
                                    format->Rmask, format->Gmask,
                                    format->Bmask, format->Amask);
   }
@@ -179,19 +188,19 @@ struct BitmapPrivate
   }
 
   void bindTexture(ShaderBase &shader)
-  {//std::cout << "About to bind shader " << std::endl;
-    TEX::bind(gl.tex);
-    shader.setTexSize(Vec2i(gl.width, gl.height));
+  {
+    TEX::bind(tex_gl.tex);
+    shader.setTexSize(Vec2i(tex_gl.width, tex_gl.height));
   }
 
   void bindFBO()
   {
-    FBO::bind(gl.fbo);
+    FBO::bind(tex_gl.fbo);
   }
 
   void pushSetViewport(ShaderBase &shader) const
   {
-    glState.viewport.pushSet(IntRect(0, 0, gl.width, gl.height));
+    glState.viewport.pushSet(IntRect(0, 0, tex_gl.width, tex_gl.height));
     shader.applyViewportProj();
   }
 
@@ -260,6 +269,50 @@ struct BitmapPrivate
     glState.blend.pop();
   }
 
+  void fill_triangle(const IntRect &rect, const Vec4 &color, float radius, float angle)
+  {
+    float norm_radius = std::min(rect.w, rect.h) * 0.5f;
+    radius = clamp<float>(radius, 0.0f, norm_radius);
+    TriangleShader &shader = shState->shaders().triangle;
+    shader.bind();
+    shader.set_center(Vec2(rect.w * 0.5f, rect.h * 0.5f));
+    shader.set_rect_wh(Vec2(rect.w, rect.h));
+    shader.set_color(color);
+    shader.set_radius(radius);
+    shader.set_angle(angle);
+    pushSetViewport(shader);
+    bindTexture(shader);
+    bindFBO();
+    Quad &quad = shState->gpQuad();
+    quad.setPosRect(rect);
+    bindFBO();
+    pushSetViewport(shader);
+    blitQuad(quad);
+    popViewport();
+  }
+
+  void fill_polygon(const IntRect &rect, const Vec4 &color, float radius, int sides)
+  {
+    float norm_radius = std::min(rect.w, rect.h) * 0.5f;
+    radius = clamp<float>(radius, 0.0f, norm_radius);
+    glState.blend.pushSet(true);
+    PolygonShader &shader = shState->shaders().polygon;
+    shader.bind();
+    shader.set_pos(Vec2(rect.x, rect.y));
+    shader.set_rect_wh(Vec2(rect.w, rect.h));
+    shader.set_sides(sides);
+    shader.set_color(color);
+    shader.set_radius(radius);
+    pushSetViewport(shader);
+    bindTexture(shader);
+    bindFBO();
+    Quad &quad = shState->gpQuad();
+    quad.setPosRect(rect);
+    quad.setColor(Vec4(1, 1, 1, 1));
+    quad.draw();
+    glState.blend.pop();
+  }
+
   static void ensureFormat(SDL_Surface *&surf, Uint32 format)
   {
     if (surf->format->format == format) return;
@@ -315,9 +368,9 @@ Bitmap::Bitmap(const char *filename)
       throw e;
     }
     p = new BitmapPrivate(this);
-    p->gl = tex;
-    TEX::bind(p->gl.tex);
-    TEX::uploadImage(p->gl.width, p->gl.height, imgSurf->pixels, GL_RGBA);
+    p->tex_gl = tex;
+    TEX::bind(p->tex_gl.tex);
+    TEX::uploadImage(p->tex_gl.width, p->tex_gl.height, imgSurf->pixels, GL_RGBA);
     SDL_FreeSurface(imgSurf);
   }
   p->addTaintedArea(rect());
@@ -344,9 +397,9 @@ Bitmap::Bitmap(const char *filename, int none)
   p = new BitmapPrivate(this);
   p->ensureFormat(surface, SDL_PIXELFORMAT_ABGR8888);
   TEXFBO tex = shState->texPool().request(surface->w, surface->h);
-  p->gl = tex;
-  TEX::bind(p->gl.tex);
-  TEX::uploadImage(p->gl.width, p->gl.height, surface->pixels, GL_RGBA);
+  p->tex_gl = tex;
+  TEX::bind(p->tex_gl.tex);
+  TEX::uploadImage(p->tex_gl.width, p->tex_gl.height, surface->pixels, GL_RGBA);
   SDL_FreeSurface(surface);
   p->addTaintedArea(rect());
 }
@@ -362,9 +415,9 @@ Bitmap::Bitmap(int none)
   p = new BitmapPrivate(this);
   p->ensureFormat(surface, SDL_PIXELFORMAT_ABGR8888);
   TEXFBO tex = shState->texPool().request(surface->w, surface->h);
-  p->gl = tex;
-  TEX::bind(p->gl.tex);
-  TEX::uploadImage(p->gl.width, p->gl.height, surface->pixels, GL_RGBA);
+  p->tex_gl = tex;
+  TEX::bind(p->tex_gl.tex);
+  TEX::uploadImage(p->tex_gl.width, p->tex_gl.height, surface->pixels, GL_RGBA);
   SDL_FreeSurface(surface);
   p->addTaintedArea(rect());
 }
@@ -378,7 +431,7 @@ Bitmap::Bitmap(int width, int height)
   }
   TEXFBO tex = shState->texPool().request(width, height);
   p = new BitmapPrivate(this);
-  p->gl = tex;
+  p->tex_gl = tex;
   clear();
 }
 
@@ -386,7 +439,7 @@ Bitmap::Bitmap(const Bitmap &other)
 {
   other.ensureNonMega();
   p = new BitmapPrivate(this);
-  p->gl = shState->texPool().request(other.width(), other.height());
+  p->tex_gl = shState->texPool().request(other.width(), other.height());
   blt(0, 0, other, rect());
 }
 
@@ -400,7 +453,7 @@ int Bitmap::width() const
   guardDisposed();
   if (p->megaSurface)
     return p->megaSurface->w;
-  return p->gl.width;
+  return p->tex_gl.width;
 }
 
 int Bitmap::height() const
@@ -408,7 +461,7 @@ int Bitmap::height() const
   guardDisposed();
   if (p->megaSurface)
     return p->megaSurface->h;
-  return p->gl.height;
+  return p->tex_gl.height;
 }
 
 IntRect Bitmap::rect() const
@@ -490,7 +543,7 @@ void Bitmap::stretchBlt(const IntRect &destRect,
     SDL_Surface *blitTemp =
       SDL_CreateRGBSurface(0, destRect.w, destRect.h, bpp, rMask, gMask, bMask, aMask);
     SDL_BlitScaled(srcSurf, &srcRect, blitTemp, 0);
-    TEX::bind(p->gl.tex);
+    TEX::bind(p->tex_gl.tex);
     if (bltRect.w == dstRect.w && bltRect.h == dstRect.h)
     { // Dest rectangle lies within bounding box
       TEX::uploadSubImage(destRect.x, destRect.y, destRect.w, destRect.h, blitTemp->pixels, GL_RGBA);
@@ -505,15 +558,15 @@ void Bitmap::stretchBlt(const IntRect &destRect,
   }
   if (opacity == 255 && !p->touchesTaintedArea(destRect)) {
     // Fast blit
-    GLMeta::blitBegin(p->gl);
-    GLMeta::blitSource(source.p->gl);
+    GLMeta::blitBegin(p->tex_gl);
+    GLMeta::blitSource(source.p->tex_gl);
     GLMeta::blitRectangle(sourceRect, destRect);
     GLMeta::blitEnd();
   } else { // Fragment pipeline
     float normOpacity = (float) opacity / 255.0f;
     TEXFBO &gpTex = shState->gpTexFBO(destRect.w, destRect.h);
     GLMeta::blitBegin(gpTex);
-    GLMeta::blitSource(p->gl);
+    GLMeta::blitSource(p->tex_gl);
     GLMeta::blitRectangle(destRect, Vec2i());
     GLMeta::blitEnd();
     FloatRect bltSubRect((float) sourceRect.x / source.width(),
@@ -572,7 +625,8 @@ void Bitmap::fill_rounded_rect(const IntRect &rect, const Vec4 &color, float rad
   p->onModified();
 }
 
-void Bitmap::fill_circle(int x, int y, int width, int height, const Vec4 &color, float radius)
+void Bitmap::fill_circle(int x, int y, int width, int height,
+                         const Vec4 &color, float radius)
 {
   fill_circle(IntRect(x, y, width, height), color, radius);
 }
@@ -582,6 +636,44 @@ void Bitmap::fill_circle(const IntRect &rect, const Vec4 &color, float radius)
   guardDisposed();
   GUARD_MEGA;
   p->fill_circle(rect, color, radius);
+  if (color.w == 0) // Clear op
+    p->substractTaintedArea(rect);
+  else // Fill op
+    p->addTaintedArea(rect);
+  p->onModified();
+}
+
+void Bitmap::fill_triangle(int x, int y, int width, int height,
+                           const Vec4 &color, float radius, float angle)
+{
+  fill_triangle(IntRect(x, y, width, height), color, radius, angle);
+}
+
+void Bitmap::fill_triangle(const IntRect &rect, const Vec4 &color,
+                           float radius, float angle)
+{
+  guardDisposed();
+  GUARD_MEGA;
+  p->fill_triangle(rect, color, radius, angle);
+  if (color.w == 0) // Clear op
+    p->substractTaintedArea(rect);
+  else // Fill op
+    p->addTaintedArea(rect);
+  p->onModified();
+}
+
+void Bitmap::fill_polygon(int x, int y, int width, int height,
+                          const Vec4 &color, float radius, int sides)
+{
+  fill_polygon(IntRect(x, y, width, height), color, radius, sides);
+}
+
+void Bitmap::fill_polygon(const IntRect &rect, const Vec4 &color,
+                          float radius, int sides)
+{
+  guardDisposed();
+  GUARD_MEGA;
+  p->fill_polygon(rect, color, radius, sides);
   if (color.w == 0) // Clear op
     p->substractTaintedArea(rect);
   else // Fill op
@@ -653,7 +745,7 @@ void Bitmap::blur()
   BlurShader::VPass &pass2 = shader.pass2;
   glState.blend.pushSet(false);
   glState.viewport.pushSet(IntRect(0, 0, width(), height()));
-  TEX::bind(p->gl.tex);
+  TEX::bind(p->tex_gl.tex);
   FBO::bind(auxTex.fbo);
   pass1.bind();
   pass1.setTexSize(Vec2i(width(), height()));
@@ -727,8 +819,8 @@ void Bitmap::radialBlur(int angle, int divisions)
   TEX::setSmooth(false);
   glState.blendMode.pop();
   glState.clearColor.pop();
-  shState->texPool().release(p->gl);
-  p->gl = newTex;
+  shState->texPool().release(p->tex_gl);
+  p->tex_gl = newTex;
   p->onModified();
 }
 
@@ -754,7 +846,7 @@ static uint32_t &getPixelAt(SDL_Surface *surf, SDL_PixelFormat *form, int x, int
 void Bitmap::makeSurface() const
 {
   p->allocSurface();
-  FBO::bind(p->gl.fbo);
+  FBO::bind(p->tex_gl.fbo);
   glState.viewport.pushSet(IntRect(0, 0, width(), height()));
   gl.ReadPixels(0, 0, width(), height(), GL_RGBA, GL_UNSIGNED_BYTE, p->surface->pixels);
   glState.viewport.pop();
@@ -796,7 +888,7 @@ void Bitmap::setPixel(int x, int y, const Color &color)
     (uint8_t) clamp<double>(color.blue,  0, 255),
     (uint8_t) clamp<double>(color.alpha, 0, 255)
   };
-  TEX::bind(p->gl.tex);
+  TEX::bind(p->tex_gl.tex);
   TEX::uploadSubImage(x, y, 1, 1, &pixel, GL_RGBA);
   p->addTaintedArea(IntRect(x, y, 1, 1));
   /* Setting just a single pixel is no reason to throw away the
@@ -845,7 +937,7 @@ void Bitmap::invert_colors()
   if (!p->surface)
     makeSurface();
   SDL_PixelFormat *fmt = p->format;
-  int w = p->gl.width, h = p->gl.height;
+  int w = p->tex_gl.width, h = p->tex_gl.height;
   uint8_t invert[w * 4];
   for (int y = 0; y < h; y++) {
     for (int x = 0; x < w; x++) {
@@ -866,7 +958,7 @@ void Bitmap::invert_colors()
       invert[x * 4 + 2] = 255.0 - c.blue;
       invert[x * 4 + 3] = c.alpha;
     }
-    TEX::bind(p->gl.tex);
+    TEX::bind(p->tex_gl.tex);
     TEX::uploadSubImage(0, y, w, 1, &invert, GL_RGBA);
   }
   p->onModified();
@@ -893,8 +985,8 @@ void Bitmap::hueChange(int hue)
   p->blitQuad(quad);
   p->popViewport();
   TEX::unbind();
-  shState->texPool().release(p->gl);
-  p->gl = newTex;
+  shState->texPool().release(p->tex_gl);
+  p->tex_gl = newTex;
   p->onModified();
 }
 
@@ -915,8 +1007,8 @@ void Bitmap::gray_out()
   p->blitQuad(quad);
   p->popViewport();
   TEX::unbind();
-  shState->texPool().release(p->gl);
-  p->gl = newTex;
+  shState->texPool().release(p->tex_gl);
+  p->tex_gl = newTex;
   p->onModified();
 }
 
@@ -937,8 +1029,8 @@ void Bitmap::grayscale(bool invert)
   p->blitQuad(quad);
   p->popViewport();
   TEX::unbind();
-  shState->texPool().release(p->gl);
-  p->gl = newTex;
+  shState->texPool().release(p->tex_gl);
+  p->tex_gl = newTex;
   p->onModified();
 }
 
@@ -955,7 +1047,7 @@ void Bitmap::alpha_mask(const Bitmap &source)
   AlphaMaskShader &shader = shState->shaders().alpha_mask;
   shader.bind();
   shader.set_source();
-  shader.set_mask(source.p->gl.tex);
+  shader.set_mask(source.p->tex_gl.tex);
   p->pushSetViewport(shader);
   p->bindTexture(shader);
   p->blitQuad(quad);
@@ -1015,9 +1107,9 @@ void Bitmap::thermal()
 
 void Bitmap::apply_this_shader(ShaderBase &shader, bool enable=false, Vec4 vec=Vec4())
 {
-  TEXFBO text = shState->texPool().request(p->gl.width, p->gl.height);
+  TEXFBO text = shState->texPool().request(p->tex_gl.width, p->tex_gl.height);
   Quad &quad = shState->gpQuad();
-  FloatRect r(IntRect(0, 0, p->gl.width, p->gl.height));
+  FloatRect r(IntRect(0, 0, p->tex_gl.width, p->tex_gl.height));
   quad.setTexPosRect(r, r);
   enable ? quad.setColor(vec) : quad.setColor(Vec4(1, 1, 1, 1));
   shader.bind();
@@ -1027,8 +1119,8 @@ void Bitmap::apply_this_shader(ShaderBase &shader, bool enable=false, Vec4 vec=V
   p->blitQuad(quad);
   p->popViewport();
   TEX::unbind();
-  shState->texPool().release(p->gl);
-  p->gl = text;
+  shState->texPool().release(p->tex_gl);
+  p->tex_gl = text;
   p->onModified();
 }
 
@@ -1191,7 +1283,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
           posRect.w = inters.w;
           posRect.h = inters.h;
         }
-        TEX::bind(p->gl.tex);
+        TEX::bind(p->tex_gl.tex);
         if (!subImage) {
           TEX::uploadSubImage(posRect.x, posRect.y,
                               posRect.w, posRect.h,
@@ -1208,7 +1300,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
       TEXFBO &gpTF = shState->gpTexFBO(surf->w, surf->h);
       TEX::bind(gpTF.tex);
       TEX::uploadSubImage(0, 0, surf->w, surf->h, surf->pixels, GL_RGBA);
-      GLMeta::blitBegin(p->gl);
+      GLMeta::blitBegin(p->tex_gl);
       GLMeta::blitSource(gpTF);
       GLMeta::blitRectangle(IntRect(0, 0, surf->w, surf->h), posRect, true);
       GLMeta::blitEnd();
@@ -1218,7 +1310,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     // Acquire partial copy of the destination buffer we're about to render to
     TEXFBO &gpTex2 = shState->gpTexFBO(posRect.w, posRect.h);
     GLMeta::blitBegin(gpTex2);
-    GLMeta::blitSource(p->gl);
+    GLMeta::blitSource(p->tex_gl);
     GLMeta::blitRectangle(posRect, Vec2i());
     GLMeta::blitEnd();
     FloatRect bltRect(0, 0, (float) (gpTexSize.x * squeeze) / gpTex2.width,
@@ -1346,7 +1438,7 @@ void Bitmap::setInitFont(Font *value)
 
 TEXFBO &Bitmap::getGLTypes()
 {
-  return p->gl;
+  return p->tex_gl;
 }
 
 SDL_Surface *Bitmap::megaSurface() const
@@ -1408,6 +1500,6 @@ void Bitmap::releaseResources()
   if (p->megaSurface)
     SDL_FreeSurface(p->megaSurface);
   else
-    shState->texPool().release(p->gl);
+    shState->texPool().release(p->tex_gl);
   delete p;
 }
