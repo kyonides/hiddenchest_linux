@@ -324,10 +324,13 @@ static VALUE bitmap_fill_polygon(int argc, VALUE* argv, VALUE self)
   Bitmap *b = getPrivateData<Bitmap>(self);
   VALUE rbcolor;
   Color *color;
-  if (argc == 4) {
+  int radius = 1, angle = 0;
+  if (argc == 4 ||argc == 5) {
+    if (argc == 5)
+      angle = RB_FIX2INT(argv[4]);
     Rect *rect;
-    int sides = RB_FIX2INT(argv[3]);
-    int radius = RB_FIX2INT(argv[2]);
+    radius = RB_FIX2INT(argv[3]);
+    int sides = RB_FIX2INT(argv[2]);
     rbcolor = argv[1];
     VALUE rbrect = argv[0];
     if (rbrect == hc_sym("rect"))
@@ -335,12 +338,12 @@ static VALUE bitmap_fill_polygon(int argc, VALUE* argv, VALUE self)
     else
       rect = getPrivateDataCheck<Rect>(rbrect, RectType);
     color = getPrivateDataCheck<Color>(rbcolor, ColorType);
-    GUARD_EXC( b->fill_polygon(rect->toIntRect(), color->norm, radius, sides); );
+    GUARD_EXC( b->fill_polygon(rect->toIntRect(), color->norm, sides, radius, angle); );
   } else {
-    int x, y, width, height, radius, sides;
-    rb_get_args(argc, argv, "iiiioi", &x, &y, &width, &height, &rbcolor, &radius, &sides RB_ARG_END);
+    int x, y, width, height, sides;
+    rb_get_args(argc, argv, "iiiioiii", &x, &y, &width, &height, &rbcolor, &sides, &radius, &angle RB_ARG_END);
     color = getPrivateDataCheck<Color>(rbcolor, ColorType);
-    GUARD_EXC( b->fill_polygon(x, y, width, height, color->norm, radius, sides); );
+    GUARD_EXC( b->fill_polygon(x, y, width, height, color->norm, sides, radius, angle); );
   }
   return self;
 }

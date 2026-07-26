@@ -372,14 +372,15 @@ class PolygonShader : public ShaderBase
 {
 public:
   PolygonShader();
-  void set_pos(const Vec2 &pos);
+  void set_center(const Vec2 &center);
   void set_rect_wh(const Vec2 &rect_wh);
   void set_color(const Vec4 &color);
+  void set_sides(float sides);
   void set_radius(float radius);
-  void set_sides(int sides);
+  void set_angle(float angle);
 
 private:
-  GLint u_pos, u_rect_wh, u_color, u_radius, u_sides;
+  GLint u_center, u_rect_wh, u_color, u_sides, u_radius, u_angle;
 };
 
 class TilemapShader : public ShaderBase

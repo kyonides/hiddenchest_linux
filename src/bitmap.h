@@ -53,9 +53,9 @@ public:
                   const Bitmap &source, const IntRect &sourceRect,
                   int opacity = 255);
   void fill_polygon(int x, int y, int width, int height, const Vec4 &color,
-                    float radius, int sides);
+                    int sides, float radius, float angle);
   void fill_polygon(const IntRect &rect, const Vec4 &color,
-                    float radius, int sides);
+                    int sides, float radius, float angle);
   void fill_circle(int x, int y, int width, int height,
                    const Vec4 &color, float radius);
   void fill_circle(const IntRect &rect, const Vec4 &color, float radius);

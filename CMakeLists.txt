@@ -262,7 +262,6 @@ set(EMBEDDED_INPUT
   shader/simple.vert
   shader/simpleColor.vert
   shader/simple_rect.vert
-  shader/polygon.vert
   shader/sprite.vert
   shader/tex.vert
   shader/tex.frag

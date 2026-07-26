@@ -295,14 +295,15 @@ struct BitmapPrivate
   {
     float norm_radius = std::min(rect.w, rect.h) * 0.5f;
     radius = clamp<float>(radius, 0.0f, norm_radius);
+    float n = sides * 1.0f;
     glState.blend.pushSet(true);
     PolygonShader &shader = shState->shaders().polygon;
     shader.bind();
-    shader.set_pos(Vec2(rect.x, rect.y));
+    shader.set_center(Vec2(rect.w * 0.5f, rect.h * 0.5f));
     shader.set_rect_wh(Vec2(rect.w, rect.h));
-    shader.set_sides(sides);
     shader.set_color(color);
     shader.set_radius(radius);
+    shader.set_sides(n);
     pushSetViewport(shader);
     bindTexture(shader);
     bindFBO();
@@ -662,14 +663,14 @@ void Bitmap::fill_triangle(const IntRect &rect, const Vec4 &color,
   p->onModified();
 }
 
-void Bitmap::fill_polygon(int x, int y, int width, int height,
-                          const Vec4 &color, float radius, int sides)
+void Bitmap::fill_polygon(int x, int y, int width, int height, const Vec4 &color,
+                          int sides, float radius, float angle)
 {
-  fill_polygon(IntRect(x, y, width, height), color, radius, sides);
+  fill_polygon(IntRect(x, y, width, height), color, sides, radius, angle);
 }
 
 void Bitmap::fill_polygon(const IntRect &rect, const Vec4 &color,
-                          float radius, int sides)
+                          int sides, float radius, float angle)
 {
   guardDisposed();
   GUARD_MEGA;
