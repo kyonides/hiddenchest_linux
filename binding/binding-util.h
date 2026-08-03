@@ -1,9 +1,10 @@
 /*
 ** binding-util.h
 **
-** This file is part of mkxp.
+** This file is part of HiddenChest.
 **
 ** Copyright (C) 2013 Jonas Kulla <Nyocurio@gmail.com>
+** Copyright (C) 2018-2026 Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** mkxp is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -84,12 +85,7 @@ void bitmap_exc(const Exception &exc);
 template<rb_data_type_t *rbType>
 static VALUE classAllocate(VALUE klass)
 {
-/* 2.3 has changed the name of this function */
-#if RUBY_API_VERSION_MAJOR >= 2 && RUBY_API_VERSION_MINOR >= 3
-	return rb_data_typed_object_wrap(klass, 0, rbType);
-#else
-	return rb_data_typed_object_alloc(klass, 0, rbType);
-#endif
+  return rb_data_typed_object_wrap(klass, 0, rbType);
 }
 
 template<class C>
@@ -105,6 +101,8 @@ inline C *
 getPrivateData(VALUE self)
 {
   C *c = static_cast<C*>(RTYPEDDATA_DATA(self));
+   if (!c)
+     raiseDisposedAccess(self);
   return c;
 }
 
@@ -112,12 +110,19 @@ template<class C>
 static inline C *
 getPrivateDataCheck(VALUE self, const rb_data_type_t &type)
 {
-  void *obj = Check_TypedStruct(self, &type);
+  const char *ownname = rb_obj_classname(self);
+  if (!rb_typeddata_is_kind_of(self, &type))
+    rb_raise(rb_eTypeError, "Can't convert %s into %s", ownname, type.wrap_struct_name);
+  void *obj = RTYPEDDATA_DATA(self);
   return static_cast<C*>(obj);
 }
 
 static inline void setPrivateData(VALUE self, void *p)
 {
+  void *current = RTYPEDDATA_DATA(self);
+  if (current &&  current != p)
+    if (RTYPEDDATA_TYPE(self)->function.dfree)
+      (*RTYPEDDATA_TYPE(self)->function.dfree)(current);
   RTYPEDDATA_DATA(self) = p;
 }
 

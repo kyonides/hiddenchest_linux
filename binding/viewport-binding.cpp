@@ -20,6 +20,7 @@
 ** along with HiddenChest.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "type_slots.h"
 #include "viewport.h"
 #include "sharedstate.h"
 #include "disposable-binding.h"
@@ -28,7 +29,8 @@
 #include "binding-util.h"
 #include "binding-types.h"
 
-DEF_TYPE(Viewport);
+rb_data_type_t ViewportType = { "Viewport",
+  { 0, freeInstance<Viewport>, type_slots }, 0, 0, 0 };
 
 RB_METHOD(viewportInitialize)
 {

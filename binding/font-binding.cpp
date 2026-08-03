@@ -21,6 +21,7 @@
 */
 
 #include "hcextras.h"
+#include "type_slots.h"
 #include "font.h"
 #include "config.h"
 #include "binding-util.h"
@@ -48,7 +49,7 @@ static void collectStrings(VALUE obj, std::vector<std::string> &out)
 }
 
 rb_data_type_t FontType = { "Font",
-  { 0, freeInstance<Font>, 0, 0, { 0 } }, 0, 0, 0 };
+  { 0, freeInstance<Font>, type_slots }, 0, 0, 0 };
 
 static VALUE font_does_exist(VALUE self, VALUE fname)
 {

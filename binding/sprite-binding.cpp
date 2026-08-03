@@ -19,8 +19,11 @@
 ** You should have received a copy of the GNU General Public License
 ** along with HiddenChest. If not, see <http://www.gnu.org/licenses/>.
 */
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
 
 #include "hcextras.h"
+#include "type_slots.h"
 #include "sprite.h"
 #include "sharedstate.h"
 #include "disposable-binding.h"
@@ -34,25 +37,27 @@
 extern VALUE rect_from_ary(VALUE ary);
 
 rb_data_type_t SpriteType = { "Sprite",
-  { 0, freeInstance<Sprite>, 0, 0, { 0 } }, 0, 0, 0 };
+  { 0, freeInstance<Sprite>, type_slots }, 0, 0, 0 };
 
 static VALUE spriteInitialize(int argc, VALUE* argv, VALUE self)
 {
   Sprite *s = viewportElementInitialize<Sprite>(argc, argv, self);
   setPrivateData(self, s);
   s->initDynAttribs();
+  VALUE zero = INT2FIX(0);
+  VALUE area = rb_ary_new_from_args(4, zero, zero, zero, zero);
+  rb_iv_set(self, "@area", area);
+  rb_iv_set(self, "opacity", INT2FIX(255));
+  rb_iv_set(self, "blend_type", zero);
+  rb_iv_set(self, "@area", area);
+  rb_iv_set(self, "@drag_margin_y", INT2FIX(8));
+  rb_iv_set(self, "@draggable", Qfalse);
+  rb_iv_set(self, "@drag_condition", hc_sym("always"));
+  rb_iv_set(self, "@hover_hue", zero);
+  rb_iv_set(self, "@hover_changed", Qfalse);
   wrapProperty(self, &s->getSrcRect(), "src_rect", RectType);
   wrapProperty(self, &s->getColor(), "color", ColorType);
   wrapProperty(self, &s->getTone(), "tone", ToneType);
-  VALUE zero = RB_INT2FIX(0);
-  rb_iv_set(self, "opacity", RB_INT2FIX(255));
-  rb_iv_set(self, "blend_type", zero);
-  rb_iv_set(self, "@area", rb_ary_new());
-  rb_iv_set(self, "drag_margin_y", 8);
-  rb_iv_set(self, "draggable", Qfalse);
-  rb_iv_set(self, "drag_condition", hc_sym("always"));
-  rb_iv_set(self, "@hover_hue", zero);
-  rb_iv_set(self, "@hover_changed", Qfalse);
   return self;
 }
 
@@ -83,96 +88,13 @@ static VALUE SpriteGetSrcRect(VALUE self)
 static VALUE SpriteSetSrcRect(VALUE self, VALUE rect)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  Rect *r;
-  if ( RB_NIL_P(rect) )
-    r = 0;
-  else
+  if (!s)
+    return Qnil;
+  Rect *r = 0;
+  if (!RB_NIL_P(rect))
     r = getPrivateDataCheck<Rect>(rect, RectType);
   GUARD_EXC( s->setSrcRect(*r); )
   return rb_iv_set(self, "src_rect", rect);
-}
-
-static VALUE sprite_gray_out(VALUE self, VALUE boolean)
-{
-  checkDisposed<Sprite>(self);
-  VALUE bit = rb_iv_get(self, "bitmap");
-  if (bit == Qnil)
-    return Qnil;
-  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (boolean == Qtrue) {
-    rb_iv_set(self, "before_gray", rb_obj_dup(bit));
-    GUARD_EXC( s->gray_out(); )
-  } else {
-    VALUE gray = rb_iv_get(self, "before_gray");
-    if (gray != Qnil) {
-      Bitmap* b = getPrivateDataCheck<Bitmap>(gray, BitmapType);
-      GUARD_EXC( s->setBitmap(b); )
-      rb_iv_set(self, "bitmap", gray);
-    }
-  }
-  return rb_iv_set(self, "@grayed_out", boolean);
-}
-
-static VALUE sprite_turn_sepia(VALUE self, VALUE boolean)
-{
-  checkDisposed<Sprite>(self);
-  VALUE bit = rb_iv_get(self, "bitmap");
-  if (RB_NIL_P(bit))
-    return Qnil;
-  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (boolean == Qtrue) {
-    rb_iv_set(self, "non_sepia", rb_obj_dup(bit));
-    GUARD_EXC( s->turn_sepia(); )
-  } else {
-    VALUE non_sepia = rb_iv_get(self, "non_sepia");
-    if (non_sepia != Qnil) {
-      Bitmap* bns = getPrivateDataCheck<Bitmap>(non_sepia, BitmapType);
-      GUARD_EXC( s->setBitmap(bns); )
-      rb_iv_set(self, "bitmap", non_sepia);
-      rb_iv_set(self, "non_sepia", Qnil);
-    }
-  }
-  return rb_iv_set(self, "@sepia", boolean);
-}
-
-static VALUE sprite_invert_colors(VALUE self, VALUE boolean)
-{
-  checkDisposed<Sprite>(self);
-  VALUE bit = rb_iv_get(self, "bitmap");
-  if (RB_NIL_P(bit))
-    return Qnil;
-  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  if (boolean == Qtrue) {
-    rb_iv_set(self, "non_inverted", rb_obj_dup(bit));
-    GUARD_EXC( s->invert_colors(); )
-  } else {
-    VALUE c = rb_iv_get(self, "non_inverted");
-    if (c != Qnil) {
-      Bitmap* b = getPrivateDataCheck<Bitmap>(c, BitmapType);
-      GUARD_EXC( s->setBitmap(b); )
-      rb_iv_set(self, "bitmap", c);
-      rb_iv_set(self, "non_inverted", Qnil);
-    }
-  }
-  return rb_iv_set(self, "@invert_colors", boolean);
-}
-
-static VALUE sprite_is_grayed_out(VALUE self)
-{
-  checkDisposed<Sprite>(self);
-  return rb_iv_get(self, "@grayed_out");
-}
-
-static VALUE sprite_is_sepia(VALUE self)
-{
-  checkDisposed<Sprite>(self);
-  return rb_iv_get(self, "@sepia");
-}
-
-static VALUE sprite_are_colors_inverted(VALUE self)
-{
-  checkDisposed<Sprite>(self);
-  return rb_iv_get(self, "@invert_colors");
 }
 
 static VALUE SpriteGetColor(VALUE self)
@@ -209,12 +131,6 @@ static VALUE SpriteSetTone(VALUE self, VALUE tone)
     t = getPrivateDataCheck<Tone>(tone, ToneType);
   GUARD_EXC( s->setTone(*t); )
   return tone;
-}
-
-static VALUE sprite_area(VALUE self)
-{
-  Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
-  return !s ? Qnil : rb_iv_get(self, "@area");
 }
 
 static VALUE SpriteGetX(VALUE self)
@@ -681,37 +597,28 @@ static VALUE sprite_mouse_target(VALUE self)
 
 static VALUE sprite_draggable(VALUE self)
 {
-  return rb_iv_get(self, "draggable");
+  return rb_iv_get(self, "@draggable");
 }
 
 static VALUE sprite_draggable_set(VALUE self, VALUE state)
 {
-  return rb_iv_set(self, "draggable", state);
+  return rb_iv_set(self, "@draggable", state);
 }
 
 static VALUE sprite_drag_always(VALUE self)
 {
-  return rb_iv_get(self, "drag_condition") == hc_sym("always") ? Qtrue : Qfalse;
+  return rb_iv_get(self, "@drag_condition") == hc_sym("always") ? Qtrue : Qfalse;
 }
 
 static VALUE sprite_drag_color(VALUE self)
 {
-  VALUE cnd = rb_iv_get(self, "drag_condition");
+  VALUE cnd = rb_iv_get(self, "@drag_condition");
   return (cnd == hc_sym("always") || cnd == hc_sym("color"))? Qtrue : Qfalse;
 }
 
 static VALUE sprite_drag_condition(VALUE self)
 {
-  return rb_iv_get(self, "drag_condition");
-}
-
-static VALUE sprite_drag_condition_set(VALUE self, VALUE symbol)
-{
-  if (symbol == Qnil || symbol == Qfalse)
-    rb_iv_set(self, "draggable", Qfalse);
-  else
-    rb_iv_set(self, "draggable", Qtrue);
-  return rb_iv_set(self, "drag_condition", symbol);
+  return rb_iv_get(self, "@drag_condition");
 }
 
 static VALUE check_click_area(VALUE self, VALUE pos, bool state)
@@ -742,12 +649,7 @@ static VALUE sprite_is_press_click_area(VALUE self, VALUE pos)
   return check_click_area(self, pos, true);
 }
 
-static VALUE sprite_is_drag_margin_y(VALUE self)
-{
-  return rb_iv_get(self, "drag_margin_y");
-}
-
-static VALUE sprite_is_drag_margin_y_set(VALUE self, VALUE my)
+static VALUE sprite_drag_margin_y_set(VALUE self, VALUE my)
 {
   Sprite *s = static_cast<Sprite*>(RTYPEDDATA_DATA(self));
   if (!s)
@@ -755,7 +657,7 @@ static VALUE sprite_is_drag_margin_y_set(VALUE self, VALUE my)
   my = rb_funcall(my, rb_intern("to_i"), 0);
   int dmy = RB_FIX2INT(my);
   s->set_drag_margin_y(dmy);
-  return rb_iv_set(self, "drag_margin_y", my);
+  return rb_iv_set(self, "@drag_margin_y", my);
 }
 
 void sprite_setup_bush_opacity()
@@ -780,10 +682,13 @@ void SpriteBindingInit()
   disposableBindingInit<Sprite>(sprite);
   flashableBindingInit<Sprite>(sprite);
   viewportElementBindingInit<Sprite>(sprite);
+  rb_define_attr(sprite, "area", 1, 1);
   rb_define_attr(sprite, "base_name", 1, 1);
   rb_define_attr(sprite, "hover_name", 1, 1);
   rb_define_attr(sprite, "hover_hue", 1, 1);
   rb_define_attr(sprite, "hover_filetype", 1, 1);
+  rb_define_attr(sprite, "drag_margin_y", 1, 0);
+  rb_define_attr(sprite, "drag_condition", 1, 1);
   rb_define_method(sprite, "initialize", RMF(spriteInitialize), -1);
   rb_define_method(sprite, "bitmap", RMF(SpriteGetBitmap), 0);
   rb_define_method(sprite, "bitmap=", RMF(SpriteSetBitmap), 1);
@@ -793,7 +698,6 @@ void SpriteBindingInit()
   rb_define_method(sprite, "color=", RMF(SpriteSetColor), 1);
   rb_define_method(sprite, "tone", RMF(SpriteGetTone), 0);
   rb_define_method(sprite, "tone=", RMF(SpriteSetTone), 1);
-  rb_define_method(sprite, "area", RMF(sprite_area), 0);
   rb_define_method(sprite, "x", RMF(SpriteGetX), 0);
   rb_define_method(sprite, "x=", RMF(SpriteSetX), 1);
   rb_define_method(sprite, "y", RMF(SpriteGetY), 0);
@@ -845,22 +749,13 @@ void SpriteBindingInit()
   rb_define_method(sprite, "mouse_inside_color?", RMF(sprite_is_mouse_above_color), 0);
   rb_define_method(sprite, "mouse_above_color?", RMF(sprite_is_mouse_above_color), 0);
   rb_define_method(sprite, "mouse_target?", RMF(sprite_mouse_target), 0);
-  rb_define_method(sprite, "drag_condition", RMF(sprite_drag_condition), 0);
-  rb_define_method(sprite, "drag_condition=", RMF(sprite_drag_condition_set), 1);
   rb_define_method(sprite, "drag_always?", RMF(sprite_drag_always), 0);
   rb_define_method(sprite, "drag_color?", RMF(sprite_drag_color), 0);
   rb_define_method(sprite, "draggable?", RMF(sprite_draggable), 0);
   rb_define_method(sprite, "draggable=", RMF(sprite_draggable_set), 1);
+  rb_define_method(sprite, "drag_margin_y=", RMF(sprite_drag_margin_y_set), 1);
   rb_define_method(sprite, "click_area?", RMF(sprite_is_click_area), 1);
   rb_define_method(sprite, "press_click_area?", RMF(sprite_is_press_click_area), 1);
-  rb_define_method(sprite, "drag_margin_y", RMF(sprite_is_drag_margin_y), 0);
-  rb_define_method(sprite, "drag_margin_y=", RMF(sprite_is_drag_margin_y_set), 1);
-  rb_define_method(sprite, "gray_out=", RMF(sprite_gray_out), 1);
-  rb_define_method(sprite, "turn_sepia=", RMF(sprite_turn_sepia), 1);
-  rb_define_method(sprite, "invert_colors=", RMF(sprite_invert_colors), 1);
-  rb_define_method(sprite, "grayed_out?", RMF(sprite_is_grayed_out), 0);
-  rb_define_method(sprite, "sepia?", RMF(sprite_is_sepia), 0);
-  rb_define_method(sprite, "colors_inverted?", RMF(sprite_are_colors_inverted), 0);
   rb_define_method(sprite, "wave_rotate", RMF(SpriteGetWaveRotate), 0);
   rb_define_method(sprite, "wave_rotate=", RMF(SpriteSetWaveRotate), 1);
   rb_define_method(sprite, "wave_amp", RMF(SpriteGetWaveAmp), 0);

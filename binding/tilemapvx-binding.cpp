@@ -20,6 +20,7 @@
 */
 
 #include "hcextras.h"
+#include "type_slots.h"
 #include "tilemapvx.h"
 #include "viewport.h"
 #include "bitmap.h"
@@ -29,8 +30,11 @@
 #include "binding-util.h"
 #include "binding-types.h"
 
-DEF_TYPE_CUSTOMNAME(TilemapVX, "Tilemap");
-DEF_TYPE_CUSTOMFREE(BitmapArray, RUBY_TYPED_NEVER_FREE);
+rb_data_type_t TilemapVXType = { "TilemapVX",
+  { 0, freeInstance<TilemapVX>, type_slots }, 0, 0, 0 };
+  
+rb_data_type_t BitmapArrayType = { "BitmapArray",
+  { 0, RUBY_TYPED_NEVER_FREE, type_slots }, 0, 0, 0 };
 
 RB_METHOD(tilemapVXInitialize)
 {

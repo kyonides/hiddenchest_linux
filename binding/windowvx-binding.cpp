@@ -20,6 +20,7 @@
 */
 
 #include "windowvx.h"
+#include "type_slots.h"
 #include "disposable-binding.h"
 #include "viewportelement-binding.h"
 #include "binding-util.h"
@@ -28,9 +29,11 @@
 #include "debugwriter.h"
 
 DECL_TYPE(Rect);
-extern VALUE rect_from_ary(VALUE ary);
 
-DEF_TYPE_CUSTOMNAME(WindowVX, "Window");
+rb_data_type_t WindowVXType = { "WindowVX",
+  { 0, freeInstance<WindowVX>, type_slots }, 0, 0, 0 };
+  
+extern VALUE rect_from_ary(VALUE ary);
 
 void bitmapInitProps(Bitmap *b, VALUE self);
 

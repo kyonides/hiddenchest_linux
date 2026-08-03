@@ -537,7 +537,7 @@ module RPG
   end
 
   class Weather
-    @@sprite_max = 1000
+    @@sprite_max = 300
     def initialize(viewport = nil)
       @type = 0
       @max = 0
@@ -562,7 +562,7 @@ module RPG
       @snow_bitmap.fill_rect(2, 1, 2, 4, color1)
       @sprites = []
       for i in 1..@@sprite_max
-        sprite = Sprite.new(viewport)
+        sprite = Object::Sprite.new(viewport)
         sprite.z = 1000
         sprite.visible = false
         sprite.opacity = 0

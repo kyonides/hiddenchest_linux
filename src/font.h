@@ -28,8 +28,13 @@
 #include <vector>
 #include <string>
 
+#if __WINDOWS
+#define FONT _TTF_Font
+#else
+#define FONT TTF_Font
+#endif
 struct SDL_RWops;
-struct _TTF_Font;
+struct FONT;
 struct Config;
 struct SharedFontStatePrivate;
 
@@ -44,9 +49,9 @@ public:
    * 'filename' is the corresponding path */
   void initFontSetCB(SDL_RWops &ops, const std::string &filename);
   void init_system_font(const std::string &filename);
-  _TTF_Font *getFont(std::string family, int size);
   bool fontPresent(std::string family) const;
-  static _TTF_Font *openBundled(int size);
+  FONT *getFont(std::string family, int size);
+  static FONT *openBundled(int size);
 
 private:
   SharedFontStatePrivate *p;
@@ -147,7 +152,7 @@ public:
   static void initDefaults(const SharedFontState &sfs);
   static void init_system_fonts(const std::vector<std::string> &names);
   // internal
-  _TTF_Font *getSdlFont();
+  FONT *getSdlFont();
 
 private:
   FontPrivate *p;

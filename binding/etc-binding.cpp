@@ -20,14 +20,20 @@
 */
 
 #include "hcextras.h"
+#include "type_slots.h"
 #include "etc.h"
 #include "binding-util.h"
 #include "serializable-binding.h"
 #include "sharedstate.h"
 
-DEF_TYPE(Color);
-DEF_TYPE(Tone);
-DEF_TYPE(Rect);
+rb_data_type_t ColorType = { "Color",
+  { 0, freeInstance<Color>, type_slots }, 0, 0, 0 };
+
+rb_data_type_t ToneType = { "Tone",
+  { 0, freeInstance<Tone>, type_slots }, 0, 0, 0 };
+
+rb_data_type_t RectType = { "Rect",
+  { 0, freeInstance<Rect>, type_slots }, 0, 0, 0 };
 
 #define ATTR_RW(Klass, Attr, arg_type, arg_t_s, value_fun) \
 static VALUE (Klass##Get##Attr)(VALUE self) \

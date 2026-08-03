@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "-w -O0")
-set(CMAKE_CXX_FLAGS_DEBUG "-w -O0")
-set(CMAKE_C_FLAGS_DEBUG "-w -O0")
-set(RUBY "2.7")
+#set(CMAKE_CXX_FLAGS "-w -O0 -g3 -fno-omit-frame-pointer")
+#set(CMAKE_CXX_FLAGS_DEBUG "-w -O0 -g3 -fno-omit-frame-pointer")
+set(CMAKE_C_FLAGS_DEBUG "-w -O0 -g3 -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-w -O0 -g3 -fno-omit-frame-pointer")
+set(RUBY "3.4")
 Project(hiddenchest)
 
 ## Setup options ##
@@ -234,7 +235,7 @@ list(APPEND MAIN_HEADERS src/theoraplay/theoraplay.h)
 list(APPEND MAIN_HEADERS src/theoraplay/theoraplay_cvtrgb.h)
 list(APPEND MAIN_SOURCE src/theoraplay.c)
 
-source_group("MKXPPLUS Source" FILES ${MAIN_SOURCE} ${MAIN_HEADERS})
+source_group("HIDDENCHEST Source" FILES ${MAIN_SOURCE} ${MAIN_HEADERS})
 
 ## Setup embedded source ##
 

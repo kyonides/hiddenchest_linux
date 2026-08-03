@@ -19,13 +19,15 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "type_slots.h"
 #include "plane.h"
 #include "disposable-binding.h"
 #include "viewportelement-binding.h"
 #include "binding-util.h"
 #include "binding-types.h"
 
-DEF_TYPE(Plane);
+rb_data_type_t PlaneType = { "Plane",
+  { 0, freeInstance<Plane>, type_slots }, 0, 0, 0 };
 
 RB_METHOD(planeInitialize)
 {

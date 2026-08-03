@@ -3,7 +3,7 @@
 **
 ** This file is part of HiddenChest.
 **
-** Copyright (C) 2019 Kyonides-Arkanthes <kyonides@gmail.com>
+** Copyright (C) 2019-2026 Kyonides Arkanthes <kyonides@gmail.com>
 **
 ** HiddenChest is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by

@@ -137,7 +137,7 @@ void SharedFontState::init_system_font(const std::string &filename)
     set.other = filename;
 }
 
-_TTF_Font *SharedFontState::getFont(std::string family, int size)
+FONT *SharedFontState::getFont(std::string family, int size)
 {
   TTF_Font *font;
   FontKey key(family, size); //reduced
@@ -215,7 +215,7 @@ bool SharedFontState::fontPresent(std::string family) const
   return !(set.regular.empty() && set.other.empty());
 }
 
-_TTF_Font *SharedFontState::openBundled(int size)
+FONT *SharedFontState::openBundled(int size)
 {
   SDL_RWops *ops = openBundledFont();
   return TTF_OpenFontRW(ops, 1, size - reduce_size);
@@ -846,7 +846,7 @@ void Font::init_system_fonts(const std::vector<std::string> &names)
     shState->fontState().init_system_font(names[n]);
 }
 
-_TTF_Font *Font::getSdlFont()
+FONT *Font::getSdlFont()
 {
   if (!p->sdlFont)
     p->sdlFont = shState->fontState().getFont(p->name.c_str(), p->size);

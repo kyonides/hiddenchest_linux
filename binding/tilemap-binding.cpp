@@ -20,6 +20,7 @@
 */
 
 #include "hcextras.h"
+#include "type_slots.h"
 #include "tilemap.h"
 #include "viewport.h"
 #include "bitmap.h"
@@ -28,7 +29,11 @@
 #include "binding-util.h"
 #include "binding-types.h"
 
-DEF_TYPE_CUSTOMFREE(TilemapAutotiles, RUBY_TYPED_NEVER_FREE);
+rb_data_type_t TilemapAutotilesType = { "TilemapAutotiles",
+  { 0, RUBY_TYPED_NEVER_FREE, type_slots }, 0, 0, 0 };
+
+rb_data_type_t TilemapType = { "Tilemap",
+  { 0, freeInstance<Tilemap>, type_slots }, 0, 0, 0 };
 
 static VALUE tilemapAutotilesSet(VALUE self, VALUE pos, VALUE obj)
 {
@@ -49,8 +54,6 @@ static VALUE tilemapAutotilesGet(VALUE self, VALUE pos)
   VALUE ary = rb_iv_get(self, "array");
   return rb_ary_entry(ary, i);
 }
-
-DEF_TYPE(Tilemap);
 
 static VALUE tilemapInitialize(int argc, VALUE *argv, VALUE self)
 {

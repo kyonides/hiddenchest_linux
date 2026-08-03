@@ -1054,6 +1054,7 @@ end
 
 begin
   $LOAD_PATH << Dir.pwd
+  GC.auto_compact = false
   Game.clear
   Game.setup_custom_scene
   if FileInt.exist?(Game.custom_scene_file)

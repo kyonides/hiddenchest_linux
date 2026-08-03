@@ -27,6 +27,7 @@
 #include <ruby/intern.h>
 #include "hcextras.h"
 #include "debugwriter.h"
+#include "type_slots.h"
 
 extern void hc_rb_splash(VALUE exception);
 static VALUE eFileError;
@@ -45,7 +46,7 @@ static void fileIntFreeInstance(void *inst)
 }
 
 rb_data_type_t FileIntType = { "FileIntr",
-  { 0, fileIntFreeInstance, 0, 0, { 0 } }, 0, 0, 0 };
+  { 0, fileIntFreeInstance, type_slots }, 0, 0, 0 };
 
 static VALUE file_hash_clear(VALUE self)
 {
@@ -146,7 +147,6 @@ VALUE kernelLoadDataInt(const char *fname, bool rubyExc)
   VALUE result;
   result = rb_funcall2(marsh, rb_intern("load"), 1, &port);
   rb_funcall2(port, rb_intern("close"), 0, NULL);
-  rb_gc_start();
   return result;
 }
 

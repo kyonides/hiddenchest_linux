@@ -40,19 +40,20 @@ static VALUE graphicsUpdate(VALUE self)
 
 static VALUE graphicsFreeze(VALUE self)
 {
+  rb_gc_enable();
   shState->graphics().freeze();
   return Qnil;
 }
 
-RB_METHOD(graphicsTransition)
+static VALUE graphicsTransition(int argc, VALUE *argv, VALUE self)
 {
-  RB_UNUSED_PARAM;
   int duration = 8;
   const char *filename = "";
   int vague = 40;
   if (argc > 0)
     rb_get_args(argc, argv, "|izi", &duration, &filename, &vague RB_ARG_END);
   GUARD_EXC( shState->graphics().transition(duration, filename, vague); )
+  rb_gc_disable();
   return Qnil;
 }
 

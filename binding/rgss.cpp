@@ -32,6 +32,7 @@
 #include "audio.h"
 #include "boost-hash.h"
 #include "hcextras.h"
+#include "type_slots.h"
 #include <ruby/encoding.h>
 #include <ruby/io.h>
 #include <assert.h>
@@ -299,9 +300,8 @@ static VALUE evalHelper(evalArg *arg)
   VALUE argv[] = { arg->string, Qnil, arg->filename };
   return rb_funcall2(Qnil, rb_intern("eval"), ARRAY_SIZE(argv), argv);
 }
-
 static VALUE evalString(VALUE string, VALUE filename, int *state)
-{
+{//Debug() << "Evaluating " << RSTRING_PTR(filename);
   evalArg arg = { string, filename };
   return rb_protect((VALUE (*)(VALUE))evalHelper, (VALUE)&arg, state);
 }
@@ -511,6 +511,7 @@ static void runRGSSscripts(BacktraceData &btData)
     script = rb_ary_entry(section, script_pos);
     string = newStringUTF8(RSTRING_PTR(script), RSTRING_LEN(script));
     ch scriptName = RSTRING_PTR(rb_ary_entry(section, name_pos));
+    //Debug() << "Processing" << scriptName;
     char buf[1024];
     int len;
     len = snprintf(buf, sizeof(buf), "Section%04ld:%s", i, scriptName);
@@ -594,17 +595,35 @@ static void mriBindingExecute()
 {/* Normally only a ruby executable would do a sysinit,
  * but not doing it will lead to crashes due to closed
  * stdio streams on some platforms (eg. Windows) */
-  int argc = 0, state = 0;
-  char **argv = 0;
-  ruby_sysinit(&argc, &argv);
-  ruby_init();
+  Config &conf = shState->rtData().config;
+  char *exec_name = (char*)conf.execName.c_str();
+  int argc = 1, state = 0;
+  char *argv[] = { exec_name, "-e ", "", 0 };
+  char **args = argv;
+  ruby_sysinit(&argc, &args);
   RUBY_INIT_STACK;
-  ruby_setup();
+  ruby_init();
   ruby_init_loadpath();
+#if RUBY_VERSION >= 30
+  void *node = ruby_options(3, argv);
+  bool valid = ruby_executable_node(node, &state);
+  if (valid)
+    state = ruby_exec_node(node);
+  if (!valid || state) {
+    rb_p(rb_errinfo());
+    ruby_cleanup(0);
+    shState->rtData().rqTermAck.set();
+    return;
+  }
+#endif
+  VALUE rname, game, sys_exe;
+  rname = rstr(exec_name);
+  game = rb_define_module("Game");
+  sys_exe = hc_sym("SYS_EXE_NAME");
+  rb_const_set(game, sys_exe, rname);
   VALUE encoding = rb_enc_from_encoding(rb_utf8_encoding());
   rb_enc_set_default_external(encoding);
   rb_enc_set_default_internal(encoding);
-  Config &conf = shState->rtData().config;
   if (!conf.rubyLoadpaths.empty()) {
     // Setup custom load paths
     VALUE lpaths = rb_gv_get(":");
@@ -636,6 +655,7 @@ static void mriBindingExecute()
   state = rb_check_rgss_version();
   if (state) {
     rb_p(rb_errinfo());
+    rb_gc_enable();
     ruby_cleanup(0);
     shState->rtData().rqTermAck.set();
     return;
@@ -643,6 +663,7 @@ static void mriBindingExecute()
   state = rb_load_kchangekeys();
   if (state) {
     rb_p(rb_errinfo());
+    rb_gc_enable();
     ruby_cleanup(0);
     shState->rtData().rqTermAck.set();
     return;
@@ -669,6 +690,7 @@ static void mriBindingExecute()
   }
   if (exc != Qnil && !rb_obj_is_kind_of(exc, rb_eSystemExit))
     hc_rb_splash(exc); //showExc(exc, btData);
+  rb_gc_enable();
   ruby_cleanup(0);
   shState->rtData().rqTermAck.set();
 }

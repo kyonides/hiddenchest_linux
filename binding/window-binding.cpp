@@ -21,6 +21,7 @@
 */
 
 #include "clicks.h"
+#include "type_slots.h"
 #include "hcextras.h"
 #include "window.h"
 #include "viewport.h"
@@ -31,8 +32,10 @@
 #include "disposable-binding.h"
 #include "binding-util.h"
 
-DEF_TYPE(Window);
 DECL_TYPE(Rect);
+
+rb_data_type_t WindowType = { "Window",
+  { 0, freeInstance<Window>, type_slots }, 0, 0, 0 };
 
 extern VALUE zero;
 

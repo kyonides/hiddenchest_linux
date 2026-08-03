@@ -19,6 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "type_slots.h"
 #include <algorithm>
 #include "table.h"
 #include "binding-util.h"
@@ -47,7 +48,8 @@ static void parseArgsTableSizes(int argc, VALUE *argv, int *x, int *y, int *z)
   }
 }
 
-DEF_TYPE(Table);
+rb_data_type_t TableType = { "Table",
+  { 0, freeInstance<Table>, type_slots }, 0, 0, 0 };
 
 RB_METHOD(tableInitialize)
 {

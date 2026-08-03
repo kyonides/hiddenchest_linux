@@ -20,6 +20,7 @@
 */
 
 #include "hcextras.h"
+#include "type_slots.h"
 #include "bitmap.h"
 #include "font.h"
 #include "exception.h"
@@ -31,7 +32,8 @@
 
 VALUE hidden;
 
-DEF_TYPE(Bitmap);
+rb_data_type_t BitmapType = { "Bitmap",
+  { 0, freeInstance<Bitmap>, type_slots }, 0, 0, 0 };
 
 static const char *objAsStringPtr(VALUE obj)
 {
