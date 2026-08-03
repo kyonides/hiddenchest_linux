@@ -23,7 +23,7 @@
 #include "sprite.h"
 #include "sharedstate.h"
 #include "bitmap.h"
-#include "input.h"
+#include "input/input.h"
 #include "etc.h"
 #include "util.h"
 #include "gl-util.h"

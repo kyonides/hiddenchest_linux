@@ -20,7 +20,7 @@
 ** along with HiddenChest. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "input.h"
+#include "input/input.h"
 #include "windowvx.h"
 #include "bitmap.h"
 #include "etc.h"

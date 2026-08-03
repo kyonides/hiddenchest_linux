@@ -21,8 +21,8 @@
 */
 
 #include <al.h>
-#include "audio.h"
-#include "audio_data.h"
+#include "audio/audio.h"
+#include "audio/audio_data.h"
 #include "sharedstate.h"
 #include "exception.h"
 #include "binding-util.h"

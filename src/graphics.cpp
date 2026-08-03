@@ -38,7 +38,7 @@
 #include "texpool.h"
 #include "movie.h"
 #include "util.h"
-#include "input.h"
+#include "input/input.h"
 #include "sprite.h"
 #include <SDL.h>
 #include <SDL_image.h>

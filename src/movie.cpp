@@ -1,6 +1,6 @@
 
 #include <SDL.h>
-#include "input.h"
+#include "input/input.h"
 #include "movie.h"
 #include "disposable.h"
 #include "debugwriter.h"

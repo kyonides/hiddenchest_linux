@@ -21,12 +21,12 @@
 */
 
 #include "clicks.h"
-#include "input.h"
+#include "input/input.h"
 #include "input_buttons.h"
 #include "input_vendors.h"
 #include "sharedstate.h"
 #include "eventthread.h"
-#include "keybindings.h"
+#include "input/keybindings.h"
 #include "exception.h"
 #include "binding-util.h"
 #include "util.h"

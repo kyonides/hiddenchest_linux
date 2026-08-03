@@ -25,7 +25,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
-#include "src/SDL_sound.h"
+#include "src/audio/SDL_sound.h"
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>

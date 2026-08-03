@@ -8,7 +8,7 @@
 
 #include "clicks.h"
 #include "hcextras.h"
-#include "input.h"
+#include "input/input.h"
 #include "sharedstate.h"
 
 #define ZERO RB_INT2FIX(0)

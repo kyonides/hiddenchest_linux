@@ -8,7 +8,7 @@
 #include "msgboxsprite.h"
 #include "sharedstate.h"
 #include "bitmap.h"
-#include "input.h"
+#include "input/input.h"
 #include "etc.h"
 #include "etc-internal.h"
 #include "util.h"

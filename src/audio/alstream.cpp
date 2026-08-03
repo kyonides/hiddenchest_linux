@@ -300,6 +300,7 @@ void ALStream::read_source(const std::string &filename, AudioData &ad)
   ad.sample_rate = handler.source->sampleRate();
   ad.samples = handler.source->samples();
   ad.seconds = handler.source->seconds();
+  delete handler.source;
 }
 
 void ALStream::openSource(const std::string &filename, int channels)

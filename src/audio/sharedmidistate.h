@@ -36,7 +36,7 @@
 struct Synth
 {
   fluid_synth_t *synth;
-  bool inUse;
+  bool inUse = false;
 };
 
 struct SharedMidiState
@@ -60,7 +60,8 @@ struct SharedMidiState
     if (!inited || !HAVE_FLUID)
       return;
     for (size_t i = 0; i < synths.size(); ++i) {
-      assert(!synths[i].inUse);
+      if (synths[i].inUse)
+        fluid.synth_all_sounds_off(synths[i].synth, -1);
       fluid.delete_synth(synths[i].synth);
     }
     // FluidSynth 2.x Fix: https://github.com/FluidSynth/fluidsynth/issues/748
@@ -121,8 +122,7 @@ struct SharedMidiState
 
   void set_soundfont(std::string new_sf)
   {
-    assert(HAVE_FLUID);
-    //assert(inited);
+    assert(HAVE_FLUID);//assert(inited);
     other_soundfont = new_sf;
     Debug() << "New SoundFont:" << new_sf;
     size_t i = 1000;

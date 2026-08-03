@@ -25,8 +25,8 @@
 #include "util.h"
 #include "filesystem.h"
 #include "graphics.h"
-#include "input.h"
-#include "audio.h"
+#include "input/input.h"
+#include "audio/audio.h"
 #include "glstate.h"
 #include "shader.h"
 #include "texpool.h"
@@ -37,7 +37,7 @@
 #include "quad.h"
 #include "binding.h"
 #include "exception.h"
-#include "sharedmidistate.h"
+#include "audio/sharedmidistate.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <chrono>

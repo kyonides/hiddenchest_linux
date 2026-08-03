@@ -26,7 +26,7 @@
 #include "config.h"
 #include "etc-internal.h"
 #include "sdl-util.h"
-#include "keybindings.h"
+#include "input/keybindings.h"
 #include <SDL_scancode.h>
 #include <SDL_joystick.h>
 #include <SDL_mouse.h>

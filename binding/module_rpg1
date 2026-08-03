@@ -537,7 +537,7 @@ module RPG
   end
 
   class Weather
-    @@sprite_max = 300
+    @@sprite_max = 500
     def initialize(viewport = nil)
       @type = 0
       @max = 0

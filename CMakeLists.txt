@@ -119,7 +119,6 @@ pkg_check_modules(THEORADEC  REQUIRED theoradec)
 set(MAIN_HEADERS
   src/resolution.h
   src/quadarray.h
-  src/audio.h
   src/binding.h
   src/bitmap.h
   src/disposable.h
@@ -128,7 +127,6 @@ set(MAIN_HEADERS
   src/eventthread.h
   src/flashable.h
   src/font.h
-  src/input.h
   src/plane.h
   src/scene.h
   src/sprite.h
@@ -156,37 +154,39 @@ set(MAIN_HEADERS
   src/gl-util.h
   src/util.h
   src/config.h
-  src/keybindings.h
   src/tileatlas.h
   src/sharedstate.h
-  src/al-util.h
   src/boost-hash.h
   src/debugwriter.h
   src/gl-fun.h
   src/gl-meta.h
   src/vertex.h
-  src/soundemitter.h
-  src/aldatasource.h
-  src/alstream.h
-  src/audiostream.h
   src/rgssad.h
   src/windowvx.h
   src/tilemapvx.h
   src/tileatlasvx.h
-  src/sharedmidistate.h
-  src/fluid-fun.h
-  src/sdl-util.h #src/SDL_SavePNG.h
   src/clicks.h
+  src/sdl-util.h
+  src/audio/al-util.h
+  src/audio/aldatasource.h
+  src/audio/alstream.h
+  src/audio/audio.h
+  src/audio/audio_data.h
+  src/audio/audiostream.h
+  src/audio/fluid-fun.h
+  src/audio/SDL_sound.h
+  src/audio/sharedmidistate.h
+  src/audio/soundemitter.h
+  src/input/input.h
+  src/input/keybindings.h
 )
 
 set(MAIN_SOURCE
   src/main.cpp
-  src/audio.cpp
   src/bitmap.cpp
   src/eventthread.cpp
   src/filesystem.cpp
   src/font.cpp
-  src/input.cpp
   src/plane.cpp
   src/scene.cpp
   src/sprite.cpp
@@ -205,25 +205,27 @@ set(MAIN_SOURCE
   src/gl-debug.cpp
   src/etc.cpp
   src/config.cpp
-  src/keybindings.cpp
   src/tileatlas.cpp
   src/sharedstate.cpp
   src/gl-fun.cpp
   src/gl-meta.cpp
   src/vertex.cpp
-  src/soundemitter.cpp
-  src/sdlsoundsource.cpp
-  src/alstream.cpp
-  src/audiostream.cpp
   src/rgssad.cpp
   src/bundledfont.cpp
-  src/vorbissource.cpp
   src/windowvx.cpp
   src/tilemapvx.cpp
   src/tileatlasvx.cpp
   src/autotilesvx.cpp
-  src/midisource.cpp
-  src/fluid-fun.cpp
+  src/audio/alstream.cpp
+  src/audio/audio.cpp
+  src/audio/audiostream.cpp
+  src/audio/fluid-fun.cpp
+  src/audio/midisource.cpp
+  src/audio/sdlsoundsource.cpp
+  src/audio/soundemitter.cpp
+  src/audio/vorbissource.cpp
+  src/input/input.cpp
+  src/input/keybindings.cpp
 )
 
 if(WIN32)

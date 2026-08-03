@@ -29,7 +29,7 @@
 #include "sdl-util.h"
 #include "debugwriter.h"
 #include "graphics.h"
-#include "audio.h"
+#include "audio/audio.h"
 #include "boost-hash.h"
 #include "hcextras.h"
 #include "type_slots.h"

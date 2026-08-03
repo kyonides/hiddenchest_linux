@@ -14,7 +14,7 @@
 #include "binding-util.h"
 #include <SDL_image.h>
 #include "sharedstate.h"
-#include "sharedmidistate.h"
+#include "audio/sharedmidistate.h"
 #include <string>
 #include "exception.h"
 #include "debugwriter.h"

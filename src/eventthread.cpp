@@ -32,7 +32,7 @@
 #include <alext.h>
 #include "sharedstate.h"
 #include "graphics.h"
-#include "al-util.h"
+#include "audio/al-util.h"
 #include "debugwriter.h"
 #include <iostream>
 #include <string.h>
