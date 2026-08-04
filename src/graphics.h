@@ -97,6 +97,8 @@ public:
   void set_block_fullscreen(bool value);
   void set_block_ftwelve(bool value);
   void set_show_cursor(bool value);
+  void set_frame_skip(bool value);
+  void set_vsync(bool value);
   void set_obscured_dirty(bool value);
   /* <internal> */
   Scene *getScreen() const;

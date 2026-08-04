@@ -964,12 +964,18 @@ module Game
     const_set("FULLSCREEN", state)
     state = DATA["SubImageFix"][/true/i] != nil
     const_set("SUBIMAGEFIX", state)
+    state = DATA["VSync"][/true/i] != nil
+    const_set("VSYNC", state)
+    state = DATA["FrameSkip"][/true/i] != nil
+    const_set("FRAMESKIP", state)
     puts "Ruby Version:       #{RUBY_VERSION}"
     puts "RGSS Version:       #{n} (#{MAKER})"
     puts "Game Screen Size:   #{WIDTH}x#{HEIGHT}"
     puts "Enable Debug:       #{DEBUG}"
     puts "Trigger Fullscreen: #{FULLSCREEN}"
     puts "SubImage Fix:       #{SUBIMAGEFIX}"
+    puts "VSync:              #{VSYNC}"
+    puts "Frame Skip:         #{FRAMESKIP}"
     Font.solid_fonts = DATA["SolidFonts"].to_s[/true/i] != nil
   end
 

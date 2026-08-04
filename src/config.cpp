@@ -126,44 +126,43 @@ namespace po = boost::program_options;
 #define CONF_FILE "hiddenchest.conf"
 */
 Config::Config()
-{
-	rgssVersion = 0;
-	debugMode = false;
-	printFPS = false;
-	winResizable = true;
-	fullscreen = false;
-	fixedAspectRatio = true;
-	smoothScaling = true;
-	vsync = true;
-	defScreenW = START_WIDTH;
-	defScreenH = START_HEIGHT;
-	windowTitle = "";
-	fixedFramerate = 0;
-	frameSkip = true;
-	syncToRefreshrate = false;
-	solidFonts = false;
-	subImageFix = false;
-	enableBlitting = true;
-	maxTextureSize = 0;
-	gameFolder = ".";
-	anyAltToggleFS = false;
-	enableReset = true;
-	allowSymlinks = false;
-	dataPathOrg = "";
-	dataPathApp = "";
-	customDataPath = ".";
-	commonDataPath = ".";
-	iconPath = "";
-	execName = "Game";
-	titleLanguage = "";
-	midi.soundFont = "";
-	midi.chorus = false;
-	midi.reverb = false;
-	SE.sourceCount = 6;
-	customScript = "";
-	pathCache = true;
-	font_cache = false;
-	useScriptNames = false;
+  {
+  rgssVersion = 0;
+  debugMode = false;
+  printFPS = false;
+  winResizable = true;
+  fullscreen = false;
+  fixedAspectRatio = true;
+  smoothScaling = true;
+  vsync = false;
+  defScreenW = START_WIDTH;
+  defScreenH = START_HEIGHT;
+  windowTitle = "";
+  fixedFramerate = 0;
+  frameSkip = true;
+  solidFonts = false;
+  subImageFix = false;
+  enableBlitting = true;
+  maxTextureSize = 0;
+  gameFolder = ".";
+  anyAltToggleFS = false;
+  enableReset = true;
+  allowSymlinks = false;
+  dataPathOrg = "";
+  dataPathApp = "";
+  customDataPath = ".";
+  commonDataPath = ".";
+  iconPath = "";
+  execName = "Game";
+  titleLanguage = "";
+  midi.soundFont = "";
+  midi.chorus = false;
+  midi.reverb = false;
+  SE.sourceCount = 6;
+  customScript = "";
+  pathCache = true;
+  font_cache = false;
+  useScriptNames = false;
 }
 
 void Config::read(int argc, char *argv[])

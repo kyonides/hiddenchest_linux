@@ -69,9 +69,10 @@ static VALUE game_window_set_icon(VALUE self, VALUE icon_name)
 
 static VALUE game_set_internal_values(VALUE self)
 {
-  VALUE win, sys, sfonts, rversion, width, height, ver, user_path;
-  VALUE scr, path, enc_ary, rtp_ary, icon, sfont, subimg;
+  VALUE win, sys, graph, sfonts, rversion, width, height, ver, user_path;
+  VALUE scr, path, enc_ary, rtp_ary, icon, sfont, subimg, vsync, fskip;
   win = rb_define_module_under(self, "Window");
+  graph = rb_define_module("Graphics");
   sys = rb_define_module("System");
   sfonts = rb_const_get(sys, rb_intern("SOUNDFONT_DIR"));
   rversion = rb_const_get(self, rb_intern("RGSS_VERSION"));
@@ -82,7 +83,11 @@ static VALUE game_set_internal_values(VALUE self)
   enc_ary = rb_const_get(self, rb_intern("ENCRYPTED_NAMES"));
   rtp_ary = rb_const_get(self, rb_intern("RTP"));
   subimg = rb_const_get(self, rb_intern("SUBIMAGEFIX"));
+  fskip = rb_const_get(self, rb_intern("FRAMESKIP"));
+  vsync = rb_const_get(self, rb_intern("VSYNC"));
   icon = rb_const_get(self, rb_intern("ICON"));
+  rb_iv_set(graph, "@frame_skip", fskip);
+  rb_iv_set(graph, "@vsync", vsync);
   game_window_set_icon(win, icon);
   sfont = rb_iv_get(self, "@soundfont");
   user_path = rb_iv_get(self, "@user_path");
@@ -119,7 +124,11 @@ static VALUE game_set_internal_values(VALUE self)
   shState->check_encrypted_game_files(enc_names);
   shState->check_soundfont_dir(sf_dir);
   shState->config().subImageFix = subimg == Qtrue;
+  shState->config().frameSkip = fskip == Qtrue;
+  shState->config().vsync = vsync == Qtrue;
   shState->config().customDataPath = RSTRING_PTR(user_path);
+  shState->graphics().set_frame_skip(fskip == Qtrue);
+  shState->graphics().set_vsync(vsync == Qtrue);
   if (RSTRING_LEN(sfont) > 4)
     shState->midiState().set_default_soundfont(sf);
   return Qnil;

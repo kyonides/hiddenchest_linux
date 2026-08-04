@@ -288,10 +288,10 @@ static VALUE graphics_get_block_fullscreen(VALUE self)
   return rb_iv_get(self, "@block_fullscreen");
 }
 
-static VALUE graphics_set_block_fullscreen(VALUE self, VALUE boolean)
+static VALUE graphics_set_block_fullscreen(VALUE self, VALUE state)
 {
-  shState->graphics().set_block_fullscreen(boolean == Qtrue);
-  return rb_iv_set(self, "@block_fullscreen", boolean);
+  shState->graphics().set_block_fullscreen(state == Qtrue);
+  return rb_iv_set(self, "@block_fullscreen", state);
 }
 
 static VALUE graphics_get_block_ftwelve(VALUE self)
@@ -299,10 +299,10 @@ static VALUE graphics_get_block_ftwelve(VALUE self)
   return rb_iv_get(self, "@block_f12");
 }
 
-static VALUE graphics_set_block_ftwelve(VALUE self, VALUE boolean)
+static VALUE graphics_set_block_ftwelve(VALUE self, VALUE state)
 {
-  shState->graphics().set_block_ftwelve(boolean == Qtrue);
-  return rb_iv_set(self, "@block_f12", boolean);
+  shState->graphics().set_block_ftwelve(state == Qtrue);
+  return rb_iv_set(self, "@block_f12", state);
 }
 
 static VALUE graphics_get_block_fone(VALUE self)
@@ -310,9 +310,9 @@ static VALUE graphics_get_block_fone(VALUE self)
   return rb_iv_get(self, "@block_f1");
 }
 
-static VALUE graphics_set_block_fone(VALUE self, VALUE boolean)
+static VALUE graphics_set_block_fone(VALUE self, VALUE state)
 {
-  return rb_iv_set(self, "@block_f1", boolean);
+  return rb_iv_set(self, "@block_f1", state);
 }
 
 static VALUE graphicsGetFullscreen(VALUE self)
@@ -320,12 +320,34 @@ static VALUE graphicsGetFullscreen(VALUE self)
   return shState->graphics().get_fullscreen() ? Qtrue : Qfalse;
 }
 
-static VALUE graphicsSetFullscreen(VALUE self, VALUE boolean)
+static VALUE graphicsSetFullscreen(VALUE self, VALUE state)
 {
   if (rb_iv_get(self, "@block_fullscreen") == Qtrue)
     return Qfalse;
-  shState->graphics().set_fullscreen(boolean == Qtrue);
+  shState->graphics().set_fullscreen(state == Qtrue);
   return shState->graphics().get_fullscreen() ? Qtrue : Qfalse;
+}
+
+static VALUE graphics_frame_skip(VALUE self)
+{
+  return rb_iv_get(self, "@frame_skip");
+}
+
+static VALUE graphics_frame_skip_set(VALUE self, VALUE state)
+{
+  shState->graphics().set_frame_skip(state == Qtrue);
+  return rb_iv_set(self, "@frame_skip", state);
+}
+
+static VALUE graphics_vsync(VALUE self)
+{
+  return rb_iv_get(self, "@vsync");
+}
+
+static VALUE graphics_vsync_set(VALUE self, VALUE state)
+{
+  shState->graphics().set_vsync(state == Qtrue);
+  return rb_iv_set(self, "@vsync", state);
 }
 
 static VALUE graphics_get_show_cursor(VALUE self)
@@ -333,10 +355,10 @@ static VALUE graphics_get_show_cursor(VALUE self)
   return shState->graphics().get_show_cursor() ? Qtrue : Qfalse;
 }
 
-static VALUE graphics_set_show_cursor(VALUE self, VALUE boolean)
+static VALUE graphics_set_show_cursor(VALUE self, VALUE state)
 {
-  shState->graphics().set_show_cursor(boolean == Qtrue);
-  return boolean;
+  shState->graphics().set_show_cursor(state == Qtrue);
+  return state;
 }
 
 static VALUE graphics_set_window(VALUE self, VALUE sx, VALUE sy)
@@ -376,6 +398,8 @@ void graphicsBindingInit()
   rb_iv_set(graph, "@block_fullscreen", Qfalse);
   rb_iv_set(graph, "@block_f12", Qfalse);
   rb_iv_set(graph, "@block_f1", Qfalse);
+  rb_iv_set(graph, "@frame_skip", Qfalse);
+  rb_iv_set(graph, "@vsync", Qfalse);
   module_func(graph, "update", graphicsUpdate, 0);
   module_func(graph, "freeze", graphicsFreeze, 0);
   module_func(graph, "transition", graphicsTransition, -1);
@@ -415,6 +439,10 @@ void graphicsBindingInit()
   module_func(graph, "block_f1=", graphics_set_block_fone, 1);
   module_func(graph, "fullscreen", graphicsGetFullscreen, 0);
   module_func(graph, "fullscreen=", graphicsSetFullscreen, 1);
+  module_func(graph, "frame_skip", graphics_frame_skip, 0);
+  module_func(graph, "frame_skip=", graphics_frame_skip_set, 1);
+  module_func(graph, "vsync", graphics_vsync, 0);
+  module_func(graph, "vsync=", graphics_vsync_set, 1);
   module_func(graph, "show_cursor", graphics_get_show_cursor, 0);
   module_func(graph, "show_cursor=", graphics_set_show_cursor, 1);
   module_func(graph, "set_window", graphics_center_window, 2);

@@ -56,8 +56,8 @@
 // Increased Screen Resolution for RGSS1
 #include "resolution.h"
 #define DEF_FRAMERATE 60
-#define RATE_MIN 10
-#define RATE_MAX 160
+#define RATE_MIN 20
+#define RATE_MAX 300
 
 struct PingPong
 {
@@ -530,6 +530,8 @@ struct GraphicsPrivate
   bool block_ftwelve;
   bool obscured_dirty;
   bool frozen;
+  bool frame_skip;
+  bool vsync;
   TEXFBO frozenScene;
   Quad screenQuad;
   unsigned long long last_update;
@@ -553,6 +555,8 @@ struct GraphicsPrivate
     fpsLimiter(frameRate),
     obscured_dirty(false),
     frozen(false),
+    frame_skip(false),
+    vsync(false),
     last_update(0),
     last_avg_update(0),
     block_fullscreen(false),
@@ -776,7 +780,8 @@ Graphics::Graphics(RGSSThreadData *data) :
   screenshot_fn("screenshot")
 {
   p = new GraphicsPrivate(data);
-  if (data->config.syncToRefreshrate) {
+  if (data->config.vsync) {
+    p->vsync = data->config.vsync;
     p->frameRate = data->refreshRate;
     p->fpsLimiter.disabled = true;
   } else if (data->config.fixedFramerate > 0) {
@@ -848,7 +853,7 @@ void Graphics::update()
   if (p->frozen)
     return;
   if (p->fpsLimiter.frameSkipRequired()) {
-    if (p->threadData->config.frameSkip) { // Skip frame
+    if (p->frame_skip) { // Skip frame
       p->fpsLimiter.delay();
       ++p->frameCount;
       p->threadData->ethread->notifyFrame();
@@ -973,7 +978,7 @@ DEF_ATTR_SIMPLE(Graphics, FrameCount, int, p->frameCount)
 void Graphics::setFrameRate(int value)
 {
   p->frameRate = clamp(value, RATE_MIN, RATE_MAX);
-  if (p->threadData->config.syncToRefreshrate)
+  if (p->threadData->config.vsync)
     return;
   if (p->threadData->config.fixedFramerate > 0)
     return;
@@ -1291,6 +1296,19 @@ bool Graphics::get_show_cursor() const
 void Graphics::set_show_cursor(bool value)
 {
   p->threadData->ethread->requestShowCursor(value);
+}
+
+void Graphics::set_vsync(bool value)
+{
+  if (value)
+    p->frameRate = shState->rtData().refreshRate;
+  p->fpsLimiter.disabled = value;
+  p->vsync = value;
+}
+
+void Graphics::set_frame_skip(bool value)
+{
+  p->frame_skip = value;
 }
 
 bool Graphics::obscured_dirty() const
