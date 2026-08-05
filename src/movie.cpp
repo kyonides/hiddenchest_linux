@@ -182,11 +182,14 @@ void Movie::play()
   bool openedAudio = false;
   while (THEORAPLAY_isDecoding(decoder)) {
     // Check for reset / shutdown input
-    if(shState->graphics().updateMovieInput(this)) break;
+    if(shState->graphics().updateMovieInput(this))
+      break;
     // Check for attempted skip
     if (skippable) {
       shState->input().update();
-      if (shState->input().isTriggered(Input::C) || shState->input().isTriggered(Input::B)) break;
+      if (shState->input().is_triggered(2, Input::C) ||
+        shState->input().is_triggered(2, Input::B))
+        break;
     }
     const Uint32 now = SDL_GetTicks() - baseTicks;
     if (!video)

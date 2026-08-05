@@ -58,6 +58,7 @@ struct Binding
   Binding(Input::ButtonCode target = Input::None, uint16_t source = 0)
   : target(target),
     source(source),
+    index(0),
     type(0),
     extra(0)
   {}
@@ -67,6 +68,7 @@ struct Binding
   Input::ButtonCode target;
   unsigned int type;
   unsigned int extra;
+  unsigned int index;
   uint16_t source;
 };
 
@@ -96,21 +98,17 @@ struct KbBinding : public Binding
     return true;
   }
 };
-/*    (source >= SDL_SCANCODE_A     && source <= SDL_SCANCODE_0)    ||
-   (source >= SDL_SCANCODE_RIGHT && source <= SDL_SCANCODE_UP)   ||
-   (source >= SDL_SCANCODE_F1    && source <= SDL_SCANCODE_F12)  ||
-   (source == Input::X || source == Input::LeftAlt ||
-    source == Input::LeftCtrl || source == Input::LeftShift ||
-    source == Input::RightAlt || source == Input::RightCtrl ||
-    source == Input::RightShift); } }; */
 // Joystick button binding
 struct JsButtonBinding : public Binding
 {
-  JsButtonBinding() { type = 2; }
+  JsButtonBinding()
+  {
+    type = 2;
+  }
 
   bool sourceActive() const
   {
-    return EventThread::joyState.buttons[source];
+    return EventThread::joyStates[index].buttons[source];
   }
 
   bool sourceRepeatable() const
@@ -126,8 +124,8 @@ struct JsAxisBinding : public Binding
   JsAxisBinding(uint16_t source,
                 AxisDir dir,
                 Input::ButtonCode target)
-      : Binding(target, source),
-        dir(dir)
+  : Binding(target, source),
+    dir(dir)
   {
     type = 3;
     extra = dir;
@@ -135,7 +133,7 @@ struct JsAxisBinding : public Binding
 
   bool sourceActive() const
   {
-    int val = EventThread::joyState.axes[source];
+    int val = EventThread::joyStates[index].axes[source];
     return (dir == Negative) ? val < -JAXIS_THRESHOLD : val > JAXIS_THRESHOLD;
   }
 
@@ -162,7 +160,7 @@ struct JsHatBinding : public Binding
 
   bool sourceActive() const
   { // For a diagonal input accept it as an input for both the axes
-    return (pos & EventThread::joyState.hats[source]) != 0;
+    return (pos & EventThread::joyStates[index].hats[source]) != 0;
   }
 
   bool sourceRepeatable() const
@@ -436,7 +434,6 @@ struct InputPrivate
   std::vector<JsAxisBinding> jsABindings;
   std::vector<JsHatBinding> jsHBindings;
   std::vector<JsButtonBinding> jsBBindings;
-  std::vector<JsButtonBinding> jsBBindings2;
   std::vector<MsBinding> msBindings;
   // Collective binding array
   std::vector<Binding*> bindings;
@@ -461,6 +458,7 @@ struct InputPrivate
   unsigned int click_base_timer;
   unsigned int clicks;
   unsigned int double_target;
+  unsigned int index;
   int ox;
   int oy;
   int last_mx;
@@ -493,8 +491,9 @@ struct InputPrivate
     int active;
   } dir8Data;
 
-  InputPrivate(const RGSSThreadData &rtData, Input *parent)
+  InputPrivate(const RGSSThreadData &rtData, int pos, Input *parent)
   {
+    index = pos;
     input = parent;
     text_input = 0;
     last_input = 0;
@@ -502,9 +501,6 @@ struct InputPrivate
     init_char_kb_bindings();
     initStaticKbBindings();
     initMsBindings();
-    init_current_js_bindings(rtData.joystick);
-    // Main thread should have these posted by now
-    checkBindingChange(rtData);
     states    = stateArray;
     statesOld = stateArray + 520; // + BUTTON_CODE_COUNT;
     text_states     = stateArray;
@@ -638,13 +634,15 @@ struct InputPrivate
     }
   }
 
-  void checkBindingChange(const RGSSThreadData &rtData)
+  void checkBindingChange(RGSSThreadData &rtData)
   {
     BDescVec d;
-    if (!rtData.bindingUpdateMsg.poll(d))
+    if (!rtData.poll_bindings(index, d))
       return;
-    init_current_js_bindings(rtData.joystick);
+    Debug() << "Gamepad #" << index << "Bindings";
+    Debug() << "Change Type:" << rtData.joystick_change;
     applyBindingDesc(d);
+    rtData.joystick_change = 0;
   }
 
   void check_text_input_state(const RGSSThreadData &rtData)
@@ -660,21 +658,21 @@ struct InputPrivate
   template<class B>
   void appendBindings(std::vector<B> &bind)
   {
-    for (size_t i = 0; i < bind.size(); ++i)
+    for (size_t i = 0; i < bind.size(); i++)
       bindings.push_back(&bind[i]);
   }
 
   template<class B>
   void append_text_bindings(std::vector<B> &bind)
   {
-    for (size_t i = 0; i < bind.size(); ++i)
+    for (size_t i = 0; i < bind.size(); i++)
       text_bindings.push_back(&bind[i]);
   }
 
   template<class B>
   void append_bind_bindings(std::vector<B> &bind)
   {
-    for (size_t i = 0; i < bind.size(); ++i)
+    for (size_t i = 0; i < bind.size(); i++)
       bind_bindings.push_back(&bind[i]);
   }
 
@@ -684,7 +682,6 @@ struct InputPrivate
     jsABindings.clear();
     jsHBindings.clear();
     jsBBindings.clear();
-    jsBBindings2.clear();
     for (size_t i = 0; i < d.size(); ++i) {
       const BindingDesc &desc = d[i];
       const SourceDesc &src = desc.src;
@@ -705,6 +702,7 @@ struct InputPrivate
       case JAxis :
       {
         JsAxisBinding bind;
+        bind.index = index;
         bind.type = 3;
         bind.source = src.d.ja.axis;
         bind.dir = src.d.ja.dir;
@@ -716,6 +714,7 @@ struct InputPrivate
       case JHat :
       {
         JsHatBinding bind;
+        bind.index = index;
         bind.type = 4;
         bind.source = src.d.jh.hat;
         bind.pos = src.d.jh.pos;
@@ -727,6 +726,7 @@ struct InputPrivate
       case JButton :
       {
         JsButtonBinding bind;
+        bind.index = index;
         bind.source = src.d.jb;
         bind.target = desc.target;
         jsBBindings.push_back(bind);
@@ -743,7 +743,6 @@ struct InputPrivate
     appendBindings(jsABindings);
     appendBindings(jsHBindings);
     appendBindings(jsBBindings);
-    appendBindings(jsBBindings2);
     text_bindings.clear();
     append_text_bindings(min_kb_bindings);
     append_text_bindings(msBindings);
@@ -758,7 +757,6 @@ struct InputPrivate
     append_bind_bindings(jsABindings);
     append_bind_bindings(jsHBindings);
     append_bind_bindings(jsBBindings);
-    append_bind_bindings(jsBBindings2);
   }
 
   void init_char_kb_bindings()
@@ -795,23 +793,6 @@ struct InputPrivate
     msBindings[i++] = MsBinding(SDL_BUTTON_LEFT,   Input::MouseLeft);
     msBindings[i++] = MsBinding(SDL_BUTTON_MIDDLE, Input::MouseMiddle);
     msBindings[i++] = MsBinding(SDL_BUTTON_RIGHT,  Input::MouseRight);
-  }
-
-  void init_current_js_bindings(SDL_Joystick *joystick)
-  {
-    jsBBindings2.clear();
-    if (SDL_NumJoysticks() > 0) {
-      int total = SDL_JoystickNumButtons(joystick);
-      int n = 0;
-      for (int m = 0; m < total; m++) {
-        n = 133 + m;
-        JsButtonBinding bind;
-        bind.type = 2;
-        bind.source = (uint16_t)m;
-        bind.target = (Input::ButtonCode)n;
-        jsBBindings2.push_back(bind);
-      }
-    }
   }
 
   void reset_scroll_xy()
@@ -1102,17 +1083,37 @@ struct InputPrivate
       return false;
     return trigger_old == trigger_new;
   }
+
+  void check_repeating_key(Input::ButtonCode &repeat_btn)
+  {
+    if (Input::None != repeat_btn && repeat_btn != repeating) {
+      repeating = repeat_btn;
+      repeatCount = 0;
+      getState(repeat_btn).repeated = true;
+      return;
+    }
+    // Check if repeating key is still pressed
+    if (getState(repeating).pressed) {
+      repeatCount++;
+      bool repeated;
+      repeated = repeatCount >= 23 && ((repeatCount+1) % 6) == 0;
+      getState(repeating).repeated |= repeated;
+      return;
+    }
+    repeating = Input::None;
+  }
 };
 
 Input::Input(const RGSSThreadData &rtData)
 {
-  p = new InputPrivate(rtData, this);
+  p1 = new InputPrivate(rtData, 0, this);
+  p2 = new InputPrivate(rtData, 1, this);
 }
 
 void Input::update()
 {
   shState->checkShutdown();
-  switch (p->text_input)
+  switch (p1->text_input)
   {
   case 0:
     main_update();
@@ -1128,180 +1129,172 @@ void Input::update()
 
 void Input::main_update()
 {
-  p->checkBindingChange(shState->rtData());
-  p->swapBuffers();
-  p->clearBuffer();
-  p->update_timers();
-  ButtonCode repeat_btn = None;
+  p1->checkBindingChange(shState->rtData());
+  p1->swapBuffers();
+  p1->clearBuffer();
+  p1->update_timers();
+  p2->checkBindingChange(shState->rtData());
+  p2->swapBuffers();
+  p2->clearBuffer();
+  p2->update_timers();
+  ButtonCode repeat_btn1 = None;
+  ButtonCode repeat_btn2 = None;
   // Poll all bindings
-  p->pollBindings(repeat_btn);
-  // Check for new repeating key
-  if (repeat_btn != None && repeat_btn != p->repeating) {
-    p->repeating = repeat_btn;
-    p->repeatCount = 0;
-    p->getState(repeat_btn).repeated = true;
-    return;
-  }
-  // Check if repeating key is still pressed
-  if (p->getState(p->repeating).pressed) {
-    p->repeatCount++;
-    bool repeated;
-    repeated = p->repeatCount >= 23 && ((p->repeatCount+1) % 6) == 0;
-    p->getState(p->repeating).repeated |= repeated;
-    return;
-  }
-  p->repeating = None;
+  p1->pollBindings(repeat_btn1);
+  p1->check_repeating_key(repeat_btn1);
+  p2->pollBindings(repeat_btn2);
+  p2->check_repeating_key(repeat_btn2);
 }
 
 void Input::text_update()
 {
-  p->checkBindingChange(shState->rtData());
-  p->swap_text_buffers();
-  p->clear_text_buffer();
-  p->update_timers();
+  p1->checkBindingChange(shState->rtData());
+  p1->swap_text_buffers();
+  p1->clear_text_buffer();
+  p1->update_timers();
   ButtonCode repeat_btn = None;
   // Poll all bindings
-  p->poll_bindings4text(repeat_btn);
+  p1->poll_bindings4text(repeat_btn);
   // Check for new repeating key
-  if (repeat_btn != None && repeat_btn != p->repeating) {
-    p->repeating = repeat_btn;
-    p->repeatCount = 0;
-    p->get_text_state(repeat_btn).repeated = true;
+  if (repeat_btn != None && repeat_btn != p1->repeating) {
+    p1->repeating = repeat_btn;
+    p1->repeatCount = 0;
+    p1->get_text_state(repeat_btn).repeated = true;
     return;
   }
   // Check if repeating key is still pressed
-  if (p->get_text_state(p->repeating).pressed) {
-    p->repeatCount++;
+  if (p1->get_text_state(p1->repeating).pressed) {
+    p1->repeatCount++;
     bool repeated;
-    repeated = p->repeatCount >= 23 && ((p->repeatCount+1) % 6) == 0;
-    p->get_text_state(p->repeating).repeated |= repeated;
+    repeated = p1->repeatCount >= 23 && ((p1->repeatCount+1) % 6) == 0;
+    p1->get_text_state(p1->repeating).repeated |= repeated;
     return;
   }
-  p->repeating = None;
+  p1->repeating = None;
 }
 
 void Input::bind_update()
 {
-  p->check_text_input_state(shState->rtData());
-  p->swap_bind_buffers();
-  p->clear_bind_buffer();
-  p->update_timers();
-  p->poll_bindings4bind();
+  p1->check_text_input_state(shState->rtData());
+  p1->swap_bind_buffers();
+  p1->clear_bind_buffer();
+  p1->update_timers();
+  p1->poll_bindings4bind();
 }
 
 int Input::trigger_timer() const
 {
-  return p->trigger_timer;
+  return p1->trigger_timer;
 }
 
 int Input::trigger_base_timer() const
 {
-  return p->trigger_base_timer;
+  return p1->trigger_base_timer;
 }
 
 void Input::set_trigger_base_timer(int timer)
 {
-  p->trigger_base_timer = timer;
+  p1->trigger_base_timer = timer;
 }
 
 int Input::click_timer() const
 {
-  return p->click_timer;
+  return p1->click_timer;
 }
 
 int Input::click_base_timer() const
 {
-  return p->click_base_timer;
+  return p1->click_base_timer;
 }
 
 void Input::set_click_base_timer(int timer)
 {
-  p->click_base_timer = timer;
+  p1->click_base_timer = timer;
 }
 
 int Input::scroll_factor() const
 {
-  return p->scroll_factor;
+  return p1->scroll_factor;
 }
 
 void Input::set_scroll_factor(int value)
 {
-  p->scroll_factor = clamp(1, value, 20);
+  p1->scroll_factor = clamp(1, value, 20);
 }
 
 void Input::mouse_scroll_reset()
 {
   EventThread::mouseState.scroll_x = 0;
   EventThread::mouseState.scroll_y = 0;
-  p->reset_scroll_xy();
+  p1->reset_scroll_xy();
 }
 
 void Input::clear_clicks()
 {
   mouse_scroll_reset();
-  p->clear_unused_clicks();
+  p1->clear_unused_clicks();
 }
 
 bool Input::is_left_click()
 {
-  if (!p->get_this_state_check(MouseLeft).triggered)
+  if (!p1->get_this_state_check(MouseLeft).triggered)
     return false;
-  return p->clicks == 1 && !shState->rtData().mouse_moved;
+  return p1->clicks == 1 && !shState->rtData().mouse_moved;
 }
 
 bool Input::is_middle_click()
 {
-  if (!p->get_this_state_check(MouseMiddle).triggered)
+  if (!p1->get_this_state_check(MouseMiddle).triggered)
     return false;
-  return p->clicks == 1 && !shState->rtData().mouse_moved;
+  return p1->clicks == 1 && !shState->rtData().mouse_moved;
 }
 
 bool Input::is_right_click()
 {
-  if (!p->get_this_state_check(MouseRight).triggered)
+  if (!p1->get_this_state_check(MouseRight).triggered)
     return false;
-  return p->clicks == 1 && !shState->rtData().mouse_moved;
+  return p1->clicks == 1 && !shState->rtData().mouse_moved;
 }
 
 bool Input::is_double_left_click()
 {
-  if (p->double_target != MouseLeft)
+  if (p1->double_target != MouseLeft)
     return false;
-  if (!p->get_this_state_check(MouseLeft).triggered)
+  if (!p1->get_this_state_check(MouseLeft).triggered)
     return false;
-  return (p->clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
+  return (p1->clicks == 2 && p1->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
 bool Input::is_double_right_click()
 {
-  if (p->double_target != MouseRight)
+  if (p1->double_target != MouseRight)
     return false;
-  if (!p->get_this_state_check(MouseRight).triggered)
+  if (!p1->get_this_state_check(MouseRight).triggered)
     return false;
-  return (p->clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
+  return (p1->clicks == 2 && p1->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
 bool Input::is_double_click(int btn)
 {
-  if (btn != MouseLeft || btn != MouseRight || p->double_target != btn)
+  if (btn != MouseLeft || btn != MouseRight || p1->double_target != btn)
     return false;
-  if (!p->get_this_state_check(btn).triggered)
+  if (!p1->get_this_state_check(btn).triggered)
     return false;
-  return (p->clicks == 2 && p->same_mouse_pos && !shState->rtData().mouse_moved);
+  return (p1->clicks == 2 && p1->same_mouse_pos && !shState->rtData().mouse_moved);
 }
 
 bool Input::press_left_click()
 {
-  if (p->get_this_state_check(MouseLeft).triggered)
+  if (p1->get_this_state_check(MouseLeft).triggered)
     return false;
-  return p->get_this_state_check(MouseLeft).pressed;
+  return p1->get_this_state_check(MouseLeft).pressed;
 }
 
 bool Input::press_right_click()
 {
-  if (p->get_this_state_check(MouseRight).triggered)
+  if (p1->get_this_state_check(MouseRight).triggered)
     return false;
-  return p->get_this_state_check(MouseRight).pressed;
+  return p1->get_this_state_check(MouseRight).pressed;
 }
 
 bool Input::is_mouse_scroll_x(bool go_up)
@@ -1311,9 +1304,9 @@ bool Input::is_mouse_scroll_x(bool go_up)
   else if (!EventThread::mouseState.scrolled_x)
     return false;
   else if (go_up)
-    return p->scroll_x - p->old_scroll_x == -p->scroll_factor;
+    return p1->scroll_x - p1->old_scroll_x == -p1->scroll_factor;
   else
-    return p->scroll_x - p->old_scroll_x == p->scroll_factor;
+    return p1->scroll_x - p1->old_scroll_x == p1->scroll_factor;
 }
 
 bool Input::is_mouse_scroll_y(bool go_up)
@@ -1323,63 +1316,117 @@ bool Input::is_mouse_scroll_y(bool go_up)
   else if (!EventThread::mouseState.scrolled_y)
     return false;
   else if (go_up)
-    return p->scroll_y - p->old_scroll_y == -p->scroll_factor;
+    return p1->scroll_y - p1->old_scroll_y == -p1->scroll_factor;
   else
-    return p->scroll_y - p->old_scroll_y == p->scroll_factor;
+    return p1->scroll_y - p1->old_scroll_y == p1->scroll_factor;
 }
 
-bool Input::isPressed(int button)
+bool Input::is_pressed(int pos, int button)
 {
-  ButtonState state = p->get_this_state_check(button);
+  ButtonState state1 = p1->get_this_state_check(button);
+  ButtonState state2 = p2->get_this_state_check(button);
   if (button == MouseLeft || button == MouseRight)
-    if (state.triggered)
+    if (state1.triggered)
       return false;
-  return state.pressed;
+  if (pos == 2)
+    return state1.pressed || state2.pressed;
+  else if (pos == 1)
+    return state2.pressed;
+  else
+    return state1.pressed;
 }
 
-bool Input::isTriggered(int button)
+bool Input::is_triggered(int pos, int button)
 {
-  ButtonState state = p->get_this_state_check(button);
+  ButtonState state1 = p1->get_this_state_check(button);
+  ButtonState state2 = p2->get_this_state_check(button);
   if (button == MouseLeft || button == MouseRight) {
-    bool trig = state.triggered;
-    state.triggered = false;
+    bool trig = state1.triggered;
+    state1.triggered = false;
+    state2.triggered = false;
     return trig;
   }
-  return state.triggered;
+  if (pos == 2)
+    return state1.triggered || state2.triggered;
+  else if (pos == 1)
+    return state2.triggered;
+  else
+    return state1.triggered;
 }
 
-bool Input::isRepeated(int button)
+bool Input::is_repeated(int pos, int button)
 {
-  if (button == Ctrl)
-    return p->get_this_state_check(LeftCtrl).repeated ||
-           p->get_this_state_check(RightCtrl).repeated;
-  else if (button == Shift)
-    return p->get_this_state_check(LeftShift).repeated ||
-           p->get_this_state_check(RightShift).repeated;
-  else if (button == Alt)
-    return p->get_this_state_check(LeftAlt).repeated ||
-           p->get_this_state_check(RightAlt).repeated;
-  return p->get_this_state_check(button).repeated;
+  if (pos == 2) {
+    if (button == Ctrl)
+      return p1->get_this_state_check(LeftCtrl).repeated ||
+             p1->get_this_state_check(RightCtrl).repeated ||
+             p2->get_this_state_check(LeftCtrl).repeated ||
+             p2->get_this_state_check(RightCtrl).repeated;
+    else if (button == Shift)
+      return p1->get_this_state_check(LeftShift).repeated ||
+             p1->get_this_state_check(RightShift).repeated ||
+             p2->get_this_state_check(LeftShift).repeated ||
+             p2->get_this_state_check(RightShift).repeated;
+    else if (button == Alt)
+      return p1->get_this_state_check(LeftAlt).repeated ||
+             p1->get_this_state_check(RightAlt).repeated ||
+             p2->get_this_state_check(LeftAlt).repeated ||
+             p2->get_this_state_check(RightAlt).repeated;
+    return p1->get_this_state_check(button).repeated ||
+           p2->get_this_state_check(button).repeated;
+  } else if (pos == 1) {
+    if (button == Ctrl)
+      return p2->get_this_state_check(LeftCtrl).repeated ||
+             p2->get_this_state_check(RightCtrl).repeated;
+    if (button == Shift)
+      return p2->get_this_state_check(LeftShift).repeated ||
+             p2->get_this_state_check(RightShift).repeated;
+    if (button == Alt)
+      return p2->get_this_state_check(LeftAlt).repeated ||
+             p2->get_this_state_check(RightAlt).repeated;
+    return p2->get_this_state_check(button).repeated;
+  } else {
+    if (button == Ctrl)
+      return p1->get_this_state_check(LeftCtrl).repeated ||
+             p1->get_this_state_check(RightCtrl).repeated;
+    if (button == Shift)
+      return p1->get_this_state_check(LeftShift).repeated ||
+             p1->get_this_state_check(RightShift).repeated;
+    if (button == Alt)
+      return p1->get_this_state_check(LeftAlt).repeated ||
+             p1->get_this_state_check(RightAlt).repeated;
+    return p1->get_this_state_check(button).repeated;
+  }
 }
 
-bool Input::is_pressed_any()
+bool Input::is_pressed_any(int pos)
 {
-  return p->press_any;
+  if (pos == 2)
+    return p1->press_any || p2->press_any;
+  else if (pos == 1)
+    return p2->press_any;
+  else
+    return p1->press_any;
 }
 
-bool Input::is_triggered_any()
+bool Input::is_triggered_any(int pos)
 {
-  return p->trigger_any;
+  if (pos == 2)
+    return p1->trigger_any || p2->trigger_any;
+  else if (pos == 1)
+    return p2->trigger_any;
+  else
+    return p1->trigger_any;
 }
 
 bool Input::is_triggered_double(int button)
 {
-  return p->is_same_trigger(button);
+  return p1->is_same_trigger(button) || p2->is_same_trigger(button);
 }
 
 bool Input::is_last_key()
 {
-  int k = p->trigger_now;
+  int k = p1->trigger_now;
   if (!k)
     return false;
   return k != Backspace && k != Delete && k != Enter && k != Return && k != Shift;
@@ -1387,118 +1434,149 @@ bool Input::is_last_key()
 
 int Input::text_input()
 {
-  return p->text_input;
+  return p1->text_input;
 }
 
 void Input::set_text_input(int value)
 {
-  int old_ti = p->text_input;
+  int old_ti = p1->text_input;
   value = clamp(0, value, 2);
-  p->text_input = value;
-  p->init_current_js_bindings(shState->rtData().joystick);
-  p->clear_unused_clicks();
+  p1->text_input = value;
+  p1->clear_unused_clicks();
   if (!value && old_ti != 1) {
-    p->checkBindingChange(shState->rtData());
+    p1->checkBindingChange(shState->rtData());
     return;
   }
   if (value == 2)
-    p->check_text_input_state(shState->rtData());
+    p1->check_text_input_state(shState->rtData());
 }
 
 int Input::last_key()
 {
-  return p->trigger_now;
+  return p1->trigger_now;
 }
 
 void Input::last_key_clear()
 {
-  p->trigger_now = 0;
+  p1->trigger_now = 0;
 }
 
 void Input::triggered_bind_clear()
 {
-  p->trigger_kind = 0;
-  p->trigger_js_value = 0;
-  p->trigger_js_dir = 0;
+  p1->trigger_kind = 0;
+  p1->trigger_js_value = 0;
+  p1->trigger_js_dir = 0;
 }
 
 int Input::triggered_kind()
 {
-  return p->trigger_kind;
+  return p1->trigger_kind;
 }
 
 int Input::triggered_js_value()
 {
-  return p->trigger_js_value;
+  return p1->trigger_js_value;
 }
 
 int Input::triggered_js_axis()
 {
-  return p->trigger_js_axis;
+  return p1->trigger_js_axis;
 }
 
 int Input::triggered_js_dir()
 {
-  return p->trigger_js_dir;
+  return p1->trigger_js_dir;
 }
 
 int Input::triggered_last()
 {
-  return p->trigger_new;
+  return p1->trigger_new;
 }
 
 int Input::triggered_old()
 {
-  return p->trigger_old;
+  return p1->trigger_old;
 }
 
 void Input::triggered_last_clear()
 {
-  p->trigger_new = Input::None;
+  p1->trigger_new = Input::None;
 }
 
 int Input::dir4Value()
 {
-  return p->dir4Data.active;
+  return p1->dir4Data.active;
 }
 
 int Input::dir8Value()
 {
-  return p->dir8Data.active;
+  return p1->dir8Data.active;
 }
 
 bool Input::is_dir4()
 {
-  return p->dir4Data.active > 0;
+  return p1->dir4Data.active > 0;
 }
 
 bool Input::is_dir8()
 {
-  return p->dir8Data.active > 0;
+  return p1->dir8Data.active > 0;
+}
+
+int Input::player_dir4(int n)
+{
+  if (n == 0)
+    return p1->dir4Data.active;
+  else
+    return p2->dir4Data.active;
+}
+
+int Input::player_dir8(int n)
+{
+  if (n == 0)
+    return p1->dir8Data.active;
+  else
+    return p2->dir8Data.active;
+}
+
+bool Input::is_player_dir4(int n)
+{
+  if (n == 0)
+    return p1->dir4Data.active > 0;
+  else
+    return p2->dir4Data.active > 0;
+}
+
+bool Input::is_player_dir8(int n)
+{
+  if (n == 0)
+    return p1->dir8Data.active > 0;
+  else
+    return p2->dir8Data.active > 0;
 }
 
 int Input::mouseX()
 {
   RGSSThreadData &rtData = shState->rtData();
   int mx = EventThread::mouseState.x;
-  return (mx + p->ox - rtData.screenOffset.x) * rtData.sizeResoRatio.x;
+  return (mx + p1->ox - rtData.screenOffset.x) * rtData.sizeResoRatio.x;
 }
 
 int Input::mouseY()
 {
   RGSSThreadData &rtData = shState->rtData();
   int my = EventThread::mouseState.y;
-  return (my + p->oy - rtData.screenOffset.y) * rtData.sizeResoRatio.y;
+  return (my + p1->oy - rtData.screenOffset.y) * rtData.sizeResoRatio.y;
 }
 
 int Input::mouse_ox() const
 {
-  return p->ox;
+  return p1->ox;
 }
 
 int Input::mouse_oy() const
 {
-  return p->oy;
+  return p1->oy;
 }
 
 void Input::mouse_set_xy(int x, int y)
@@ -1510,22 +1588,22 @@ void Input::mouse_set_xy(int x, int y)
 
 void Input::mouse_set_ox(int n)
 {
-  p->ox = n;
+  p1->ox = n;
 }
 
 void Input::mouse_set_oy(int n)
 {
-  p->oy = n;
+  p1->oy = n;
 }
 
 int Input::mouse_scroll_x() const
 {
-  return p->scroll_x;
+  return p1->scroll_x;
 }
 
 int Input::mouse_scroll_y() const
 {
-  return p->scroll_y;
+  return p1->scroll_y;
 }
 
 bool Input::mouse_is_inside(int index, Rect *rect)
@@ -1551,66 +1629,62 @@ bool Input::has_joystick()
   return SDL_NumJoysticks() > 0;
 }
 
-int Input::joysticks_total()
+const char* Input::joystick_name(int n)
 {
-  return SDL_NumJoysticks();
+  return SDL_JoystickName(shState->rtData().joysticks[n]->js);
 }
 
-const char* Input::joystick_name()
+int Input::joystick_vendor(int n)
 {
-  return SDL_JoystickName(shState->rtData().joystick);
+  return SDL_JoystickGetVendor(shState->rtData().joysticks[n]->js);
 }
 
-int Input::joystick_vendor()
+int Input::joystick_kind(int n)
 {
-  return SDL_JoystickGetVendor(shState->rtData().joystick);
+  return SDL_JoystickGetType(shState->rtData().joysticks[n]->js);
 }
 
-int Input::joystick_kind()
+int Input::joystick_power(int n)
 {
-  return SDL_JoystickGetType(shState->rtData().joystick);
+  return SDL_JoystickCurrentPowerLevel(shState->rtData().joysticks[n]->js);
 }
 
-int Input::joystick_power()
-{
-  return SDL_JoystickCurrentPowerLevel(shState->rtData().joystick);
-}
-
-std::vector<int> Input::joystick_basic_values()
+std::vector<int> Input::joystick_basic_values(int n)
 {
   std::vector<int> values;
-  values.push_back(joystick_vendor());
-  values.push_back(joystick_kind());
-  values.push_back(joystick_power());
+  values.push_back(joystick_vendor(n));
+  values.push_back(joystick_kind(n));
+  values.push_back(joystick_power(n));
   return values;
 }
 
-int Input::joystick_axis_number()
+int Input::joystick_axis_number(int n)
 {
-  return SDL_JoystickNumAxes(shState->rtData().joystick);
+  return SDL_JoystickNumAxes(shState->rtData().joysticks[n]->js);
 }
 
-int Input::joystick_hat_number()
+int Input::joystick_hat_number(int n)
 {
-  return SDL_JoystickNumHats(shState->rtData().joystick);
+  return SDL_JoystickNumHats(shState->rtData().joysticks[n]->js);
 }
 
-int Input::joystick_button_number()
+int Input::joystick_button_number(int n)
 {
-  return SDL_JoystickNumButtons(shState->rtData().joystick);
+  return SDL_JoystickNumButtons(shState->rtData().joysticks[n]->js);
 }
 
-bool Input::joystick_has_rumble()
+bool Input::joystick_has_rumble(int n)
 {
-  return SDL_JoystickHasRumble(shState->rtData().joystick);
+  return SDL_JoystickHasRumble(shState->rtData().joysticks[n]->js);
 }
 
-int Input::joystick_set_rumble(int lfr, int rfr, int ms)
+int Input::joystick_set_rumble(int n, int lfr, int rfr, int ms)
 {
-  return SDL_JoystickRumble(shState->rtData().joystick, lfr, rfr, ms);
+  return SDL_JoystickRumble(shState->rtData().joysticks[n]->js, lfr, rfr, ms);
 }
 
 Input::~Input()
 {
-  delete p;
+  delete p1;
+  delete p2;
 }

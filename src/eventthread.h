@@ -39,6 +39,12 @@ struct RGSSThreadData;
 struct SDL_Window;
 union SDL_Event;
 
+struct Joystick
+{
+  SDL_Joystick *js;
+  int32_t id;
+};
+
 #define MAX_FINGERS 4
 
 class EventThread
@@ -70,14 +76,14 @@ public:
   };
 
   static uint8_t keyStates[SDL_NUM_SCANCODES];
-  static JoyState joyState;
+  static JoyState joyStates[2];
   static MouseState mouseState;
   static TouchState touchState;
   static bool allocUserEvents();
   EventThread();
   void process(RGSSThreadData &rtData);
   void cleanup();
-  /* Called from RGSS thread */
+  // Called from RGSS thread
   void requestFullscreenMode(bool mode);
   void requestWindowResize(int width, int height);
   void requestShowCursor(bool mode);
@@ -86,12 +92,13 @@ public:
   bool getShowCursor() const;
   bool get_window_focus() const;
   void showMessageBox(const char *body, int flags = 0);
-  /* RGSS thread calls this once per frame */
+  // RGSS thread calls this once per frame
   void notifyFrame();
-  /* Called on game screen (size / offset) changes */
+  // Called on game screen (size / offset) changes
   void notifyGameScreenChange(const SDL_Rect &screen);
-  static bool close_joystick();
-  static bool open_joystick();
+  static bool close_joystick(int n);
+  static bool open_joystick(int n);
+  static int joystick_index();
   void reset_scroll_xy();
 
 private:
@@ -130,8 +137,7 @@ struct UnidirMessage
   {
     SDL_DestroyMutex(mutex);
   }
-
-  /* Done from the sending side */
+  // Done from the sending side
   void post(const T &value)
   {
     SDL_LockMutex(mutex);
@@ -139,8 +145,7 @@ struct UnidirMessage
     current = value;
     SDL_UnlockMutex(mutex);
   }
-
-  /* Done from the receiving side */
+  // Done from the receiving side
   bool poll(T &out) const
   {
     if (!changed)
@@ -151,8 +156,7 @@ struct UnidirMessage
     SDL_UnlockMutex(mutex);
     return true;
   }
-
-  /* Done from either */
+  // Done from either
   void get(T &out) const
   {
     SDL_LockMutex(mutex);
@@ -168,13 +172,13 @@ private:
 
 struct SyncPoint
 {
-  /* Used by eventFilter to control sleep/wakeup */
+  // Used by eventFilter to control sleep/wakeup
   void haltThreads();
   void resumeThreads();
-  /* Used by RGSS thread */
+  // Used by RGSS thread
   bool mainSyncLocked();
   void waitMainSync();
-  /* Used by secondary (audio) threads */
+  // Used by secondary (audio) threads
   void passSecondarySync();
 
 private:
@@ -197,18 +201,19 @@ private:
 
 struct RGSSThreadData
 {
-  /* Main thread sets this to request RGSS thread to terminate */
+  // Main thread sets this to request RGSS thread to terminate
   AtomicFlag rqTerm;
   /* In response, RGSS thread sets this to confirm
    * that it received the request and isn't stuck */
   AtomicFlag rqTermAck;
-  /* Set when F12 is pressed */
+  // Set when F12 is pressed
   AtomicFlag rqReset;
-  /* Set when F12 is released */
+  // Set when F12 is released
   AtomicFlag rqResetFinish;
   EventThread *ethread;
   UnidirMessage<Vec2i> windowSizeMsg;
   UnidirMessage<BDescVec> bindingUpdateMsg;
+  UnidirMessage<BDescVec> bindingUpdateMsg2;
   SyncPoint syncPoint;
   const char *argv0;
   SDL_Window *window;
@@ -217,7 +222,7 @@ struct RGSSThreadData
   Vec2i screenOffset;
   const int refreshRate;
   int joystick_change;
-  SDL_Joystick *joystick;
+  Joystick *joysticks[2];
   Config config;
   bool mouse_moved;
   bool start_sdl_input;
@@ -237,11 +242,29 @@ struct RGSSThreadData
     sizeResoRatio(1, 1),
     refreshRate(refreshRate),
     joystick_change(0),
-    joystick(0),
     config(newconf),
     start_sdl_input(false),
     any_char_found(false)
-  {}
+  {
+    joysticks[0] = 0;
+    joysticks[1] = 0;
+  }
+
+  bool poll_bindings(int index, BDescVec &bind)
+  {
+    if (index == 0)
+      return bindingUpdateMsg.poll(bind);
+    else
+      return bindingUpdateMsg2.poll(bind);
+  }
+
+  void post_bindings(int index, BDescVec &bind)
+  {
+    if (index == 0)
+      bindingUpdateMsg.post(bind);
+    else
+      bindingUpdateMsg2.post(bind);
+  }
 };
 
 #endif // EVENTTHREAD_H

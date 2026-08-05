@@ -32,72 +32,72 @@
 
 enum AxisDir
 {
-	Negative,
-	Positive
+  Negative,
+  Positive
 };
 
 enum SourceType
 {
-	Invalid,
-	Key,
-	JButton,
-	JAxis,
-	JHat
+  Invalid,
+  Key,
+  JButton,
+  JAxis,
+  JHat
 };
 
 struct SourceDesc
 {
-	SourceType type;
+  SourceType type;
 
-	union Data
-	{
-		/* Keyboard scancode */
-		SDL_Scancode scan;
-		/* Joystick button index */
-		uint8_t jb;
-		struct
-		{
-			/* Joystick axis index */
-			uint8_t axis;
-			/* Joystick axis direction */
-			AxisDir dir;
-		} ja;
-		struct
-		{
-			/* Joystick axis index */
-			uint8_t hat;
-			/* Joystick axis direction */
-			uint8_t pos;
-		} jh;
-	} d;
+  union Data
+  {
+    /* Keyboard scancode */
+    SDL_Scancode scan;
+    /* Joystick button index */
+    uint8_t jb;
+    struct
+    {
+      /* Joystick axis index */
+      uint8_t axis;
+      /* Joystick axis direction */
+      AxisDir dir;
+    } ja;
+    struct
+    {
+      /* Joystick axis index */
+      uint8_t hat;
+      /* Joystick axis direction */
+      uint8_t pos;
+    } jh;
+  } d;
 
-	bool operator==(const SourceDesc &o) const
-	{
-		if (type != o.type)
-			return false;
+  bool operator==(const SourceDesc &o) const
+  {
+    if (type != o.type)
+      return false;
 
-		switch (type)
-		{
-		case Invalid:
-			return true;
-		case Key:
-			return d.scan == o.d.scan;
-		case JButton:
-			return d.jb == o.d.jb;
-		case JAxis:
-			return (d.ja.axis == o.d.ja.axis) && (d.ja.dir == o.d.ja.dir);
-		case JHat:
-			return (d.jh.hat == o.d.jh.hat) && (d.jh.pos == o.d.jh.pos);
-		default:
-			assert(!"unreachable");
-			return false;
-		}
-	}
+    switch (type)
+    {
+    case Invalid:
+      return true;
+    case Key:
+      return d.scan == o.d.scan;
+    case JButton:
+      return d.jb == o.d.jb;
+    case JAxis:
+      return (d.ja.axis == o.d.ja.axis) && (d.ja.dir == o.d.ja.dir);
+    case JHat:
+      return (d.jh.hat == o.d.jh.hat) && (d.jh.pos == o.d.jh.pos);
+    default:
+      assert(!"unreachable");
+      return false;
+    }
+  }
 
-	bool operator!=(const SourceDesc &o) const
-	{
-		return !(*this == o);
-	}
+  bool operator!=(const SourceDesc &o) const
+  {
+    return !(*this == o);
+  }
 };
 
 #define JAXIS_THRESHOLD 0x4000

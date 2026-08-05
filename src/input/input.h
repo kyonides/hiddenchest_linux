@@ -93,11 +93,11 @@ public:
   bool press_right_click();
   bool is_mouse_scroll_x(bool go_up);
   bool is_mouse_scroll_y(bool go_up);
-  bool isPressed(int button);
-  bool isTriggered(int button);
-  bool isRepeated(int button);
-  bool is_pressed_any();
-  bool is_triggered_any();
+  bool is_pressed(int pos, int button);
+  bool is_triggered(int pos, int button);
+  bool is_repeated(int pos, int button);
+  bool is_pressed_any(int pos);
+  bool is_triggered_any(int pos);
   bool is_triggered_double(int button);
   bool is_last_key();
   int text_input();
@@ -116,6 +116,10 @@ public:
   int dir8Value();
   bool is_dir4();
   bool is_dir8();
+  int player_dir4(int n);
+  int player_dir8(int n);
+  bool is_player_dir4(int n);
+  bool is_player_dir8(int n);
   // Mouse Extensions
   int mouseX();
   int mouseY();
@@ -126,18 +130,16 @@ public:
   void mouse_set_oy(int n);
   bool mouse_is_inside(int index, Rect *rect);
   bool has_joystick();
-  const char* joystick_name();
-  int joysticks_total();
-  int joystick_vendor();
-  int joystick_kind();
-  int joystick_power();
-  std::vector<int> joystick_basic_values();
-  int joystick_axis_number();
-  int joystick_hat_number();
-  int joystick_button_number();
-  bool joystick_has_rumble();
-  int joystick_set_rumble(int lfr, int rfr, int ms);
-  int joystick_change();
+  const char* joystick_name(int n);
+  int joystick_vendor(int n);
+  int joystick_kind(int n);
+  int joystick_power(int n);
+  std::vector<int> joystick_basic_values(int n);
+  int joystick_axis_number(int n);
+  int joystick_hat_number(int n);
+  int joystick_button_number(int n);
+  bool joystick_has_rumble(int n);
+  int joystick_set_rumble(int n, int lfr, int rfr, int ms);
 
 private:
   Input(const RGSSThreadData &rtData);
@@ -146,7 +148,7 @@ private:
   void text_update();
   void bind_update();
   friend struct SharedStatePrivate;
-  InputPrivate *p;
+  InputPrivate *p1, *p2;
 };
 
 #endif // INPUT_H

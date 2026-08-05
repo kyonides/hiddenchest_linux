@@ -603,7 +603,6 @@ static void mriBindingExecute()
   ruby_sysinit(&argc, &args);
   RUBY_INIT_STACK;
   ruby_init();
-  ruby_init_loadpath();
 #if RUBY_VERSION >= 30
   void *node = ruby_options(3, argv);
   bool valid = ruby_executable_node(node, &state);
@@ -615,6 +614,8 @@ static void mriBindingExecute()
     shState->rtData().rqTermAck.set();
     return;
   }
+#else
+  ruby_init_loadpath();
 #endif
   VALUE rname, game, sys_exe;
   rname = rstr(exec_name);

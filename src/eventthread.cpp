@@ -36,6 +36,7 @@
 #include "debugwriter.h"
 #include <iostream>
 #include <string.h>
+#include <unordered_map>
 #ifdef __WINDOWS__
 #include <SDL2/SDL_syswm.h>
 #endif
@@ -81,7 +82,7 @@ void CALLBACK no_close_hook(void* data, void* hwnd, unsigned int msg, Uint64 par
 #endif
 
 uint8_t EventThread::keyStates[];
-EventThread::JoyState EventThread::joyState;
+EventThread::JoyState EventThread::joyStates[2];
 EventThread::MouseState EventThread::mouseState;
 EventThread::TouchState EventThread::touchState;
 
@@ -98,7 +99,8 @@ enum
 };
 
 static uint32_t usrIdStart;
-SDL_Joystick *js;
+static int pos;
+Joystick *js[2];
 
 bool EventThread::allocUserEvents()
 {
@@ -142,19 +144,26 @@ void EventThread::process(RGSSThreadData &rtData)
   // SDL doesn't send an initial FOCUS_GAINED event
   bool terminate = false;
   windowFocused = true;
-  if (SDL_NumJoysticks() > 0) {
-    js = SDL_JoystickOpen(0);
-    rtData.joystick = js;
-    rtData.joystick_change = 2;
-  } else {
-    rtData.joystick_change = 0;
+  std::unordered_map<int32_t, int32_t> js_ids;
+  js[0] = new Joystick;
+  js[1] = new Joystick;
+  int total_sticks = SDL_NumJoysticks();
+  rtData.joystick_change = total_sticks == 0 ? 0 : 2;
+  for (int m = 0; m < total_sticks; m++) {
+    js[m]->js = SDL_JoystickOpen(m);
+    js[m]->id = SDL_JoystickInstanceID(js[m]->js);
+    js_ids[js[m]->id] = m;
+    rtData.joysticks[m] = js[m];
   }
+  int open_pos = total_sticks;
+  Debug() << "Gamepads found:" << total_sticks;
   char buffer[128];
   char pendingTitle[128];
   bool havePendingTitle = false;
   bool resetting = false;
   char text[32] = { 0 };
   char* composition;
+  int32_t n;
   uint32_t cursor;
   uint32_t selection_len;
   int winW, winH, i;
@@ -288,29 +297,47 @@ void EventThread::process(RGSSThreadData &rtData)
       keyStates[event.key.keysym.scancode] = false;
       break;
     case SDL_JOYBUTTONDOWN :
-      joyState.buttons[event.jbutton.button] = true;
+      n = event.jbutton.which;
+      n = js_ids[n];
+      joyStates[n].buttons[event.jbutton.button] = true;
       break;
     case SDL_JOYBUTTONUP :
-      joyState.buttons[event.jbutton.button] = false;
+      n = event.jbutton.which;
+      n = js_ids[n];
+      joyStates[n].buttons[event.jbutton.button] = false;
       break;
     case SDL_JOYHATMOTION :
-      joyState.hats[event.jhat.hat] = event.jhat.value;
+      n = event.jhat.which;
+      n = js_ids[n];
+      joyStates[n].hats[event.jhat.hat] = event.jhat.value;
       break;
     case SDL_JOYAXISMOTION :
-      joyState.axes[event.jaxis.axis] = event.jaxis.value;
+      n = event.jaxis.which;
+      n = js_ids[n];
+      joyStates[n].axes[event.jaxis.axis] = event.jaxis.value;
       break;
     case SDL_JOYDEVICEADDED :
-      if (event.jdevice.which > 0)
-        break;
-      js = SDL_JoystickOpen(0);
-      rtData.joystick = js;
+      n = event.jdevice.which;
+      pos = SDL_NumJoysticks() == 1 ? 0 : open_pos < 2 ? open_pos : 1;
+      Debug() << "Added Gamepad#" << pos;
+      js[pos]->id = n;
+      js[pos]->js = SDL_JoystickOpen(pos);
+      js_ids[n] = pos;
+      rtData.joysticks[pos] = js[pos];
       rtData.joystick_change = 2;
+      open_pos = 2;
       break;
     case SDL_JOYDEVICEREMOVED :
-      resetInputStates();
-      js = 0;
+      n = event.jdevice.which;
+      pos = js_ids[n];
+      open_pos = pos;
+      Debug() << "Removed Gamepad#" << pos;
+      js_ids.erase(n);
+      js[pos]->js = 0;
+      js[pos]->id = 0;
+      rtData.joysticks[pos] = 0;
       rtData.joystick_change = 1;
-      rtData.joystick = 0;
+      resetInputStates();
       break;
     case SDL_MOUSEBUTTONDOWN :
       mouseState.buttons[event.button.button] = true;
@@ -394,8 +421,15 @@ void EventThread::process(RGSSThreadData &rtData)
       break;
   }// Just in case
   rtData.syncPoint.resumeThreads();
-  if (SDL_JoystickGetAttached(js))
-    SDL_JoystickClose(js);
+  n = SDL_NumJoysticks();
+  for (int m = 0; m < n; m++) {
+    if (SDL_JoystickGetAttached(js[m]->js)) {
+      SDL_JoystickClose(js[m]->js);
+      js[m]->js = 0;
+      js[m]->id = 0;
+    }
+  }
+  js_ids.clear();
 }
 
 int EventThread::eventFilter(void *data, SDL_Event *event)
@@ -450,7 +484,8 @@ void EventThread::reset_scroll_xy()
 void EventThread::resetInputStates()
 {
   memset(&keyStates, 0, sizeof(keyStates));
-  memset(&joyState, 0, sizeof(joyState));
+  memset(&joyStates[0], 0, sizeof(joyStates[0]));
+  memset(&joyStates[1], 0, sizeof(joyStates[1]));
   memset(&mouseState.buttons, 0, sizeof(mouseState.buttons));
   memset(&touchState, 0, sizeof(touchState));
   reset_scroll_xy();
@@ -578,25 +613,32 @@ void EventThread::notifyGameScreenChange(const SDL_Rect &screen)
   SDL_PushEvent(&event);
 }
 
-bool EventThread::close_joystick()
+bool EventThread::close_joystick(int n)
 {
-  if (SDL_NumJoysticks() == 0)
+  int total = SDL_NumJoysticks();
+  if (total == 0 || total - 1 < n)
     return false;
-  SDL_JoystickClose(js);
-  js = 0;
-  shState->rtData().joystick = 0;
+  SDL_JoystickClose(js[n]->js);
+  js[n]->js = 0;
+  shState->rtData().joysticks[n] = 0;
   shState->rtData().joystick_change = 1;
   return true;
 }
 
-bool EventThread::open_joystick()
+bool EventThread::open_joystick(int n)
 {
-  if (SDL_NumJoysticks() == 0)
+  int total = SDL_NumJoysticks();
+  if (total == 0 || total - 1 < n)
     return false;
-  js = SDL_JoystickOpen(0);
-  shState->rtData().joystick = js;
+  js[n]->js = SDL_JoystickOpen(n);
+  shState->rtData().joysticks[n] = js[n];
   shState->rtData().joystick_change = 2;
   return true;
+}
+
+int EventThread::joystick_index()
+{
+  return pos;
 }
 
 void SyncPoint::haltThreads()

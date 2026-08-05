@@ -94,6 +94,7 @@ module Graphics
 end
 
 module Input
+  @bindings = {}
   KEYBOARD_GENERIC = "kb_generic"
   PRESET_BINDINGS = [
     "Up=Up,Keypad 8",
@@ -146,14 +147,33 @@ module Input
   ]
 
   class Gamepad
-    attr_reader :vendor_fn, :int_name
-    def initialize(name, vendor_id, kind, level, state1, state2)
+    TYPES = []
+    TYPES << "Unknown"
+    TYPES << "Controller"
+    TYPES << "Wheel"
+    TYPES << "Arcade Stick"
+    TYPES << "Flight Stick"
+    TYPES << "Dance Pad"
+    TYPES << "Guitar"
+    TYPES << "Drum Kit"
+    TYPES << "Arcade Pad"
+    TYPES << "Throttle"
+    LEVELS = {}
+    LEVELS[-1] = "Unknown"
+    LEVELS[0]  = "Empty"
+    LEVELS[1]  = "Low"
+    LEVELS[2]  = "Medium"
+    LEVELS[3]  = "Full"
+    LEVELS[4]  = "Wired"
+    LEVELS[5]  = "Maximum"
+    def initialize(gid, name, vendor_id, kind, level, state1, state2)
+      @id = gid
       @name = name
       @vendor = @@vendors[vendor_id]
       @vendor_id = vendor_id
-      @type = @@types[kind]
+      @type = TYPES[kind]
       @type_number = kind
-      @power = @@levels[level]
+      @power = LEVELS[level]
       @power_level = level
       @rumble = state1
       @last_rumble = nil
@@ -209,6 +229,7 @@ module Input
     def internal_name
       @vendor_fn + "_" + @int_name
     end
+    attr_reader :vendor_fn, :int_name
   end
 
   class KeyBinding
@@ -454,12 +475,15 @@ module Input
   end
 
   extend self
-  attr_reader :bindings, :all_bindings
+  attr_reader :all_bindings, :bindings, :gamepads
+  def gamepad
+    @gamepads[0]
+  end
+
   def load_init_bindings
     @all_bindings = AllBindings.new
     ext = Game.data_ext
     files = Dir[Game.glob_kb].sort
-    puts "Loading Bindings..."
     if files.any?
       load_all_bindings(files)
     end
@@ -479,18 +503,30 @@ module Input
         code = File.basename(fn, ".ini")
         next if codes.include?(code)
         parse_bindings(fn, code)
-        save_bindings(code)
+        pos = code[/key/i] ? :key : nil
+        save_bindings(pos, code)
       end
     end
     if @all_bindings.empty?
       parse_preset_keyboard_bindings
     end
+    init_gamepads
+  end
+
+  def init_gamepads
     if gamepad?
       @gamepad_updates << :add
       @temp_binding = @all_bindings.default?
-      setup_gamepad
+      total = total_gamepads
+      puts "Found #{total} Gamepads"
+      total.times do |n|
+        setup_gamepad(n)
+        gamepad_change!
+        update
+      end
     else
       @gamepad_updates << :remove
+      puts "Could not find any gamepad!"
       reset_gamepad
     end
   end
@@ -518,9 +554,9 @@ module Input
     end
   end
 
-  def save_key_bindings
-    reset_sdl_bindings
-    save_new_bindings
+  def save_key_bindings(pos)
+    reset_sdl_bindings(pos)
+    save_new_bindings(pos)
   rescue => e
     puts "Save Key Bindings"
     puts e.full_message
@@ -588,57 +624,52 @@ module Input
     state = gamepad_change?
     return if state == 0
     @gamepad_updates.pop
-    if state == 2
+    case state
+    when 2
       @gamepad_updates << :add
       setup_gamepad
-    else
-      if gamepad?
-        @gamepad_updates << :add
-        gamepad_open!
-        setup_gamepad
-      else
-        @gamepad_updates << :remove
-        begin
-          reset_gamepad
-        rescue => e
-          puts e.full_message
-        end
-      end
+    when 1
+      @gamepad_updates << :remove
+      reset_gamepad
     end
+  rescue => e
+    puts e.full_message
   end
 
-  def save_new_bindings
-    save_bindings(@gamepad.internal_name)
+  def save_new_bindings(pos)
+    save_bindings(pos, @gamepads[pos].internal_name)
   end
 
-  def setup_gamepad
-    list = gamepad_basic_values
+  def setup_gamepad(n=nil)
+    n ||= gamepad_index
+    list = gamepad_basic_values(n)
     list << true
-    @gamepad = Gamepad.new(*list)
+    @gamepads[n] = Gamepad.new(n, *list)
     if @temp_binding
-      parse_preset_gamepad_bindings
+      parse_preset_gamepad_bindings(n)
     end
-    reset_bindings
+    reset_bindings(n)
   end
 
   def reset_gamepad
+    n = gamepad_index
     name = Gamepad::DEFAULT_NAME
-    @gamepad = Gamepad.new(name, 0, 0, -1, false, false)
-    reset_bindings
+    @gamepads[n] = Gamepad.new(n, name, 0, 0, -1, false, false)
+    reset_bindings(n)
   end
 
-  def reset_bindings
-    code = @gamepad.internal_name.to_sym
-    @bindings = @all_bindings[code]
-    gamepad_clear_change
+  def reset_bindings(pos)
+    pass = true
+    code = @gamepads[pos].internal_name.to_sym
+    @bindings[pos] = @all_bindings[code]
     if code&.empty?
       puts "Empty Gamepad Code!"
-      return
-    elsif !@bindings
+      pass = false
+    elsif pass and !@bindings[pos]
       puts "No #{code} Bindings found!"
-      return
+      pass = false
     end
-    reset_sdl_bindings
+    reset_sdl_bindings(pos) if pass
   rescue => e
     puts "Reset Key Bindings"
     puts e.full_message
@@ -651,22 +682,23 @@ module Input
 
   def parse_preset_keyboard_bindings
     code = KEYBOARD_GENERIC.to_sym
-    @bindings = KeyBindings.new
+    @bindings[:key] = KeyBindings.new
     lines = PRESET_BINDINGS.dup
-    parse_bindings_lines(@bindings, lines)
-    @all_bindings[code] = @bindings
-    save_bindings(code)
+    parse_bindings_lines(@bindings[:key], lines)
+    @all_bindings[code] = @bindings[:key]
+    save_bindings(:key, code)
   end
 
-  def parse_preset_gamepad_bindings
-    name = @gamepad.vendor_fn.downcase
-    code = @gamepad.internal_name.to_sym
-    @bindings = KeyBindings.new
+  def parse_preset_gamepad_bindings(pos)
+    gp = @gamepads[pos]
+    name = gp.vendor_fn.downcase
+    code = gp.internal_name.to_sym
+    @bindings[pos] = KeyBindings.new
     lines = PRESET_GAMEPAD_BINDINGS[name] || PRESET_BINDINGS
     lines = lines.dup
-    parse_bindings_lines(@bindings, lines)
-    @all_bindings[code] = @bindings
-    save_bindings(code)
+    parse_bindings_lines(@bindings[pos], lines)
+    @all_bindings[code] = @bindings[pos]
+    save_bindings(pos, code)
     @temp_binding = nil
   end
 
@@ -723,13 +755,13 @@ module Input
     end
   end
 
-  def save_bindings(code)
+  def save_bindings(pos, code)
     file = Game.bindings_path(code)
     sym = code.to_sym
     if @all_bindings.key?(sym)
       binds = @all_bindings[sym]
     else
-      binds = @bindings || KeyBindings.new
+      binds = @bindings[pos] || KeyBindings.new
       @all_bindings[sym] = binds
     end
     binds.update_active
