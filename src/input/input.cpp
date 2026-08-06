@@ -470,7 +470,6 @@ struct InputPrivate
   int scroll_factor;
   int scroll_remainder;
   int trigger_now;
-  int text_input;
   int last_input;
   unsigned int trigger_kind;
   unsigned int trigger_js_value;
@@ -495,7 +494,6 @@ struct InputPrivate
   {
     index = pos;
     input = parent;
-    text_input = 0;
     last_input = 0;
     same_mouse_pos = false;
     init_char_kb_bindings();
@@ -623,7 +621,7 @@ struct InputPrivate
 
   inline ButtonState &get_this_state_check(int code)
   {
-    switch (text_input)
+    switch (Input::text_input)
     {
     case 0:
       return getStateCheck(code);
@@ -648,11 +646,11 @@ struct InputPrivate
   void check_text_input_state(const RGSSThreadData &rtData)
   {
     BDescVec d;
-    if (last_input == text_input)
+    if (Input::text_input == last_input)
       return;
     rtData.bindingUpdateMsg.poll(d);
     apply_key_input_binding(d);
-    last_input = text_input;
+    last_input = Input::text_input;
   }
   
   template<class B>
@@ -1092,12 +1090,29 @@ struct InputPrivate
       getState(repeat_btn).repeated = true;
       return;
     }
-    // Check if repeating key is still pressed
     if (getState(repeating).pressed) {
       repeatCount++;
       bool repeated;
       repeated = repeatCount >= 23 && ((repeatCount+1) % 6) == 0;
       getState(repeating).repeated |= repeated;
+      return;
+    }
+    repeating = Input::None;
+  }
+
+  void check_repeating_btn(Input::ButtonCode &repeat_btn)
+  {
+    if (Input::None != repeat_btn && repeat_btn != repeating) {
+      repeating = repeat_btn;
+      repeatCount = 0;
+      get_text_state(repeat_btn).repeated = true;
+      return;
+    }
+    if (get_text_state(repeating).pressed) {
+      repeatCount++;
+      bool repeated;
+      repeated = repeatCount >= 23 && ((repeatCount+1) % 6) == 0;
+      get_text_state(repeating).repeated |= repeated;
       return;
     }
     repeating = Input::None;
@@ -1108,13 +1123,13 @@ Input::Input(const RGSSThreadData &rtData)
 {
   p1 = new InputPrivate(rtData, 0, this);
   p2 = new InputPrivate(rtData, 1, this);
+  text_input = 0;
 }
 
 void Input::update()
 {
   shState->checkShutdown();
-  switch (p1->text_input)
-  {
+  switch (text_input) {
   case 0:
     main_update();
     return;
@@ -1152,25 +1167,17 @@ void Input::text_update()
   p1->swap_text_buffers();
   p1->clear_text_buffer();
   p1->update_timers();
-  ButtonCode repeat_btn = None;
+  p2->checkBindingChange(shState->rtData());
+  p2->swap_text_buffers();
+  p2->clear_text_buffer();
+  p2->update_timers();
+  ButtonCode repeat_btn1 = None;
+  ButtonCode repeat_btn2 = None;
   // Poll all bindings
-  p1->poll_bindings4text(repeat_btn);
-  // Check for new repeating key
-  if (repeat_btn != None && repeat_btn != p1->repeating) {
-    p1->repeating = repeat_btn;
-    p1->repeatCount = 0;
-    p1->get_text_state(repeat_btn).repeated = true;
-    return;
-  }
-  // Check if repeating key is still pressed
-  if (p1->get_text_state(p1->repeating).pressed) {
-    p1->repeatCount++;
-    bool repeated;
-    repeated = p1->repeatCount >= 23 && ((p1->repeatCount+1) % 6) == 0;
-    p1->get_text_state(p1->repeating).repeated |= repeated;
-    return;
-  }
-  p1->repeating = None;
+  p1->poll_bindings4text(repeat_btn1);
+  p1->check_repeating_btn(repeat_btn1);
+  p2->poll_bindings4text(repeat_btn2);
+  p2->check_repeating_btn(repeat_btn2);
 }
 
 void Input::bind_update()
@@ -1180,6 +1187,11 @@ void Input::bind_update()
   p1->clear_bind_buffer();
   p1->update_timers();
   p1->poll_bindings4bind();
+  p2->check_text_input_state(shState->rtData());
+  p2->swap_bind_buffers();
+  p2->clear_bind_buffer();
+  p2->update_timers();
+  p2->poll_bindings4bind();
 }
 
 int Input::trigger_timer() const
@@ -1432,34 +1444,26 @@ bool Input::is_last_key()
   return k != Backspace && k != Delete && k != Enter && k != Return && k != Shift;
 }
 
-int Input::text_input()
-{
-  return p1->text_input;
-}
-
 void Input::set_text_input(int value, int dev_index)
 {
+  int old_ti = text_input;
+  text_input = clamp(0, value, 2);
   if (dev_index == 1) {
-    int old_ti = p2->text_input;
-    value = clamp(0, value, 2);
-    p2->text_input = value;
     p2->clear_unused_clicks();
-    if (!value && old_ti != 1) {
+    if (!text_input && old_ti != 1) {
       p2->checkBindingChange(shState->rtData());
       return;
     }
-    if (value == 2)
+    if (text_input == 2)
       p2->check_text_input_state(shState->rtData());
+    return;
   } else {
-    int old_ti = p1->text_input;
-    value = clamp(0, value, 2);
-    p1->text_input = value;
     p1->clear_unused_clicks();
-    if (!value && old_ti != 1) {
+    if (!text_input && old_ti != 1) {
       p1->checkBindingChange(shState->rtData());
       return;
     }
-    if (value == 2)
+    if (text_input == 2)
       p1->check_text_input_state(shState->rtData());
   }
 }

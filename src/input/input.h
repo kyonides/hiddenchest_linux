@@ -69,6 +69,7 @@ public:
     JS12 = 145, JS13 = 146, JS14 = 147, JS15 = 148, JS16 = 149, JS17 = 150,
     JS18 = 151, JS19 = 152, JS20 = 153,
   };
+  inline static int text_input;
   void update();
   int timer() const;
   int trigger_timer() const;
@@ -100,7 +101,6 @@ public:
   bool is_triggered_any(int pos);
   bool is_triggered_double(int button);
   bool is_last_key();
-  int text_input();
   void set_text_input(int value, int dev_index);
   int last_key();
   void last_key_clear();
