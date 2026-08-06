@@ -131,18 +131,18 @@ module Input
   PRESET_GAMEPAD_BINDINGS["logi"] = [
     "Up=Up,Keypad 8,Hat 0:U,Axis 1-",
     "Down=Down,Numpad 2,Hat 0:D,Axis 1+",
-    "L=Q",
-    "L2=E",
+    "L=JS 4,Q",
+    "L2=JS 6,E",
     "Left=Left,Keypad 4,Hat 0:L,Axis 0-",
     "Right=Right,Numpad 6,Hat 0:R,Axis 0+",
-    "R=W",
-    "R2=R",
+    "R=JS 5,W",
+    "R2=JS 7,R",
     "A=LeftShift,JS 3",
     "B=Escape,X,JS 2",
     "C=Return,Space,C,JS 1",
-    "X=",
-    "Y=",
-    "Z="
+    "X=JS 8,J",
+    "Y=JS 0,K",
+    "Z=JS 9,L"
   ]
 
   class Gamepad
@@ -228,7 +228,12 @@ module Input
     def internal_name
       @vendor_fn + "_" + @int_name
     end
+
+    def default_name?
+      DEFAULT_NAME == @name
+    end
     attr_reader :vendor_fn, :int_name
+    attr_writer :id
   end
 
   class KeyBinding
@@ -493,6 +498,18 @@ module Input
     @gamepad_updates = []
     @gamepads = []
     @bindings = {}
+  end
+
+  def switch_gamepads!
+    n = total_gamepads
+    return if n == 0
+    return if n == 1 and @gamepads[1].default_name?
+    switch_gamepads
+    list = [@bindings[1], @bindings[0]]
+    @bindings[0] = list.shift
+    @bindings[1] = list.shift
+    @gamepads.reverse!
+    2.times {|n| @gamepads[n].id = n }
   end
 
   def gamepad

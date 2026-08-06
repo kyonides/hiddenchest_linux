@@ -107,26 +107,30 @@ static elementsN(defaultKbBindings2);
 
 static const JsBindingData defaultJsBindings[] =
 {
-  { 0, Input::A },
-  { 1, Input::B },
-  { 2, Input::C },
-  { 3, Input::X },
-  { 4, Input::Y },
-  { 5, Input::Z },
-  { 6, Input::L },
-  { 7, Input::R }
+  {  0, Input::A     },
+  {  1, Input::B     },
+  {  2, Input::C     },
+  {  3, Input::X     },
+  {  4, Input::Y     },
+  {  5, Input::Z     },
+  {  6, Input::L     },
+  {  7, Input::R     },
+  {  8, Input::Up    },
+  {  9, Input::Down  },
+  { 10, Input::Left  },
+  { 11, Input::Right },
 };
 
 static const JsBindingData ps_button_bindings[] =
 {
-  {  0, Input::C },
-  {  1, Input::B },
-  {  2, Input::X },
-  {  3, Input::A },
-  {  4, Input::Y },
-  {  5, Input::Z },
-  {  9, Input::L },
-  { 10, Input::R },
+  {  0, Input::C     },
+  {  1, Input::B     },
+  {  2, Input::X     },
+  {  3, Input::A     },
+  {  4, Input::Y     },
+  {  5, Input::Z     },
+  {  9, Input::L     },
+  { 10, Input::R     },
   { 11, Input::Up    },
   { 12, Input::Down  },
   { 13, Input::Left  },

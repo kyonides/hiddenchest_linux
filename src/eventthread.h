@@ -96,6 +96,7 @@ public:
   void notifyFrame();
   // Called on game screen (size / offset) changes
   void notifyGameScreenChange(const SDL_Rect &screen);
+  static void switch_joysticks(RGSSThreadData &rtData);
   static bool close_joystick(int n);
   static bool open_joystick(int n);
   static int joystick_index();

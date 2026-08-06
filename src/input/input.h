@@ -129,6 +129,7 @@ public:
   void mouse_set_ox(int n);
   void mouse_set_oy(int n);
   bool mouse_is_inside(int index, Rect *rect);
+  void switch_joysticks();
   bool has_joystick();
   const char* joystick_name(int n);
   int joystick_vendor(int n);

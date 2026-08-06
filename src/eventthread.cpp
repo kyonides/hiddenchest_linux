@@ -37,6 +37,7 @@
 #include <iostream>
 #include <string.h>
 #include <unordered_map>
+#include <utility>
 #ifdef __WINDOWS__
 #include <SDL2/SDL_syswm.h>
 #endif
@@ -99,7 +100,8 @@ enum
 };
 
 static uint32_t usrIdStart;
-static int pos;
+static int pos, open_pos;
+std::unordered_map<int32_t, int32_t> js_ids;
 Joystick *js[2];
 
 bool EventThread::allocUserEvents()
@@ -144,7 +146,6 @@ void EventThread::process(RGSSThreadData &rtData)
   // SDL doesn't send an initial FOCUS_GAINED event
   bool terminate = false;
   windowFocused = true;
-  std::unordered_map<int32_t, int32_t> js_ids;
   js[0] = new Joystick;
   js[1] = new Joystick;
   int total_sticks = SDL_NumJoysticks();
@@ -155,7 +156,7 @@ void EventThread::process(RGSSThreadData &rtData)
     js_ids[js[m]->id] = m;
     rtData.joysticks[m] = js[m];
   }
-  int open_pos = total_sticks;
+  open_pos = total_sticks;
   Debug() << "Gamepads found:" << total_sticks;
   char buffer[128];
   char pendingTitle[128];
@@ -319,7 +320,6 @@ void EventThread::process(RGSSThreadData &rtData)
     case SDL_JOYDEVICEADDED :
       n = event.jdevice.which;
       pos = SDL_NumJoysticks() == 1 ? 0 : open_pos < 2 ? open_pos : 1;
-      Debug() << "Added Gamepad#" << pos;
       js[pos]->id = n;
       js[pos]->js = SDL_JoystickOpen(pos);
       js_ids[n] = pos;
@@ -331,7 +331,6 @@ void EventThread::process(RGSSThreadData &rtData)
       n = event.jdevice.which;
       pos = js_ids[n];
       open_pos = pos;
-      Debug() << "Removed Gamepad#" << pos;
       js_ids.erase(n);
       js[pos]->js = 0;
       js[pos]->id = 0;
@@ -611,6 +610,16 @@ void EventThread::notifyGameScreenChange(const SDL_Rect &screen)
   event.user.data1 = reinterpret_cast<void*>(screen.w);
   event.user.data2 = reinterpret_cast<void*>(screen.h);
   SDL_PushEvent(&event);
+}
+
+void EventThread::switch_joysticks(RGSSThreadData &rtData)
+{
+  js_ids[js[0]->id] = 1;
+  js_ids[js[1]->id] = 0;
+  std::swap(js[0], js[1]);
+  rtData.joysticks[0] = js[0];
+  rtData.joysticks[1] = js[1];
+  open_pos = SDL_NumJoysticks() == 2 ? 2 : !js[1]->js ? 1 : 0;
 }
 
 bool EventThread::close_joystick(int n)

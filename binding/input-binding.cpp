@@ -581,6 +581,13 @@ static VALUE input_has_gamepad(VALUE self)
   return SDL_NumJoysticks() > 0 ? Qtrue : Qfalse;
 }
 
+static VALUE input_switch_gamepads(VALUE self)
+{
+  EventThread::switch_joysticks(shState->rtData());
+  shState->input().switch_joysticks();
+  return Qnil;
+}
+
 static VALUE input_total_gamepads(VALUE self)
 {
   return INT2FIX(SDL_NumJoysticks());
@@ -754,6 +761,7 @@ void inputBindingInit()
   module_func(input, "clear_last_key", input_last_key_clear, 0);
   module_func(input, "clear_text_input", input_text_input_clear, 0);
   module_func(input, "gamepad?", input_has_gamepad, 0);
+  module_func(input, "switch_gamepads", input_switch_gamepads, 0);
   module_func(input, "total_gamepads", input_total_gamepads, 0);
   module_func(input, "gamepad_change?", input_gamepad_change, 0);
   module_func(input, "gamepad_change!", input_gamepad_change_now, 0);

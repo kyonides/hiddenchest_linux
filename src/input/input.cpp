@@ -31,7 +31,7 @@
 #include <SDL_scancode.h>
 #include <SDL_mouse.h>
 #include <SDL_joystick.h>
-#include <vector>
+#include <utility>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
@@ -652,7 +652,13 @@ struct InputPrivate
     apply_key_input_binding(d);
     last_input = Input::text_input;
   }
-  
+
+  void update_bindings_index()
+  {
+    for (size_t i = 0; i < bindings.size(); i++)
+      bindings[i]->index = index;
+  }
+
   template<class B>
   void appendBindings(std::vector<B> &bind)
   {
@@ -1670,6 +1676,15 @@ bool Input::mouse_is_inside(int index, Rect *rect)
     double dr = dx * dx + dy * dy;
     return (sqrt(dr) <= center_x);
   }
+}
+
+void Input::switch_joysticks()
+{
+  std::swap(p1, p2);
+  p1->index = 0;
+  p2->index = 1;
+  p1->update_bindings_index();
+  p2->update_bindings_index();
 }
 
 bool Input::has_joystick()
