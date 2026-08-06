@@ -1,18 +1,19 @@
 # * KChangeKeys HC * #
-#   v1.0.9 - 2026-04-05
+#   v1.1.0 - 2026-08-05
 
 module KChangeKeys
   RGSS = Game::RGSS_VERSION
-  MIN_VERSION = "HiddenChest 1.2.09+"
+  MIN_VERSION = "HiddenChest 1.2.18+"
   KEYBOARD = "Keyboard"
   HEADING = "Key Bindings"
   CHOOSE_KEY = "Please select a key to edit"
   ENTER_KEY = "Please enter a key now"
   @targets = {}
-  @targets[:eng] = %w{Up Down L L2 Left Right R R2 A B C X Y Z}
-  @targets[:esp] = %w{Arriba Abajo L L2 Izq. Der. R R2 A B C X Y Z}
+  @targets[:en] = %w{Up Down L L2 Left Right R R2 A B C X Y Z}
+  @targets[:es] = %w{Arriba Abajo L L2 Izq. Der. R R2 A B C X Y Z}
+  @targets[:de] = %w{Oben Unten L L2 Links Rechts R R2 A B C X Y Z}
   @styles = {}
-  @lang = :eng
+  @lang = :en
   @last_scene = nil
   @style = nil
 
@@ -104,8 +105,8 @@ class Scene
     @index = 0
     @col_index = 0
     @gamepad = Input.gamepad
+    @gamepads = Input.gamepads
     @bindings = Input.bindings
-    @list = @bindings.list
     @style = KChangeKeys.style
     @target_names = []
     @bind_names = []
@@ -113,12 +114,18 @@ class Scene
     @key_names = []
     @sprites = []
     if Input.gamepad?
+      @active_pads = @gamepads.map(&:active)
+      @dev_index = @active_pads.find_index(true)
       @picture = @style.gamepad
       vendor_name = @gamepad.vendor.sub(/(?:inc\.|corp\.)/i, "")
       @name = @gamepad.name.sub(vendor_name, "")
+      @list = @bindings[@dev_index].list
     else
+      @active_pads = []
+      @dev_index = 2
       @picture = @style.keyboard
       @name = KEYBOARD
+      @list = @bindings[:key].list
     end
     set_box_rows
     set_box_offset_y
@@ -297,7 +304,7 @@ class Scene
   def process_key_bindings
     Graphics.block_f1 = false
     Scripts.int_script_name = ""
-    Input.save_key_bindings if @changed
+    Input.save_key_bindings(@dev_index) if @changed
   end
 
   def update
@@ -319,34 +326,35 @@ class Scene
   end
 
   def update_main
-    if Input.trigger?(:B)
+    if Input.trigger?(:B, @dev_index)
       Sound.play_cancel
       KChangeKeys.close!
       return @stage = nil
-    elsif Input.trigger?(:Up)
+    elsif Input.trigger?(:Up, @dev_index)
       update_cursor(0, -1)
       return
-    elsif Input.trigger?(:Down)
+    elsif Input.trigger?(:Down, @dev_index)
       update_cursor(0, 1)
       return
-    elsif Input.trigger?(:Left)
+    elsif Input.trigger?(:Left, @dev_index)
       update_cursor(-1, 0)
       return
-    elsif Input.trigger?(:Right)
+    elsif Input.trigger?(:Right, @dev_index)
       update_cursor(1, 0)
       return
-    elsif Input.trigger?(:Delete) or Input.trigger?(:A)
+    elsif Input.trigger?(:Delete, @dev_index) or
+          Input.trigger?(:A, @dev_index)
       Sound.play_buzzer
       @gamepad.set_rumble(300, 300, 150)
       n = box_index
       bind = @binds[n]
-      bind.value = 0
+      bind.set_value(0, @dev_index)
       @key_names[n] = ""
       b = @bind_names[n].bitmap
       b.clear
       b.draw_text(:rect, "", 1)
       return @changed = true
-    elsif Input.trigger?(:C)
+    elsif Input.trigger?(:C, @dev_index)
       Sound.play_ok
       Input.keymap_mode!
       Input.update
@@ -378,24 +386,27 @@ class Scene
   end
 
   def update_key
-    if Input.trigger?(:MouseLeft) or Input.trigger?(:MouseRight)
+    if Input.trigger?(:MouseLeft, @dev_index) or
+       Input.trigger?(:MouseRight, @dev_index)
       Sound.play_cancel
       name = @key_names[box_index]
       @bind_bit.clear
       @bind_bit.draw_text(:rect, name, 1)
       reset_help
       return
-    elsif Input.trigger_any?
+    elsif Input.trigger_any?(@dev_index)
       Sound.play_ok
       @gamepad.set_rumble(300, 300, 150)
       @changed = true
-      case Input.trigger_type
+      case Input.trigger_type(@dev_index)
       when 0
-        @bind.value = 0
+        @bind.set_value(0, @dev_index)
       when 1
-        @bind.value = Input.trigger_last
+        value = Input.trigger_last(@dev_index)
+        @bind.set_value(value, @dev_index)
       else
-        @bind.value = Input.trigger_gp_value
+        value = Input.trigger_gp_value(@dev_index)
+        @bind.set_value(value, @dev_index)
       end
       n = box_index
       name = @bind.name

@@ -131,9 +131,9 @@ static void gamepad_set_sdl_bound_values(VALUE list, int total, int index, BDesc
 
 static VALUE input_reset_sdl_bindings(VALUE self, VALUE pos)
 {
-  int index = FIX2INT(pos);
   BDescVec bind;
   VALUE list;
+  int index = FIXNUM_P(pos) ? FIX2INT(pos) : 2;
   list = rb_iv_get(self, "@bindings");
   list = rb_hash_aref(list, pos);
   if (list == Qnil) {
@@ -196,21 +196,8 @@ static VALUE input_gamepad_set_rumble(VALUE self, VALUE lint, VALUE rint, VALUE 
 static VALUE input_update_internal(VALUE self)
 {
   shState->input().update();
-  int btn = shState->input().triggered_last();
-  if (btn > 0 && rb_iv_get(self, "@store_sequence") == Qtrue) {
-    shState->input().triggered_last_clear();
-    VALUE codes, seq, button, names;
-    codes = rb_const_get(self, rb_intern("CODE_BUTTONS"));
-    seq = rb_iv_get(self, "@button_sequence");
-    names = rb_iv_get(self, "@button_sequence_names");
-    button = INT2FIX(btn);
-    rb_ary_push(seq, button);
-    button = rb_hash_aref(codes, button);
-    rb_ary_push(names, button);
-  }
   return Qnil;
 }
-
 // FIXME: RMXP allows only few more types that don't make sense (symbols in pre 3, floats)
 static int getButtonArg(VALUE input, VALUE number)
 {
@@ -286,51 +273,59 @@ static VALUE input_trigger_exclude(int size, VALUE* buttons, VALUE self)
   return Qtrue;
 }
 
-static VALUE input_trigger_kind(VALUE self)
+static VALUE input_trigger_kind(VALUE self, VALUE pos)
 {
-  int num = shState->input().triggered_kind();
+  int n = FIX2INT(pos);
+  int num = shState->input().triggered_kind(n);
   return INT2FIX(num);
 }
 
-static VALUE input_trigger_gp_value(VALUE self)
+static VALUE input_trigger_gp_value(VALUE self, VALUE pos)
 {
-  int num = shState->input().triggered_js_value();
+  int n = FIX2INT(pos);
+  int num = shState->input().triggered_js_value(n);
   return INT2FIX(num);
 }
 
-static VALUE input_trigger_gp_axis(VALUE self)
+static VALUE input_trigger_gp_axis(VALUE self, VALUE pos)
 {
-  int num = shState->input().triggered_js_axis();
+  int n = FIX2INT(pos);
+  int num = shState->input().triggered_js_axis(n);
   return INT2FIX(num);
 }
 
-static VALUE input_trigger_gp_dir(VALUE self)
+static VALUE input_trigger_gp_dir(VALUE self, VALUE pos)
 {
-  int num = shState->input().triggered_js_dir();
+  int n = FIX2INT(pos);
+  int num = shState->input().triggered_js_dir(n);
   return INT2FIX(num);
 }
 
-static VALUE input_trigger_gp_clear(VALUE self)
+static VALUE input_trigger_gp_clear(VALUE self, VALUE pos)
 {
-  shState->input().triggered_bind_clear();
+  int n = FIX2INT(pos);
+  shState->input().triggered_bind_clear(n);
   return INT2FIX(0);
 }
 
-static VALUE input_trigger_last_clear(VALUE self)
+static VALUE input_trigger_last_clear(VALUE self, VALUE pos)
 {
-  shState->input().triggered_last_clear();
+  int n = FIX2INT(pos);
+  shState->input().triggered_last_clear(n);
   return INT2FIX(0);
 }
 
-static VALUE input_trigger_last(VALUE self)
+static VALUE input_trigger_last(VALUE self, VALUE pos)
 {
-  int num = shState->input().triggered_last();
+  int n = FIX2INT(pos);
+  int num = shState->input().triggered_last(n);
   return INT2FIX(num);
 }
 
-static VALUE input_trigger_old(VALUE self)
+static VALUE input_trigger_old(VALUE self, VALUE pos)
 {
-  int num = shState->input().triggered_old();
+  int n = FIX2INT(pos);
+  int num = shState->input().triggered_old(n);
   return INT2FIX(num);
 }
 
@@ -698,7 +693,7 @@ static VALUE input_default_trigger_timer_set(VALUE self, VALUE val)
 
 void inputBindingInit()
 {
-  VALUE input, input_meta, zero = RB_INT2FIX(0);
+  VALUE input, input_meta, btn_seq, zero = RB_INT2FIX(0);
   input = rb_define_module("Input");
   input_meta = rb_singleton_class(input);
   gamepad = rb_define_class_under(input, "Gamepad", rb_cObject);
@@ -721,16 +716,6 @@ void inputBindingInit()
   rb_define_method(gamepad, "set_rumble", RMF(input_gamepad_set_rumble), 3);
   rb_iv_set(input, "text_input", zero);
   rb_iv_set(input, "default_trigger_timer", INT2FIX(TRIGGER_TIMER));
-  rb_iv_set(input, "@button_targets", rb_ary_new());
-  rb_iv_set(input, "@button_target_names", rb_ary_new());
-  rb_iv_set(input, "@button_sequence", rb_ary_new());
-  rb_iv_set(input, "@button_sequence_names", rb_ary_new());
-  rb_iv_set(input, "@store_sequence", Qfalse);
-  rb_iv_set(input, "@set_sequence_timer", Qfalse);
-  rb_iv_set(input, "@sequence_max", zero);
-  rb_iv_set(input, "@sequence_timer", zero);
-  rb_iv_set(input, "@gamepad_updates", rb_ary_new());
-  rb_iv_set(input, "@gamepads", rb_ary_new());
   module_func(input, "trigger_timer", input_trigger_timer, 0);
   module_func(input, "base_trigger_timer", input_default_trigger_timer, 0);
   module_func(input, "base_trigger_timer=", input_default_trigger_timer_set, 1);
@@ -755,25 +740,17 @@ void inputBindingInit()
   module_func(input, "trigger_up_down?", input_trigger_up_down, -1);
   module_func(input, "trigger_left_right?", input_trigger_left_right, -1);
   module_func(input, "trigger_exclude?", input_trigger_exclude, -1);
-  module_func(input, "trigger_type", input_trigger_kind, 0);
-  module_func(input, "trigger_gp_value", input_trigger_gp_value, 0);
-  module_func(input, "trigger_gp_axis", input_trigger_gp_axis, 0);
-  module_func(input, "trigger_gp_dir", input_trigger_gp_dir, 0);
-  module_func(input, "trigger_gp_clear", input_trigger_gp_clear, 0);
-  module_func(input, "trigger_last_clear", input_trigger_last_clear, 0);
-  module_func(input, "trigger_last", input_trigger_last, 0);
-  module_func(input, "trigger_old", input_trigger_old, 0);
+  module_func(input, "trigger_type", input_trigger_kind, 1);
+  module_func(input, "trigger_gp_value", input_trigger_gp_value, 1);
+  module_func(input, "trigger_gp_axis", input_trigger_gp_axis, 1);
+  module_func(input, "trigger_gp_dir", input_trigger_gp_dir, 1);
+  module_func(input, "trigger_gp_clear", input_trigger_gp_clear, 1);
+  module_func(input, "trigger_last_clear", input_trigger_last_clear, 1);
+  module_func(input, "trigger_last", input_trigger_last, 1);
+  module_func(input, "trigger_old", input_trigger_old, 1);
   module_func(input, "repeat?", input_repeat, -1);
   module_func(input, "repeat_left_click?", input_repeat_left_click, 0);
   module_func(input, "repeat_right_click?", input_repeat_right_click, 0);
-  module_func(input, "button_target_names", input_button_target_names, 0);
-  module_func(input, "button_targets", input_button_targets, 0);
-  module_func(input, "button_sequence_names", input_button_sequence_names, 0);
-  module_func(input, "button_sequence", input_button_sequence, 0);
-  module_func(input, "store_sequence",  input_store_sequence_get, 0);
-  module_func(input, "sequence_max",  input_sequence_max_get, 0);
-  module_func(input, "sequence_timer",  input_sequence_timer_get, 0);
-  module_func(input, "start_sequence_timer",  input_start_sequence_timer_get, 0);
   module_func(input, "last_key?", input_is_last_key, 0);
   module_func(input, "last_key", input_last_key, 0);
   module_func(input, "last_char", input_last_char, 0);

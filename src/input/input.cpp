@@ -1461,46 +1461,77 @@ void Input::last_key_clear()
   p1->trigger_now = 0;
 }
 
-void Input::triggered_bind_clear()
+void Input::triggered_bind_clear(int n)
 {
-  p1->trigger_kind = 0;
-  p1->trigger_js_value = 0;
-  p1->trigger_js_dir = 0;
+  if (n == 1) {
+    p2->trigger_kind = 0;
+    p2->trigger_js_value = 0;
+    p2->trigger_js_dir = 0;
+  } else {
+    p1->trigger_kind = 0;
+    p1->trigger_js_value = 0;
+    p1->trigger_js_dir = 0;
+  }
 }
 
-int Input::triggered_kind()
+int Input::triggered_kind(int n)
 {
-  return p1->trigger_kind;
+  if (n == 1)
+    return p2->trigger_kind;
+  else
+    return p1->trigger_kind;
 }
 
-int Input::triggered_js_value()
+int Input::triggered_js_value(int n)
 {
-  return p1->trigger_js_value;
+  if (n == 1)
+    return p2->trigger_js_value;
+  else
+    return p1->trigger_js_value;
 }
 
-int Input::triggered_js_axis()
+int Input::triggered_js_axis(int n)
 {
-  return p1->trigger_js_axis;
+  if (n == 1)
+    return p2->trigger_js_axis;
+  else
+    return p1->trigger_js_axis;
 }
 
-int Input::triggered_js_dir()
+int Input::triggered_js_dir(int n)
 {
-  return p1->trigger_js_dir;
+  if (n == 1)
+    return p2->trigger_js_dir;
+  else
+    return p1->trigger_js_dir;
 }
 
-int Input::triggered_last()
+int Input::triggered_last(int n)
 {
-  return p1->trigger_new;
+  if (n == 1)
+    return p2->trigger_new;
+  else
+    return p1->trigger_new;
 }
 
-int Input::triggered_old()
+int Input::triggered_old(int n)
 {
-  return p1->trigger_old;
+  if (n == 1)
+    return p2->trigger_old;
+  else
+    return p1->trigger_old;
 }
 
-void Input::triggered_last_clear()
+void Input::triggered_last_clear(int n)
 {
-  p1->trigger_new = Input::None;
+  if (n == 2) {
+    p2->trigger_new = Input::None;
+    p1->trigger_new = Input::None;
+  } else if (n == 1) {
+    p2->trigger_new = Input::None;
+  } else {
+    p1->trigger_new = Input::None;
+  }
 }
 
 int Input::dir4Value()

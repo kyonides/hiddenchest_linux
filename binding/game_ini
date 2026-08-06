@@ -94,7 +94,6 @@ module Graphics
 end
 
 module Input
-  @bindings = {}
   KEYBOARD_GENERIC = "kb_generic"
   PRESET_BINDINGS = [
     "Up=Up,Keypad 8",
@@ -355,9 +354,9 @@ module Input
       s =~ /u/i ? 1 : s =~ /r/i ? 2 : s =~ /d/i ? 4 : s =~ /l/i ? 8 : 0
     end
 
-    def value=(n)
+    def set_value(n, dev_index)
       @value = n
-      self.type = Input.trigger_type
+      self.type = Input.trigger_type(dev_index)
       case @type
       when 0
         clear_invalid
@@ -373,17 +372,17 @@ module Input
       when 3
         @symbol = nil
         @scancode = 0
-        @dir = Input.trigger_gp_dir
+        @dir = Input.trigger_gp_dir(dev_index)
         sym = @dir == 0 ? "-" : "+"
         @name = @type_name + " #{@value}" + sym
       when 4
         @symbol = nil
         @scancode = 0
-        @dir = Input.trigger_gp_dir
+        @dir = Input.trigger_gp_dir(dev_index)
         str = get_hat_dir(@dir)
         @name = @type_name + " #{@dir}:" + str
       end
-      Input.trigger_gp_clear
+      Input.trigger_gp_clear(dev_index)
     end
 
     def get_hat_dir(s)
@@ -394,7 +393,7 @@ module Input
       @type > 0 ? 1 : 0
     end
     attr_reader :name, :type, :type_name, :symbol, :value, :scancode, :dir
-    attr_accessor :index
+    attr_accessor :index, :dev_index
     private :refresh_type
   end
 
@@ -475,7 +474,26 @@ module Input
   end
 
   extend self
-  attr_reader :all_bindings, :bindings, :gamepads
+  attr_reader :qte_index, :all_bindings, :bindings, :gamepads
+  attr_reader :button_targets, :button_target_names
+  attr_reader :button_sequence_names, :button_sequence, :store_sequence
+  attr_reader :sequence_max, :sequence_timer, :start_sequence_timer
+  def clear
+    @qte_index = 2
+    @button_targets = [[], []]
+    @button_target_names = [[], []]
+    @button_sequence_names = [[], []]
+    @button_sequence = [[], []]
+    @store_sequence = [[], []]
+    @set_sequence_timer = [false, false]
+    @start_sequence_timer = [false, false]
+    @sequence_max = [0, 0]
+    @sequence_timer = [0, 0]
+    @gamepad_updates = []
+    @gamepads = []
+    @bindings = {}
+  end
+
   def gamepad
     @gamepads[0]
   end
@@ -602,15 +620,22 @@ module Input
 
   private
   def update_button_sequence
-    if @store_sequence
-      if @start_sequence_timer
-        @sequence_timer -= 1
-        @store_sequence = @sequence_timer > 0
-        @start_sequence_timer = !@store_sequence
+    2.times do |n|
+      next unless @store_sequence[n]
+      button = trigger_last(n)
+      if button > 0
+        trigger_last_clear(n)
+        @button_sequence[n] << button
+        @button_sequence_names[n] << CODE_BUTTONS[button]
+      end
+      if @start_sequence_timer[n]
+        @sequence_timer[n] -= 1
+        @store_sequence[n] = @sequence_timer[n] > 0
+        @start_sequence_timer[n] = !@store_sequence[n]
         return
-      elsif @button_sequence.size == @sequence_max
-        @sequence_timer = 0
-        @store_sequence = false
+      elsif @button_sequence[n].size == @sequence_max[n]
+        @sequence_timer[n] = 0
+        @store_sequence[n] = false
       end
     end
   end
@@ -637,7 +662,11 @@ module Input
   end
 
   def save_new_bindings(pos)
-    save_bindings(pos, @gamepads[pos].internal_name)
+    if pos == :key
+      save_bindings(pos, KEYBOARD_GENERIC)
+    else
+      save_bindings(pos, @gamepads[pos].internal_name)
+    end
   end
 
   def setup_gamepad(n=nil)
@@ -686,7 +715,7 @@ module Input
     lines = PRESET_BINDINGS.dup
     parse_bindings_lines(@bindings[:key], lines)
     @all_bindings[code] = @bindings[:key]
-    save_bindings(:key, code)
+    save_bindings(:key, code.to_s)
   end
 
   def parse_preset_gamepad_bindings(pos)
@@ -1080,12 +1109,8 @@ class SplashScene
     Graphics.freeze
     terminate
   end
-
-  def start
-  end
-
-  def terminate
-  end
+  def start = nil
+  def terminate = nil
 end
 
 end
@@ -1093,6 +1118,7 @@ end
 begin
   $LOAD_PATH << Dir.pwd
   GC.auto_compact = false
+  Input.clear
   Game.clear
   Game.setup_custom_scene
   if FileInt.exist?(Game.custom_scene_file)

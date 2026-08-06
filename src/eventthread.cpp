@@ -325,7 +325,7 @@ void EventThread::process(RGSSThreadData &rtData)
       js_ids[n] = pos;
       rtData.joysticks[pos] = js[pos];
       rtData.joystick_change = 2;
-      open_pos = 2;
+      open_pos = total_sticks == 2 ? 2 : pos == 0 ? 1 : 0;
       break;
     case SDL_JOYDEVICEREMOVED :
       n = event.jdevice.which;
