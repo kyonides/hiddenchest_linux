@@ -562,22 +562,18 @@ static VALUE input_capslock_state(VALUE self)
   return SDL_GetModState() & 0x2000 ? Qtrue : Qfalse;
 }
 
-static VALUE input_text_input(VALUE self)
-{
-  return rb_iv_get(self, "@text_input");
-}
-
-static VALUE input_text_input_set(VALUE self, VALUE number)
+static VALUE input_text_input_set(VALUE self, VALUE number, VALUE index)
 {
   int n = FIX2INT(number);
-  shState->input().set_text_input(n);
+  int i = FIX2INT(index);
+  shState->input().set_text_input(n, i);
   return rb_iv_set(self, "@text_input", number);
 }
 
 static VALUE input_text_input_clear(VALUE self)
 {
   input_last_key_clear(self);
-  return input_text_input_set(self, INT2FIX(0));
+  return input_text_input_set(self, INT2FIX(0), INT2FIX(2));
 }
 
 static VALUE input_has_gamepad(VALUE self)
@@ -714,7 +710,6 @@ void inputBindingInit()
   rb_define_method(gamepad, "hats", RMF(input_gamepad_number_hats), 0);
   rb_define_method(gamepad, "buttons", RMF(input_gamepad_number_buttons), 0);
   rb_define_method(gamepad, "set_rumble", RMF(input_gamepad_set_rumble), 3);
-  rb_iv_set(input, "text_input", zero);
   rb_iv_set(input, "default_trigger_timer", INT2FIX(TRIGGER_TIMER));
   module_func(input, "trigger_timer", input_trigger_timer, 0);
   module_func(input, "base_trigger_timer", input_default_trigger_timer, 0);
@@ -755,8 +750,7 @@ void inputBindingInit()
   module_func(input, "last_key", input_last_key, 0);
   module_func(input, "last_char", input_last_char, 0);
   module_func(input, "capslock_state", input_capslock_state, 0);
-  module_func(input, "text_input", input_text_input, 0);
-  module_func(input, "text_input=", input_text_input_set, 1);
+  module_func(input, "set_text_input", input_text_input_set, 2);
   module_func(input, "clear_last_key", input_last_key_clear, 0);
   module_func(input, "clear_text_input", input_text_input_clear, 0);
   module_func(input, "gamepad?", input_has_gamepad, 0);

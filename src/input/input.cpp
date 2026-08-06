@@ -1437,18 +1437,31 @@ int Input::text_input()
   return p1->text_input;
 }
 
-void Input::set_text_input(int value)
+void Input::set_text_input(int value, int dev_index)
 {
-  int old_ti = p1->text_input;
-  value = clamp(0, value, 2);
-  p1->text_input = value;
-  p1->clear_unused_clicks();
-  if (!value && old_ti != 1) {
-    p1->checkBindingChange(shState->rtData());
-    return;
+  if (dev_index == 1) {
+    int old_ti = p2->text_input;
+    value = clamp(0, value, 2);
+    p2->text_input = value;
+    p2->clear_unused_clicks();
+    if (!value && old_ti != 1) {
+      p2->checkBindingChange(shState->rtData());
+      return;
+    }
+    if (value == 2)
+      p2->check_text_input_state(shState->rtData());
+  } else {
+    int old_ti = p1->text_input;
+    value = clamp(0, value, 2);
+    p1->text_input = value;
+    p1->clear_unused_clicks();
+    if (!value && old_ti != 1) {
+      p1->checkBindingChange(shState->rtData());
+      return;
+    }
+    if (value == 2)
+      p1->check_text_input_state(shState->rtData());
   }
-  if (value == 2)
-    p1->check_text_input_state(shState->rtData());
 }
 
 int Input::last_key()

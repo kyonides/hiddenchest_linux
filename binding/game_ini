@@ -474,12 +474,13 @@ module Input
   end
 
   extend self
-  attr_reader :qte_index, :all_bindings, :bindings, :gamepads
+  attr_reader :qte_index, :all_bindings, :bindings, :gamepads, :text_imput
   attr_reader :button_targets, :button_target_names
   attr_reader :button_sequence_names, :button_sequence, :store_sequence
   attr_reader :sequence_max, :sequence_timer, :start_sequence_timer
   def clear
     @qte_index = 2
+    @text_input = 0
     @button_targets = [[], []]
     @button_target_names = [[], []]
     @button_sequence_names = [[], []]
@@ -549,16 +550,16 @@ module Input
     end
   end
 
-  def play_mode!
-    self.text_input = 0
+  def play_mode!(dev_index)
+    self.set_text_input(0, dev_index)
   end
 
-  def text_mode!
-    self.text_input = 1
+  def text_mode!(dev_index)
+    self.set_text_input(1, dev_index)
   end
 
-  def keymap_mode!
-    self.text_input = 2
+  def keymap_mode!(dev_index)
+    self.set_text_input(2, dev_index)
   end
 
   def mode

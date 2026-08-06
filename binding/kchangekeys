@@ -1,6 +1,18 @@
 # * KChangeKeys HC * #
 #   v1.1.0 - 2026-08-05
 
+if Game::RGSS_VERSION == 3
+
+module SceneManager
+  extend self
+  def set(scene_class, value)
+    @stack.push(@scene)
+    @scene = scene_class.new(value)
+  end
+end
+
+end
+
 module KChangeKeys
   RGSS = Game::RGSS_VERSION
   MIN_VERSION = "HiddenChest 1.2.18+"
@@ -40,11 +52,11 @@ module KChangeKeys
     end
   end
 
-  def reset!
+  def reset!(dev_index = nil)
     if RGSS == 3
-      SceneManager.goto(Scene)
+      SceneManager.set(Scene, dev_index)
     else
-      $scene = Scene.new
+      $scene = Scene.new(dev_index)
     end
   end
 
@@ -96,7 +108,7 @@ end
 module KChangeKeys
 
 class Scene
-  def initialize
+  def initialize(index = nil)
     Scripts.int_script_name = "KChangeKeys::Scene"
     Font.default_outline = true
     Graphics.block_f1 = true
@@ -104,8 +116,6 @@ class Scene
     @stage = :main
     @index = 0
     @col_index = 0
-    @gamepad = Input.gamepad
-    @gamepads = Input.gamepads
     @bindings = Input.bindings
     @style = KChangeKeys.style
     @target_names = []
@@ -114,8 +124,11 @@ class Scene
     @key_names = []
     @sprites = []
     if Input.gamepad?
+      @gamepads = Input.gamepads
       @active_pads = @gamepads.map(&:active)
-      @dev_index = @active_pads.find_index(true)
+      @dev_index = index || @active_pads.find_index(true)
+      @gamepad = @gamepads[@dev_index]
+      @total = @gamepads.size
       @picture = @style.gamepad
       vendor_name = @gamepad.vendor.sub(/(?:inc\.|corp\.)/i, "")
       @name = @gamepad.name.sub(vendor_name, "")
@@ -123,6 +136,7 @@ class Scene
     else
       @active_pads = []
       @dev_index = 2
+      @total = 0
       @picture = @style.keyboard
       @name = KEYBOARD
       @list = @bindings[:key].list
@@ -330,6 +344,15 @@ class Scene
       Sound.play_cancel
       KChangeKeys.close!
       return @stage = nil
+    elsif Input.trigger?(:L, @dev_index) or
+          Input.trigger?(:R, @dev_index)
+      if @total > 2
+        Sound.play_buzzer
+        return
+      end
+      @dev_index = (@dev_index + 1) % @total
+      KChangeKeys.reset!(@dev_index)
+      return @stage = nil
     elsif Input.trigger?(:Up, @dev_index)
       update_cursor(0, -1)
       return
@@ -356,7 +379,7 @@ class Scene
       return @changed = true
     elsif Input.trigger?(:C, @dev_index)
       Sound.play_ok
-      Input.keymap_mode!
+      Input.keymap_mode!(@dev_index)
       Input.update
       n = box_index
       @bind = @binds[n]
@@ -377,7 +400,7 @@ class Scene
   end
 
   def reset_help
-    Input.play_mode!
+    Input.play_mode!(@dev_index)
     Input.update
     @bind_bit = @bind = nil
     @help_bit.clear

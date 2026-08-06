@@ -101,7 +101,7 @@ public:
   bool is_triggered_double(int button);
   bool is_last_key();
   int text_input();
-  void set_text_input(int value);
+  void set_text_input(int value, int dev_index);
   int last_key();
   void last_key_clear();
   void triggered_bind_clear(int n);
