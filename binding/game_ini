@@ -1026,7 +1026,8 @@ module Game
     last_encr = DATA["CompressedFileExt"] ||= encrypt_ext[n]
     Font.default_shadow = n == 2
     Font.default_outline = n >= 3
-    debug = (!encrypted && DATA["Debug"][/true/i] != nil)
+    debug = !encrypted
+    n == 0 ? $DEBUG = debug : $TEST = debug
     enc_ext = encrypt_ext[n]
     filenames = Dir[EXE_BASE_NAME + "*." + enc_ext]
     const_set("DEBUG", debug)
