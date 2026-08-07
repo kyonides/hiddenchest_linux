@@ -502,8 +502,7 @@ module Input
 
   def switch_gamepads!
     n = total_gamepads
-    return if n == 0
-    return if n == 1 and @gamepads[1].default_name?
+    return if n < 2
     switch_gamepads
     list = [@bindings[1], @bindings[0]]
     @bindings[0] = list.shift
