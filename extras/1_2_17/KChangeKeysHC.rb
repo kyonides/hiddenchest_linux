@@ -1,38 +1,25 @@
 # * KChangeKeys HC * #
-#   v1.1.0 - 2026-08-05
-
-if Game::RGSS_VERSION == 3
-
-module SceneManager
-  extend self
-  def set(scene_class, value)
-    @stack.push(@scene)
-    @scene = scene_class.new(value)
-  end
-end
-
-end
+#   v1.0.7 - 2026-01-15
 
 module KChangeKeys
   RGSS = Game::RGSS_VERSION
-  MIN_VERSION = "HiddenChest 1.2.18+"
+  MIN_VERSION = "HiddenChest 1.2.07+"
   KEYBOARD = "Keyboard"
   HEADING = "Key Bindings"
   CHOOSE_KEY = "Please select a key to edit"
   ENTER_KEY = "Please enter a key now"
-  @targets = {}
-  @targets[:en] = %w{Up Down L L2 Left Right R R2 A B C X Y Z}
-  @targets[:es] = %w{Arriba Abajo L L2 Izq. Der. R R2 A B C X Y Z}
-  @targets[:de] = %w{Oben Unten L L2 Links Rechts R R2 A B C X Y Z}
-  @styles = {}
-  @lang = :en
+  TARGETS = %w{Up Down L L2 Left Right R R2 A B C X Y Z}
+  STYLES = {}
   @last_scene = nil
   @style = nil
 
+class Style
+  attr_accessor :backdrop, :cursor, :gamepad, :help
+  attr_accessor :keyboard, :target
+end
+
   extend self
-  attr_accessor :lang
   attr_writer :style
-  attr_reader :styles, :targets
   def open!
     return if Graphics.block_f1
     if RGSS == 3
@@ -52,35 +39,26 @@ module KChangeKeys
     end
   end
 
-  def reset!(dev_index = nil)
+  def reset!
     if RGSS == 3
-      SceneManager.set(Scene, dev_index)
+      SceneManager.goto(Scene)
     else
-      $scene = Scene.new(dev_index)
+      $scene = Scene.new
     end
   end
 
-  def key_names
-    @targets[@lang]
-  end
-
   def style
-    @styles[@style]
+    STYLES[@style]
   end
-
-class Style
-  attr_accessor :backdrop, :cursor, :gamepad, :help
-  attr_accessor :keyboard, :target
-end
 
   default = Style.new
-  default.backdrop  = "kb_backdrop"
-  default.gamepad   = "gamepad_black_add"
-  default.keyboard  = "keyboard_black"
-  default.help      = "kb_help_bar"
-  default.target    = "kb_target"
-  default.cursor    = "kb_cursor"
-  @styles[nil] = default
+  default.backdrop = "kb_backdrop"
+  default.gamepad  = "gamepad_black_add"
+  default.keyboard = "keyboard_black"
+  default.help     = "kb_help_bar"
+  default.target   = "kb_target"
+  default.cursor   = "kb_cursor"
+  STYLES[nil] = default
 end
 
 module Cache
@@ -108,7 +86,7 @@ end
 module KChangeKeys
 
 class Scene
-  def initialize(index = nil)
+  def initialize
     Scripts.int_script_name = "KChangeKeys::Scene"
     Font.default_outline = true
     Graphics.block_f1 = true
@@ -116,7 +94,9 @@ class Scene
     @stage = :main
     @index = 0
     @col_index = 0
+    @gamepad = Input.gamepad
     @bindings = Input.bindings
+    @list = @bindings.list
     @style = KChangeKeys.style
     @target_names = []
     @bind_names = []
@@ -124,22 +104,12 @@ class Scene
     @key_names = []
     @sprites = []
     if Input.gamepad?
-      @gamepads = Input.gamepads
-      @active_pads = @gamepads.map(&:active)
-      @dev_index = index || @active_pads.find_index(true)
-      @gamepad = @gamepads[@dev_index]
-      @total = @gamepads.size
       @picture = @style.gamepad
       vendor_name = @gamepad.vendor.sub(/(?:inc\.|corp\.)/i, "")
       @name = @gamepad.name.sub(vendor_name, "")
-      @list = @bindings[@dev_index].list
     else
-      @active_pads = []
-      @dev_index = 2
-      @total = 0
       @picture = @style.keyboard
       @name = KEYBOARD
-      @list = @bindings[:key].list
     end
     set_box_rows
     set_box_offset_y
@@ -267,8 +237,7 @@ class Scene
     sw = @gw / cw
     sw = sw.clamp(2, 8)
     ix = (@gw - sw * cw) / 2
-    names = KChangeKeys.key_names
-    @key_max = names.size
+    @key_max = TARGETS.size
     @key_max.times do |n|
       sx = ix + n % sw * cw
       sy = 108 + n / sw * @rows * @row_height
@@ -277,7 +246,7 @@ class Scene
       s.set_xyz(sx, sy, 20)
       s.bitmap = Bitmap.new(tbw, 28)
       s.bitmap.font.color = @target_color
-      s.bitmap.draw_text(:rect, names[n], 1)
+      s.bitmap.draw_text(:rect, TARGETS[n], 1)
       @target_names << s
       @rows.times {|i| create_button_box(sx + tbw + 8, sy + i * @row_height) }
     end
@@ -318,7 +287,7 @@ class Scene
   def process_key_bindings
     Graphics.block_f1 = false
     Scripts.int_script_name = ""
-    Input.save_key_bindings(@dev_index) if @changed
+    Input.save_key_bindings if @changed
   end
 
   def update
@@ -340,46 +309,36 @@ class Scene
   end
 
   def update_main
-    if Input.trigger?(:B, @dev_index)
+    if Input.trigger?(:B)
       Sound.play_cancel
       KChangeKeys.close!
       return @stage = nil
-    elsif Input.trigger?(:L, @dev_index) or
-          Input.trigger?(:R, @dev_index)
-      if @total > 2
-        Sound.play_buzzer
-        return
-      end
-      @dev_index = (@dev_index + 1) % @total
-      KChangeKeys.reset!(@dev_index)
-      return @stage = nil
-    elsif Input.trigger?(:Up, @dev_index)
+    elsif Input.trigger?(:Up)
       update_cursor(0, -1)
       return
-    elsif Input.trigger?(:Down, @dev_index)
+    elsif Input.trigger?(:Down)
       update_cursor(0, 1)
       return
-    elsif Input.trigger?(:Left, @dev_index)
+    elsif Input.trigger?(:Left)
       update_cursor(-1, 0)
       return
-    elsif Input.trigger?(:Right, @dev_index)
+    elsif Input.trigger?(:Right)
       update_cursor(1, 0)
       return
-    elsif Input.trigger?(:Delete, @dev_index) or
-          Input.trigger?(:A, @dev_index)
+    elsif Input.trigger?(:Delete) or Input.trigger?(:A)
       Sound.play_buzzer
       @gamepad.set_rumble(300, 300, 150)
       n = box_index
       bind = @binds[n]
-      bind.set_value(0, @dev_index)
+      bind.value = 0
       @key_names[n] = ""
       b = @bind_names[n].bitmap
       b.clear
       b.draw_text(:rect, "", 1)
       return @changed = true
-    elsif Input.trigger?(:C, @dev_index)
+    elsif Input.trigger?(:C)
       Sound.play_ok
-      Input.keymap_mode!(@dev_index)
+      Input.keymap_mode!
       Input.update
       n = box_index
       @bind = @binds[n]
@@ -400,7 +359,7 @@ class Scene
   end
 
   def reset_help
-    Input.play_mode!(@dev_index)
+    Input.play_mode!
     Input.update
     @bind_bit = @bind = nil
     @help_bit.clear
@@ -409,27 +368,24 @@ class Scene
   end
 
   def update_key
-    if Input.trigger?(:MouseLeft, @dev_index) or
-       Input.trigger?(:MouseRight, @dev_index)
+    if Input.trigger?(:MouseLeft) or Input.trigger?(:MouseRight)
       Sound.play_cancel
       name = @key_names[box_index]
       @bind_bit.clear
       @bind_bit.draw_text(:rect, name, 1)
       reset_help
       return
-    elsif Input.trigger_any?(@dev_index)
+    elsif Input.trigger_any?
       Sound.play_ok
       @gamepad.set_rumble(300, 300, 150)
       @changed = true
-      case Input.trigger_type(@dev_index)
+      case Input.trigger_type
       when 0
-        @bind.set_value(0, @dev_index)
+        @bind.value = 0
       when 1
-        value = Input.trigger_last(@dev_index)
-        @bind.set_value(value, @dev_index)
+        @bind.value = Input.trigger_last
       else
-        value = Input.trigger_gp_value(@dev_index)
-        @bind.set_value(value, @dev_index)
+        @bind.value = Input.trigger_gp_value
       end
       n = box_index
       name = @bind.name
