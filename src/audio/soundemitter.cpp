@@ -1,13 +1,13 @@
 // soundemitter.cpp
 
+#include <vorbis/vorbisfile.h>
 #include "soundemitter.h"
 #include "sharedstate.h"
 #include "filesystem.h"
 #include "exception.h"
 #include "config.h"
 #include "util.h"
-#include "debugwriter.h"
-#include <SDL_sound.h>
+#include "wavfile.h"
 
 struct SoundBuffer
 {
@@ -23,6 +23,31 @@ struct SoundBuffer
   }
 };
 
+static size_t se_read(void *ptr, size_t size, size_t nmemb, void *datasource)
+{
+  SDL_RWops *ops = static_cast<SDL_RWops *>(datasource);
+  return SDL_RWread(ops, ptr, size, nmemb);
+}
+
+static int se_seek(void *datasource, ogg_int64_t offset, int whence)
+{
+  SDL_RWops *ops = static_cast<SDL_RWops *>(datasource);
+  Sint64 result = SDL_RWseek(ops, offset, whence);
+  return result < 0 ? -1 : 0;
+}
+
+static int se_close(void *datasource)
+{
+  return 0;
+}
+
+static long se_tell(void *datasource)
+{
+  SDL_RWops *ops = static_cast<SDL_RWops *>(datasource);
+  Sint64 pos = SDL_RWtell(ops);
+  return pos < 0 ? -1 : static_cast<long>(pos);
+}
+
 struct SoundOpenHandler : FileSystem::OpenHandler
 {
   SoundBuffer *buffer;
@@ -31,37 +56,62 @@ struct SoundOpenHandler : FileSystem::OpenHandler
   : buffer(0)
   {}
 
+  bool read_ogg(SDL_RWops &ops)
+  {
+    OggVorbis_File vf;
+    ov_callbacks callbacks;
+    callbacks.read_func  = se_read;
+    callbacks.seek_func  = se_seek;
+    callbacks.close_func = se_close;
+    callbacks.tell_func  = se_tell;
+    int result = ov_open_callbacks(&ops, &vf, 0, 0, callbacks);
+    if (result < 0) {
+      SDL_RWclose(&ops);
+      return false;
+    }
+    vorbis_info *info = ov_info(&vf, -1);
+    const int channels = info->channels;
+    const long rate = info->rate;
+    std::vector<char> pcm;
+    char temp[8192];
+    int bitstream = 0;
+    while (true) {
+      long decoded = ov_read(&vf, temp, sizeof(temp), 0, 2, 1, &bitstream);
+      if (decoded == 0)
+        break;
+      if (decoded < 0) {
+        ov_clear(&vf);
+        return false;
+      }
+      pcm.insert(pcm.end(), temp, temp + decoded);
+    }
+    ALenum format = (channels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+    buffer = new SoundBuffer;
+    alBufferData(buffer->alBuffer.al, format, pcm.data(), pcm.size(), rate);
+    ov_clear(&vf);
+    return true;
+  }
+
+  bool read_wav(SDL_RWops &ops)
+  {
+    SDL_RWseek(&ops, 0, RW_SEEK_SET);
+    PcmWav wav;
+    unsigned char header[5] = { 0 };
+    if (!wav_read_header(ops, header, wav))
+      return false;
+    if (!wav_read(ops, header, wav))
+      return false;
+    buffer = new SoundBuffer;
+    alBufferData(buffer->alBuffer.al, wav.format, wav.data, wav.data_size, wav.rate);
+    return true;
+  }
+
   bool tryRead(SDL_RWops &ops, const char *ext)
   {
-    ALenum error;
-    Sound_Sample *sample = Sound_NewSample(&ops, ext, 0, STREAM_BUF_SIZE);
-    if (!sample) {
-      SDL_RWclose(&ops);
-      void *ops;
-      return false;
-    }
-    /* Do all of the decoding in the handler so we don't have
-     * to keep the source ops around */
-    uint32_t decBytes = Sound_DecodeAll(sample);
-    uint8_t sampleSize = formatSampleSize(sample->actual.format);
-    if (!decBytes || !sampleSize) {
-      Sound_FreeSample(sample);
-      sample = 0;
-      return false;
-    }
-    uint32_t sampleCount = decBytes / sampleSize;
-    buffer = new SoundBuffer;
-    uint32_t bytes = sampleSize * sampleCount;
-    ALenum alFormat = chooseALFormat(sampleSize, sample->actual.channels);
-    if (!AL::Buffer::is_buffer(buffer->alBuffer)) {
-      Debug() << "Failed to use old buffer";
-      buffer->alBuffer = AL::Buffer::gen();
-    }
-    AL::Buffer::uploadData(buffer->alBuffer, alFormat, sample->buffer,
-                           bytes, sample->actual.rate);
-    Sound_FreeSample(sample);
-    sample = 0;
-    return true;
+    if (!strcmp(ext, "ogg"))
+      return read_ogg(ops);
+    if (!strcmp(ext, "wav"))
+      return read_wav(ops);
   }
 };
 
@@ -72,8 +122,6 @@ SoundEmitter::SoundEmitter(const Config &conf)
 {
   for (size_t i = 0; i < srcCount; i++) {
     alSrcs[i] = AL::Source::gen();
-    if (AL::Source::is_source(alSrcs[i]) != 1)
-      Debug() << "Buffer #" << i << "failed.";
     atchBufs[i] = 0;
   }
 }
@@ -98,7 +146,7 @@ void SoundEmitter::play(const std::string &filename,
   shState->fileSystem().openRead(handler, filename.c_str());
   SoundBuffer *buffer = handler.buffer;
   if (!buffer) {
-    Debug() << "Unable to decode sound" << filename << Sound_GetError();
+    Debug() << "Unable to decode file" << filename;
     return;
   }
   size_t target = srcCount;

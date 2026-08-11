@@ -103,7 +103,7 @@ pkg_check_modules(PHYSFS       REQUIRED physfs>=2.1)
 pkg_check_modules(SDL2         REQUIRED sdl2)
 pkg_check_modules(SDL2_TTF     REQUIRED SDL2_ttf)
 pkg_check_modules(SDL2_IMAGE   REQUIRED SDL2_image)
-pkg_check_modules(SDL_SOUND    REQUIRED SDL_sound)
+pkg_check_modules(SDL2_SOUND   REQUIRED SDL2_sound)
 find_package(OpenAL REQUIRED)
 find_package(ZLIB REQUIRED)
 
@@ -174,9 +174,9 @@ set(MAIN_HEADERS
   src/audio/audio_data.h
   src/audio/audiostream.h
   src/audio/fluid-fun.h
-  src/audio/SDL_sound.h
   src/audio/sharedmidistate.h
   src/audio/soundemitter.h
+  src/audio/wavfile.h
   src/input/input.h
   src/input/keybindings.h
 )
@@ -221,9 +221,11 @@ set(MAIN_SOURCE
   src/audio/audiostream.cpp
   src/audio/fluid-fun.cpp
   src/audio/midisource.cpp
+  src/audio/vorbissource.cpp
+  src/audio/wavesource.cpp
   src/audio/sdlsoundsource.cpp
   src/audio/soundemitter.cpp
-  src/audio/vorbissource.cpp
+  src/audio/wavfile.cpp
   src/input/input.cpp
   src/input/keybindings.cpp
 )
@@ -450,7 +452,7 @@ target_link_libraries(${PROJECT_NAME}
   ${SDL2_LIBRARIES}
   ${SDL2_IMAGE_LIBRARIES}
   ${SDL2_TTF_LIBRARIES}
-  ${SDL_SOUND_LIBRARIES}
+  ${SDL2_SOUND_LIBRARIES}
   ${PHYSFS_LIBRARIES}
   ${PIXMAN_LIBRARIES}
   ${MRI_LIBRARIES}

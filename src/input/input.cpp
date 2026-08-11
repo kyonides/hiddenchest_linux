@@ -1129,6 +1129,7 @@ Input::Input(const RGSSThreadData &rtData)
 {
   p1 = new InputPrivate(rtData, 0, this);
   p2 = new InputPrivate(rtData, 1, this);
+  player2 = false;
   text_input = 0;
 }
 
@@ -1154,15 +1155,16 @@ void Input::main_update()
   p1->swapBuffers();
   p1->clearBuffer();
   p1->update_timers();
+  ButtonCode repeat_btn1 = None;
+  p1->pollBindings(repeat_btn1);
+  p1->check_repeating_key(repeat_btn1);
+  if (!player2)
+    return;
   p2->checkBindingChange(shState->rtData());
   p2->swapBuffers();
   p2->clearBuffer();
   p2->update_timers();
-  ButtonCode repeat_btn1 = None;
   ButtonCode repeat_btn2 = None;
-  // Poll all bindings
-  p1->pollBindings(repeat_btn1);
-  p1->check_repeating_key(repeat_btn1);
   p2->pollBindings(repeat_btn2);
   p2->check_repeating_key(repeat_btn2);
 }
@@ -1173,15 +1175,16 @@ void Input::text_update()
   p1->swap_text_buffers();
   p1->clear_text_buffer();
   p1->update_timers();
+  ButtonCode repeat_btn1 = None;
+  p1->poll_bindings4text(repeat_btn1);
+  p1->check_repeating_btn(repeat_btn1);
+  if (!player2)
+    return;
   p2->checkBindingChange(shState->rtData());
   p2->swap_text_buffers();
   p2->clear_text_buffer();
   p2->update_timers();
-  ButtonCode repeat_btn1 = None;
   ButtonCode repeat_btn2 = None;
-  // Poll all bindings
-  p1->poll_bindings4text(repeat_btn1);
-  p1->check_repeating_btn(repeat_btn1);
   p2->poll_bindings4text(repeat_btn2);
   p2->check_repeating_btn(repeat_btn2);
 }
@@ -1193,6 +1196,8 @@ void Input::bind_update()
   p1->clear_bind_buffer();
   p1->update_timers();
   p1->poll_bindings4bind();
+  if (!player2)
+    return;
   p2->check_text_input_state(shState->rtData());
   p2->swap_bind_buffers();
   p2->clear_bind_buffer();

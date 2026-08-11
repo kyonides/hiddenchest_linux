@@ -69,6 +69,7 @@ public:
     JS12 = 145, JS13 = 146, JS14 = 147, JS15 = 148, JS16 = 149, JS17 = 150,
     JS18 = 151, JS19 = 152, JS20 = 153,
   };
+  inline static int player2;
   inline static int text_input;
   void update();
   int timer() const;

@@ -275,8 +275,11 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
       if (!strncmp(sig, "ID3", 3))
         filetype = "mp3";
       char *tag2 = sig + 8;
-      if (!strncmp(tag2, "WAVE", 4))
+      if (!strncmp(tag2, "WAVE", 4)) {
         filetype = "wave";
+        source = create_wave_source(*srcOps, looped);
+        return true;
+      }
       if (!filetype.size())
         filetype = "unknown";
       source = createSDLSource(*srcOps, ext, STREAM_BUF_SIZE, looped);

@@ -450,6 +450,12 @@ static VALUE input_repeat_right_click(VALUE self)
   return shState->input().is_repeated(2, Input::MouseRight) ? Qtrue : Qfalse;
 }
 
+static VALUE input_player2_set(VALUE self, VALUE state)
+{
+  shState->input().player2 = state == Qtrue;
+  return rb_iv_set(self, "@player2", state);
+}
+
 static VALUE inputDir4(VALUE self)
 {
   return INT2FIX(shState->input().dir4Value());
@@ -778,6 +784,7 @@ void inputBindingInit()
   module_func(input, "dir8", inputDir8, 0);
   module_func(input, "dir4?", input_is_dir4, 0);
   module_func(input, "dir8?", input_is_dir8, 0);
+  module_func(input, "player2=", input_player2_set, 1);
   module_func(input, "player_dir4", input_player_dir4, 1);
   module_func(input, "player_dir8", input_player_dir8, 1);
   module_func(input, "player_dir4?", input_is_player_dir4, 1);

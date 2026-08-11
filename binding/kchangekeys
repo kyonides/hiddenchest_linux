@@ -1,5 +1,5 @@
 # * KChangeKeys HC * #
-#   v1.1.0 - 2026-08-05
+#   v1.1.0 - 2026-08-07
 
 if Game::RGSS_VERSION == 3
 
@@ -15,7 +15,7 @@ end
 
 module KChangeKeys
   RGSS = Game::RGSS_VERSION
-  MIN_VERSION = "HiddenChest 1.2.18+"
+  MIN_VERSION = "HiddenChest 1.2.19+"
   KEYBOARD = "Keyboard"
   HEADING = "Key Bindings"
   CHOOSE_KEY = "Please select a key to edit"
@@ -69,12 +69,14 @@ module KChangeKeys
   end
 
 class Style
-  attr_accessor :backdrop, :cursor, :gamepad, :help
-  attr_accessor :keyboard, :target
+  attr_accessor :backdrop1, :backdrop2, :backdrop3, :cursor, :help
+  attr_accessor :keyboard, :gamepad, :target
 end
 
   default = Style.new
-  default.backdrop  = "kb_backdrop"
+  default.backdrop1 = "kb_backdrop1"
+  default.backdrop2 = "kb_backdrop2"
+  default.backdrop3 = "kb_backdrop3"
   default.gamepad   = "gamepad_black_add"
   default.keyboard  = "keyboard_black"
   default.help      = "kb_help_bar"
@@ -90,17 +92,18 @@ module Cache
     when 1
       RPG::Cache.title(filename)
     when 2
-      Cache.int_system(filename)
+      Cache.system(filename)
     else
-      Cache.int_title(filename)
+      Cache.title1(filename)
     end
   end
 
   def kb_picture(filename)
-    if Game::RGSS_VERSION == 1
+    case Game::RGSS_VERSION
+    when 1
       RPG::Cache.picture(filename)
     else
-      int_picture(filename)
+      Cache.picture(filename)
     end
   end
 end
@@ -199,7 +202,9 @@ class Scene
 
   def create_backdrop
     @backdrop = Sprite.new
-    fn = @style.backdrop
+    pos = @dev_index + 1
+    name = "backdrop#{pos}".to_sym
+    fn = @style.send(name)
     b = Cache.kb_backdrop(fn).dup
     if b.stub?
       b.set_wh(*Graphics.dimensions)

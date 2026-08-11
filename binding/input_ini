@@ -1,0 +1,743 @@
+module Input
+  KEYBOARD_GENERIC = "kb_generic"
+  PRESET_BINDINGS = [
+    "Up=Up,Keypad 8",
+    "Down=Down,Numpad 2",
+    "L=Q",
+    "L2=E",
+    "Left=Left,Keypad 4",
+    "Right=Right,Numpad 6",
+    "R=W",
+    "R2=R",
+    "A=Shift",
+    "B=Escape,X",
+    "C=Return,Space,C",
+    "X=F",
+    "Y=G",
+    "Z=H"
+  ]
+  PRESET_GAMEPAD_BINDINGS = {}
+  PRESET_GAMEPAD_BINDINGS["sony"] = [
+    "Up=Up,JS 11,Axis 1-",
+    "Down=Down,JS 12,Axis 1+",
+    "L=Q,JS 9",
+    "L2=E,Axis 4-",
+    "Left=Left,JS 13,Axis 0-",
+    "Right=Right,JS 14,Axis 0+",
+    "R=W,JS 10",
+    "R2=R,Axis 5-",
+    "A=LeftShift,JS 3",
+    "B=Escape,JS 1",
+    "C=C,Return,Space,JS 0",
+    "X=A,JS 2",
+    "Y=S,JS 4",
+    "Z=D,JS 5"
+  ]
+  PRESET_GAMEPAD_BINDINGS["logi"] = [
+    "Up=Up,Keypad 8,Hat 0:U,Axis 1-",
+    "Down=Down,Numpad 2,Hat 0:D,Axis 1+",
+    "L=JS 4,Q",
+    "L2=JS 6,E",
+    "Left=Left,Keypad 4,Hat 0:L,Axis 0-",
+    "Right=Right,Numpad 6,Hat 0:R,Axis 0+",
+    "R=JS 5,W",
+    "R2=JS 7,R",
+    "A=LeftShift,JS 3",
+    "B=Escape,X,JS 2",
+    "C=Return,Space,C,JS 1",
+    "X=JS 8,J",
+    "Y=JS 0,K",
+    "Z=JS 9,L"
+  ]
+
+  class Gamepad
+    TYPES = []
+    TYPES << "Unknown"
+    TYPES << "Controller"
+    TYPES << "Wheel"
+    TYPES << "Arcade Stick"
+    TYPES << "Flight Stick"
+    TYPES << "Dance Pad"
+    TYPES << "Guitar"
+    TYPES << "Drum Kit"
+    TYPES << "Arcade Pad"
+    TYPES << "Throttle"
+    LEVELS = {}
+    LEVELS[-1] = "Unknown"
+    LEVELS[0]  = "Empty"
+    LEVELS[1]  = "Low"
+    LEVELS[2]  = "Medium"
+    LEVELS[3]  = "Full"
+    LEVELS[4]  = "Wired"
+    LEVELS[5]  = "Maximum"
+    def initialize(gid, name, vendor_id, kind, level, state1, state2)
+      @id = gid
+      @name = name
+      @vendor = @@vendors[vendor_id]
+      @vendor_id = vendor_id
+      @type = TYPES[kind]
+      @type_number = kind
+      @power = LEVELS[level]
+      @power_level = level
+      @rumble = state1
+      @last_rumble = nil
+      @active = state2
+      set_int_vendor_name
+      set_int_gamepad_name
+    end
+
+    def set_int_vendor_name
+      case @vendor
+      when /Sony/i
+        return @vendor_fn = "sony"
+      when /Logitech/i
+        return @vendor_fn = "logi"
+      when /Microsoft/i
+        return @vendor_fn = "ms"
+      when /Nintendo/i
+        return @vendor_fn = "nint"
+      when /Asustek/i
+        return @vendor_fn = "asus"
+      when /Logic3/i
+        return @vendor_fn = "log3"
+      when /Razer/i
+        return @vendor_fn = "razer"
+      when /ZD/i
+        return @vendor_fn = "zd"
+      when /8BitDo/i
+        return @vendor_fn = "8bit"
+      when /SCUF/i
+        return @vendor_fn = "scuf"
+      else
+        @vendor_fn = "kb"
+      end
+    end
+
+    def set_int_gamepad_name
+      case @name
+      when /(PS\d)/i
+        return @int_name = $1.downcase
+      when /Dual Action/i
+        return @int_name = "duact"
+      when /Wolverine/i
+        return @int_name = "wolve"
+      when /Raiju/i
+        return @int_name = "raiju"
+      when /ZD\-?V/i
+        return @int_name = "zdv"
+      else
+        @int_name = "generic"
+      end
+    end
+
+    def internal_name
+      @vendor_fn + "_" + @int_name
+    end
+
+    def default_name?
+      DEFAULT_NAME == @name
+    end
+    attr_reader :vendor_fn, :int_name, :active
+    attr_writer :id
+  end
+
+  class KeyBinding
+    TYPES = ["Invalid", "Key", "Button", "Axis", "Hat"]
+    def initialize
+      clear_invalid
+    end
+
+    def clear_invalid
+      self.type = 0
+      @value = 0
+      @scancode = 0
+      @dir = 0
+      @symbol = nil
+      @name = ""
+    end
+
+    def type=(tp)
+      @type_name = TYPES[tp]
+      @type = tp
+    end
+
+    def name=(text)
+      @name = text.capitalize.chomp
+      refresh_type
+      @name
+    end
+
+    def refresh_type
+      if @name.empty?
+        clear_invalid
+        return
+      elsif @name[/F(\d+)/i]
+        if [1, 2, 12].include?($1.to_i)
+          clear_invalid
+          return
+        end
+        self.type = 1
+        @symbol = @name.capitalize.to_sym
+        @value = BUTTON_CODES[@symbol]
+        @scancode = BUTTON_SCANCODES[@value]
+        return
+      elsif @name[/(?:key|num)pad (\d+)/i]
+        get_value_by_name
+        return
+      elsif @name[/js (\d+)/i]
+        self.type = 2
+        @name = @name.upcase
+        @symbol = nil
+        @value = $1.to_i
+        @scancode = 0
+        @dir = 0
+        return
+      elsif @name[/axis (\d+)(\+|\-)/i]
+        self.type = 3
+        @symbol = nil
+        @value = $1.to_i
+        @scancode = 0
+        @dir = $2 == "+" ? 1 : 0
+        return
+      elsif @name[/hat (\d+).(\w)/i]
+        self.type = 4
+        @symbol = nil
+        @value = $1.to_i
+        @scancode = 0
+        @dir = get_hat_pos($2)
+        return
+      elsif @name[/(?:\/|Divide)/i]
+        @name = "NumPad Divide"
+        get_value_by_name
+        return
+      elsif @name[/(?:\*|Multiply)/i]
+        @name = "NumPad Multiply"
+        get_value_by_name
+        return
+      elsif @name[/(?:\-|Minus)/i]
+        @name = "NumPad Minus"
+        get_value_by_name
+        return
+      elsif @name[/(?:\*|Plus)/i]
+        @name = "NumPad Plus"
+        get_value_by_name
+        return
+      elsif @name[/(\A[\.]|Dot)/i]
+        @name = "NumPad Dot"
+        get_value_by_name
+        return
+      elsif @name[/\w+/i]
+        self.type = 1
+        s = @name.dup
+        if s.size == 1 and s[/[a-z]/i]
+          s = "Key" + s.upcase
+        end
+        @symbol = s.to_sym
+        @value = BUTTON_CODES[@symbol]
+        @scancode = BUTTON_SCANCODES[@value]
+        @dir = 0
+        return
+      elsif @name[/\d/i]
+        self.type = 1
+        s = "N" + @name
+        @symbol = s.to_sym
+        @value = BUTTON_CODES[@symbol]
+        @scancode = BUTTON_SCANCODES[@value]
+        @dir = 0
+        return
+      else
+        clear_invalid
+      end
+    end
+
+    def get_value_by_name
+      self.type = 1
+      @name = @name.sub(/(?:key|num)p/i, "NumP")
+      s = @name.sub(/ /, "")
+      @symbol = s.to_sym
+      @value = BUTTON_CODES[@symbol]
+      @scancode = BUTTON_SCANCODES[@value]
+      @dir = 0
+    end
+
+    def get_hat_pos(s)
+      s =~ /u/i ? 1 : s =~ /r/i ? 2 : s =~ /d/i ? 4 : s =~ /l/i ? 8 : 0
+    end
+
+    def set_value(n, dev_index)
+      @value = n
+      self.type = Input.trigger_type(dev_index)
+      case @type
+      when 0
+        clear_invalid
+      when 1
+        @name = KEY2NAME[@value]
+        @symbol = BUTTON_CODES.key(@value)
+        @scancode = BUTTON_SCANCODES[@value]
+        @dir = 0
+      when 2
+        @name = "JS #{@value}"
+        @symbol = nil
+        @scancode = @dir = 0
+      when 3
+        @symbol = nil
+        @scancode = 0
+        @dir = Input.trigger_gp_dir(dev_index)
+        sym = @dir == 0 ? "-" : "+"
+        @name = @type_name + " #{@value}" + sym
+      when 4
+        @symbol = nil
+        @scancode = 0
+        @dir = Input.trigger_gp_dir(dev_index)
+        str = get_hat_dir(@dir)
+        @name = @type_name + " #{@dir}:" + str
+      end
+      Input.trigger_gp_clear(dev_index)
+    end
+
+    def get_hat_dir(s)
+      s == 1 ? "U" : s == 2 ? "R" : s == 4 ? "D" : s == 8 ? "L" : ""
+    end
+
+    def state
+      @type > 0 ? 1 : 0
+    end
+    attr_reader :name, :type, :type_name, :symbol, :value, :scancode, :dir
+    attr_accessor :index, :dev_index
+    private :refresh_type
+  end
+
+  class KeyBindingGroup
+    def initialize
+      @target = 0
+      @data = Array.new(4) { KeyBinding.new }
+    end
+
+    def data
+      @data[0..3]
+    end
+
+    def [](n)
+      @data[n]
+    end
+
+    def []=(n, bind)
+      return if n > 3
+      @data[n] = bind
+    end
+
+    def active_bindings
+      @data.inject(0) {|t, b| t + b.state }
+    end
+    attr_accessor :target
+  end
+
+  class KeyBindings
+    DEFAULT = %w{Up Down Q R Left Right W T Shift Escape Return F G H}
+    def initialize
+      @name = "Keyboard"
+      @code = KEYBOARD_GENERIC
+      @version = 0
+      @size = 14
+      @list = Array.new(@size) { KeyBindingGroup.new }
+    end
+
+    def list
+      @list[0...14]
+    end
+
+    def update_active
+      @size = @list.inject(0) {|t, g| t + g.active_bindings }
+    end
+    attr_accessor :name, :version, :code
+    attr_reader :size
+  end
+
+  class AllBindings
+    def initialize
+      @data = {}
+    end
+
+    def [](code)
+      @data[code]
+    end
+
+    def []=(code, bindings)
+      @data[code] = bindings
+    end
+
+    def codes
+      @data.map {|k,v| v.code }
+    end
+
+    def default?
+      @data.keys == [KEYBOARD_GENERIC.to_sym]
+    end
+
+    def empty?
+      @data.empty?
+    end
+
+    def key?(code)
+      @data.key?(code)
+    end
+  end
+
+  extend self
+  attr_reader :qte_index, :all_bindings, :bindings, :gamepads, :text_imput
+  attr_reader :button_targets, :button_target_names, :player2
+  attr_reader :button_sequence_names, :button_sequence, :store_sequence
+  attr_reader :sequence_max, :sequence_timer, :start_sequence_timer
+  def clear
+    @player2 = false
+    @qte_index = 2
+    @text_input = 0
+    @button_targets = [[], []]
+    @button_target_names = [[], []]
+    @button_sequence_names = [[], []]
+    @button_sequence = [[], []]
+    @store_sequence = [[], []]
+    @set_sequence_timer = [false, false]
+    @start_sequence_timer = [false, false]
+    @sequence_max = [0, 0]
+    @sequence_timer = [0, 0]
+    @gamepad_updates = []
+    @gamepads = []
+    @bindings = {}
+  end
+
+  def switch_gamepads!
+    total = total_gamepads
+    return total unless @player2
+    case total
+    when 2
+      switch_gamepads
+      list = [@bindings[1], @bindings[0]]
+      @bindings[0] = list.shift
+      @bindings[1] = list.shift
+      @gamepads.reverse!
+      2.times {|n| @gamepads[n].id = n }
+    when 1
+      unless @gamepads[0].active
+        gamepad_close!(1)
+        reset_gamepad(1)
+        gamepad_open!(0)
+        setup_gamepad(0)
+      end
+    end
+    total
+  end
+
+  def gamepad1
+    @gamepads[0]
+  end
+  alias :gamepad :gamepad1
+
+  def gamepad2
+    @gamepads[1]
+  end
+
+  def load_init_bindings
+    @all_bindings = AllBindings.new
+    ext = Game.data_ext
+    files = Dir[Game.glob_kb].sort
+    if files.any?
+      load_all_bindings(files)
+    end
+    codes = @all_bindings.codes
+    files = Dir[Game.glob_init_kb].sort
+    files.each do |file|
+      code = File.basename(file, "." + ext)
+      next if codes.include?(code)
+      fn = "#{code}.#{ext}"
+      FileUtils.mv(file, Game.bindings_path(code))
+      load_bindings(code)
+      codes << code
+    end
+    inis = Dir["Input/*.ini"].sort
+    if inis.any?
+      inis.each_with_index do |fn, n|
+        code = File.basename(fn, ".ini")
+        next if codes.include?(code)
+        parse_bindings(fn, code)
+        pos = code[/key/i] ? :key : nil
+        save_bindings(pos, code)
+      end
+    end
+    if @all_bindings.empty?
+      parse_preset_keyboard_bindings
+    end
+    init_gamepads
+  end
+
+  def init_gamepads
+    if gamepad?
+      @gamepad_updates << :add
+      @temp_binding = @all_bindings.default?
+      total = total_gamepads
+      puts "Found #{total} Gamepads"
+      total.times do |n|
+        setup_gamepad(n)
+        gamepad_change!
+        update
+      end
+    else
+      @gamepad_updates << :remove
+      puts "Could not find any gamepad!"
+      reset_gamepad
+    end
+  end
+
+  def play_mode!(dev_index)
+    self.set_text_input(0, dev_index)
+  end
+
+  def text_mode!(dev_index)
+    self.set_text_input(1, dev_index)
+  end
+
+  def keymap_mode!(dev_index)
+    self.set_text_input(2, dev_index)
+  end
+
+  def mode
+    case @text_input
+    when 0
+      "Play Mode"
+    when 1
+      "Text Input Mode"
+    else
+      "Key Mapping Mode"
+    end
+  end
+
+  def save_key_bindings(pos)
+    reset_sdl_bindings(pos)
+    save_new_bindings(pos)
+  rescue => e
+    puts "Save Key Bindings"
+    puts e.full_message
+  end
+
+  def set_sequence(*buttons)
+    trigger_last_clear
+    buttons = buttons.flatten
+    @button_target_names = buttons.map(&:to_s)
+    @button_targets = buttons.map {|b| BUTTON_CODES[b] }
+    @button_sequence_names = []
+    @button_sequence = []
+    @sequence_max = @button_targets.size
+    @store_sequence = true
+  end
+
+  def set_sequence_timer(n, *buttons)
+    set_sequence(*buttons)
+    n *= Graphics.frame_rate
+    @sequence_timer = n.to_i
+    @start_sequence_timer = true
+  end
+
+  def clear_button_sequence
+    @button_sequence.clear
+    @button_targets.clear
+    @button_target_names.clear
+    @button_sequence_names.clear
+    @sequence_max = 0
+  end
+
+  def same_sequence?
+    @button_targets == @button_sequence
+  end
+
+  def update
+    update_internal
+    update_button_sequence
+    update_gamepad_state
+  rescue => e
+    puts e.full_message
+  end
+
+  private
+  def update_button_sequence
+    2.times do |n|
+      next unless @store_sequence[n]
+      button = trigger_last(n)
+      if button > 0
+        trigger_last_clear(n)
+        @button_sequence[n] << button
+        @button_sequence_names[n] << CODE_BUTTONS[button]
+      end
+      if @start_sequence_timer[n]
+        @sequence_timer[n] -= 1
+        @store_sequence[n] = @sequence_timer[n] > 0
+        @start_sequence_timer[n] = !@store_sequence[n]
+        return
+      elsif @button_sequence[n].size == @sequence_max[n]
+        @sequence_timer[n] = 0
+        @store_sequence[n] = false
+      end
+    end
+  end
+
+  def update_gamepad_state
+    if trigger?(:F1) and !Graphics.block_f1
+      Sound.play_ok
+      KChangeKeys.open!
+      return
+    end
+    state = gamepad_change?
+    return if state == 0
+    @gamepad_updates.pop
+    case state
+    when 2
+      @gamepad_updates << :add
+      setup_gamepad
+    when 1
+      @gamepad_updates << :remove
+      reset_gamepad
+    end
+  rescue => e
+    puts e.full_message
+  end
+
+  def save_new_bindings(pos)
+    if pos == :key
+      save_bindings(pos, KEYBOARD_GENERIC)
+    else
+      save_bindings(pos, @gamepads[pos].internal_name)
+    end
+  end
+
+  def setup_gamepad(n = nil)
+    n ||= gamepad_index
+    list = gamepad_basic_values(n)
+    list << true
+    @gamepads[n] = Gamepad.new(n, *list)
+    if @temp_binding
+      parse_preset_gamepad_bindings(n)
+    end
+    reset_bindings(n)
+  end
+
+  def reset_gamepad(n = nil)
+    n ||= gamepad_index
+    name = Gamepad::DEFAULT_NAME
+    @gamepads[n] = Gamepad.new(n, name, 0, 0, -1, false, false)
+    reset_bindings(n)
+  end
+
+  def reset_bindings(pos)
+    pass = true
+    code = @gamepads[pos].internal_name.to_sym
+    @bindings[pos] = @all_bindings[code]
+    if code&.empty?
+      puts "Empty Gamepad Code!"
+      pass = false
+    elsif pass and !@bindings[pos]
+      puts "No #{code} Bindings found!"
+      pass = false
+    end
+    reset_sdl_bindings(pos) if pass
+  rescue => e
+    puts "Reset Key Bindings"
+    puts e.full_message
+  end
+
+  def process_target_button(line)
+    line.sub!(/(\w+)\s?=\s?/i, "")
+    $1
+  end
+
+  def parse_preset_keyboard_bindings
+    code = KEYBOARD_GENERIC.to_sym
+    @bindings[:key] = KeyBindings.new
+    lines = PRESET_BINDINGS.dup
+    parse_bindings_lines(@bindings[:key], lines)
+    @all_bindings[code] = @bindings[:key]
+    save_bindings(:key, code.to_s)
+  end
+
+  def parse_preset_gamepad_bindings(pos)
+    gp = @gamepads[pos]
+    name = gp.vendor_fn.downcase
+    code = gp.internal_name.to_sym
+    @bindings[pos] = KeyBindings.new
+    lines = PRESET_GAMEPAD_BINDINGS[name] || PRESET_BINDINGS
+    lines = lines.dup
+    parse_bindings_lines(@bindings[pos], lines)
+    @all_bindings[code] = @bindings[pos]
+    save_bindings(pos, code)
+    @temp_binding = nil
+  end
+
+  def parse_bindings(fn, code)
+    lines = File.readlines(fn)
+    heading = lines.shift
+    unless heading[/header/i]
+      parsing_kb_error(code, "missing [Header]")
+      return
+    end
+    name = lines.shift.chomp
+    bind = KeyBindings.new
+    bind.name = name.sub(/name\s?(=)\s?/i, "")
+    bind.code = code
+    unless $1
+      parsing_kb_error(code, "missing = operator in line #{2}")
+      return
+    end
+    bind.version = Game::RGSS_VERSION
+    heading = lines.shift
+    unless heading[/bindings/i]
+      parsing_kb_error(code, "missing [Bindings]")
+      return
+    end
+    parse_bindings_lines(bind, lines)
+    @all_bindings[code.to_sym] = bind
+  end
+
+  def parse_bindings_lines(bind, lines)
+    slot_max = 4
+    14.times do |n|
+      line = lines.shift.sub(/\w+\s?(=)\s?/i, "")
+      group = bind.list[n]
+      group.target = n
+      names = line.split(",")
+      names = names.take(slot_max)
+      names << "" while names.size < slot_max
+      slot_max.times do |n|
+        b = group[n]
+        b.index = n
+        b.name = names[n]
+      end
+    end
+  end
+
+  def parsing_kb_error(code, reason)
+    puts "Failed to parse #{code}.ini, reason: #{reason}."
+  end
+
+  def load_all_bindings(files)
+    files.each do |fn|
+      code = File.basename(fn, "." + Game.data_ext)
+      load_bindings(code)
+    end
+  end
+
+  def save_bindings(pos, code)
+    file = Game.bindings_path(code)
+    sym = code.to_sym
+    if @all_bindings.key?(sym)
+      binds = @all_bindings[sym]
+    else
+      binds = @bindings[pos] || KeyBindings.new
+      @all_bindings[sym] = binds
+    end
+    binds.update_active
+    Game.save_data(file, binds)
+  end
+
+  def load_bindings(code)
+    file = Game.bindings_path(code)
+    @all_bindings[code.to_sym] = Game.load_data(file)
+  end
+end

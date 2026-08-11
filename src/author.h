@@ -1,6 +1,6 @@
 #define HIDDENAUTHOR "Kyonides Arkanthes"
-#define HIDDENVERSION "1.2.18"
-#define HIDDENDATE "2026-08-06"
+#define HIDDENVERSION "1.2.19"
+#define HIDDENDATE "2026-08-07"
 #define CODENAME "SmartShader"
 #define SYSTEM_STRING "linux"
 #define SYSTEM_REAL_STRING "Linux"

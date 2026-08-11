@@ -53,9 +53,10 @@ extern const char win32api_fake[];
 extern const char scene_hc[];
 extern const char module_hc[];
 extern const char fileutils[];
+extern const char input_ini[];
 extern const char game_ini[];
 extern const char scripts[];
-static void mriBindingExecute();
+static int mriBindingExecute();
 static void mriBindingTerminate();
 static void mriBindingReset();
 
@@ -381,6 +382,13 @@ static void rb_load_fileutils()
   rb_eval_string_protect(fileutils, &state);
 }
 
+static int rb_load_input()
+{
+  int state;
+  rb_eval_string_protect(input_ini, &state);
+  return state;
+}
+
 static int rb_check_rgss_version()
 {
   int state;
@@ -591,7 +599,16 @@ static void showExc(VALUE exc, const BacktraceData &btData)
   showMsg(ms);
 }
 
-static void mriBindingExecute()
+static int raise_parse_error()
+{
+  rb_p(rb_errinfo());
+  rb_gc_enable();
+  ruby_cleanup(0);
+  shState->rtData().rqTermAck.set();
+  return 1;
+}
+
+static int mriBindingExecute()
 {/* Normally only a ruby executable would do a sysinit,
  * but not doing it will lead to crashes due to closed
  * stdio streams on some platforms (eg. Windows) */
@@ -608,12 +625,8 @@ static void mriBindingExecute()
   bool valid = ruby_executable_node(node, &state);
   if (valid)
     state = ruby_exec_node(node);
-  if (!valid || state) {
-    rb_p(rb_errinfo());
-    ruby_cleanup(0);
-    shState->rtData().rqTermAck.set();
-    return;
-  }
+  if (!valid || state)
+    return raise_parse_error();
 #else
   ruby_init_loadpath();
 #endif
@@ -653,22 +666,12 @@ static void mriBindingExecute()
   init_system();
   init_game(shState->rtData().argv0);
   rb_load_fileutils();
-  state = rb_check_rgss_version();
-  if (state) {
-    rb_p(rb_errinfo());
-    rb_gc_enable();
-    ruby_cleanup(0);
-    shState->rtData().rqTermAck.set();
-    return;
-  }
-  state = rb_load_kchangekeys();
-  if (state) {
-    rb_p(rb_errinfo());
-    rb_gc_enable();
-    ruby_cleanup(0);
-    shState->rtData().rqTermAck.set();
-    return;
-  }
+  if (rb_load_input())
+    return raise_parse_error();
+  if (rb_check_rgss_version())
+    return raise_parse_error();
+  if (rb_load_kchangekeys())
+    return raise_parse_error();
   audioBindingInit();
   rb_eval_string(module_rpg_audio);
   init_scripts();
@@ -694,6 +697,7 @@ static void mriBindingExecute()
   rb_gc_enable();
   ruby_cleanup(0);
   shState->rtData().rqTermAck.set();
+  return -1;
 }
 
 static void mriBindingTerminate()
