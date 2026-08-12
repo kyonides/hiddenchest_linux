@@ -23,14 +23,18 @@ struct WaveSource : ALDataSource
   WaveSource(SDL_RWops &ops, bool looped) : src(ops), currentFrame(0)
   {
     sec = 0.0f;
+    currentFrame = 0;
+    sampleBuf.resize(STREAM_BUF_SIZE);
     unsigned char header[5] = { 0 };
-    if (!wav_read_header(ops, header, wav))
+    if (!wav_read_header(src, header, wav))
       return;
-    if (!wav_read(ops, header, wav))
+    if (!wav_read(src, header, wav))
       return;
     smpls = wav.data_size / wav.bpf;
     sec = smpls / wav.rate * 1.0f;
-    loop.valid = (loop.start && loop.end);
+    if (loop.requested)
+      wav_get_loop(src, header, wav, loop);
+    seek_to_loop_start();
   }
 
   ~WaveSource()
@@ -57,48 +61,44 @@ struct WaveSource : ALDataSource
 
   void seekToOffset(float seconds)
   {
-    /*if (seconds <= 0) {
-      ov_raw_seek(&vf, 0);
-      currentFrame = 0;
-    }
-    currentFrame = seconds * info.rate;
-    if (loop.valid && currentFrame > loop.end)
+    if (seconds < 0)
+      seconds = 0;
+    currentFrame = wav.rate * seconds;
+    if (loop.valid && currentFrame >= loop.end)
       currentFrame = loop.start;
-    // If seeking fails, just seek back to start
-    if (ov_pcm_seek(&vf, currentFrame) != 0)
-      ov_raw_seek(&vf, 0);*/
+    if (currentFrame >= smpls)
+      currentFrame = 0;
+    SDL_RWseek(&src, wav.data_offset + currentFrame * wav.bpf, RW_SEEK_SET);
   }
 
   void seek_to_loop_start()
   {
-    /*if (!loop.valid || !loop.start) {
-      ov_raw_seek(&vf, 0);
+    if (!loop.valid || !loop.start) {
+      SDL_RWseek(&src, wav.data_offset, RW_SEEK_SET);
       currentFrame = 0;
       return;
     }
     currentFrame = loop.start;
-    int result = ov_pcm_seek(&vf, currentFrame);
-    if (result != 0)
-      ov_raw_seek(&vf, 0);*/
+    SDL_RWseek(&src, wav.data_offset + currentFrame * wav.bpf, RW_SEEK_SET);
   }
 
   Status fillBuffer(AL::Buffer::ID alBuffer)
   {
     Status retStatus = ALDataSource::NoError;
-    /*void *bufPtr = sampleBuf.data();
+    size_t buf_size = sizeof(int16_t);
+    void *bufPtr = sampleBuf.data();
     int availBuf = sampleBuf.size();
-    int bufUsed  = 0;
     int canRead = availBuf;
+    int bufUsed  = 0;
+    size_t res = 0;
     bool readAgain = false;
     if (loop.valid) {
-      int tilLoopEnd = loop.end * info.frameSize;
-      canRead = std::min(availBuf, tilLoopEnd);
+      int loop_end = loop.end * wav.channels;
+      canRead = std::min(availBuf, loop_end);
     }
     while (canRead > 16) {
-      long res = ov_read(&vf, static_cast<char*>(bufPtr),
-                         canRead, 0, sizeof(int16_t), 1, 0);
+      res = SDL_RWread(&src, bufPtr, buf_size, canRead);
       if (res < 0) {
-        // Read error
         retStatus = ALDataSource::Error;
         break;
       }
@@ -106,43 +106,35 @@ struct WaveSource : ALDataSource
       if (res == 0) {
         if (loop.requested) {
           retStatus = ALDataSource::WrapAround;
-          seek_to_loop_start();//seekToOffset(0);
+          seek_to_loop_start();
+          continue;
         } else {
           retStatus = ALDataSource::EndOfStream;
         }
-        /* If we sought right to the end of the file,
-         * we might be EOF without actually having read
-         * any data at all yet (which mustn't happen),
-         * so we try to continue reading some data. */
-        /*if (bufUsed > 0)
+        if (bufUsed > 0)
           break;
-        if (readAgain) {*/
-// We're still not getting data though. Just error out to prevent an endless loop
-      /*    retStatus = ALDataSource::Error;
+        if (readAgain) {
+          retStatus = ALDataSource::Error;
           break;
         }
         readAgain = true;
       }
-      bufUsed += (res / sizeof(int16_t));
-      bufPtr = &sampleBuf[bufUsed];
-      currentFrame += (res / info.frameSize);
+      bufUsed += res;
+      bufPtr = sampleBuf.data() + bufUsed;
+      currentFrame += res / wav.channels;
       if (loop.valid && currentFrame >= loop.end) {
-        // Determine how many frames we're over the loop end
         int discardFrames = currentFrame - loop.end;
-        bufUsed -= discardFrames * info.channels;
+        bufUsed -= discardFrames * wav.channels;
         retStatus = ALDataSource::WrapAround;
-        // Seek to loop start
         currentFrame = loop.start;
-        int result = ov_pcm_seek(&vf, currentFrame);
-        if (result != 0)
-          retStatus = ALDataSource::Error;
+        seek_to_loop_start();
         break;
       }
       canRead -= res;
     }
     if (retStatus != ALDataSource::Error)
-      AL::Buffer::uploadData(alBuffer, info.alFormat, sampleBuf.data(),
-                             bufUsed*sizeof(int16_t), info.rate);*/
+      alBufferData(alBuffer.al, wav.format, sampleBuf.data(),
+                             bufUsed*sizeof(int16_t), wav.rate);
     return retStatus;
   }
 

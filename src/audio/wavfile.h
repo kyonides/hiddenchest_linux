@@ -10,7 +10,7 @@
 #include "debugwriter.h"
 
 struct PcmWav {
-  unsigned char* data;
+  unsigned char* data = 0;
   ALenum format;
   uint32_t chunk;
   uint16_t audio_fmt;
@@ -20,23 +20,20 @@ struct PcmWav {
   uint32_t rate;
   uint32_t brate;
   uint32_t data_size;
-  void set_format()
-  {
-    if (channels == 1)
-      format = (bps == 8) ? AL_FORMAT_MONO8 : AL_FORMAT_MONO16;
-    else
-      format = (bps == 8) ? AL_FORMAT_STEREO8 : AL_FORMAT_STEREO16;
-  }
+  uint32_t data_offset;
+  uint32_t fmt_offset;
+  uint32_t file_size;
 };
 
 struct WavLoop {
-  uint32_t offset;
-  uint32_t start;
-  uint32_t end;
-  bool valid;
-  bool requested;
+  uint32_t offset = 0;
+  uint32_t start = 0;
+  uint32_t end = 0;
+  bool valid = false;
+  bool requested = false;
 };
 
+void set_format(PcmWav &wav);
 bool wav_read_header(SDL_RWops &ops, void *header, PcmWav &wav);
 bool wav_read(SDL_RWops &ops, void *header, PcmWav &wav);
-bool wav_read_loop(SDL_RWops &ops, void *header, PcmWav &wav, WavLoop &loop);
+bool wav_get_loop(SDL_RWops &ops, void *header, PcmWav &wav, WavLoop &loop);

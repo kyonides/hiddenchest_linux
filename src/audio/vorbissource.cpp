@@ -197,7 +197,7 @@ struct VorbisSource : ALDataSource
       if (res == 0) {
         if (loop.requested) {
           retStatus = ALDataSource::WrapAround;
-          seek_to_loop_start();//seekToOffset(0);
+          seek_to_loop_start();
         } else {
           retStatus = ALDataSource::EndOfStream;
         }
