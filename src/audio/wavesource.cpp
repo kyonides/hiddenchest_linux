@@ -24,6 +24,7 @@ struct WaveSource : ALDataSource
   {
     sec = 0.0f;
     currentFrame = 0;
+    loop.requested = looped;
     sampleBuf.resize(STREAM_BUF_SIZE);
     unsigned char header[5] = { 0 };
     if (!wav_read_header(src, header, wav))
@@ -99,11 +100,13 @@ struct WaveSource : ALDataSource
     while (canRead > 16) {
       res = SDL_RWread(&src, bufPtr, buf_size, canRead);
       if (res < 0) {
+        Debug() << "Error: res is less than 0!";
         retStatus = ALDataSource::Error;
         break;
       }
       // EOF
       if (res == 0) {
+        Debug() << "EOF?";
         if (loop.requested) {
           retStatus = ALDataSource::WrapAround;
           seek_to_loop_start();
@@ -134,7 +137,7 @@ struct WaveSource : ALDataSource
     }
     if (retStatus != ALDataSource::Error)
       alBufferData(alBuffer.al, wav.format, sampleBuf.data(),
-                             bufUsed*sizeof(int16_t), wav.rate);
+                   bufUsed*sizeof(int16_t), wav.rate);
     return retStatus;
   }
 
