@@ -38,7 +38,6 @@ struct SDL_Window;
 struct TEXFBO;
 struct Quad;
 struct ShaderSet;
-
 class Scene;
 class FileSystem;
 class EventThread;
@@ -107,6 +106,7 @@ struct SharedState
   void set_block_close(bool state);
   static SharedState *instance;
   static int rgssVersion;
+  inline static bool experimental;
   // This function will throw an Exception instance
   // on initialization error */
   static void initInstance(RGSSThreadData *threadData);

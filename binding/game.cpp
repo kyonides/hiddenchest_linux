@@ -42,9 +42,10 @@ static VALUE hc_data_dir(VALUE self)
   return rstr(s);
 }
 
-static VALUE game_get_title(VALUE self)
+static VALUE game_exp_set(VALUE self, VALUE state)
 {
-  return rb_iv_get(self, "title");
+  shState->experimental = state == Qtrue;
+  return rb_iv_set(self, "experimental", state);
 }
 
 static VALUE game_set_title(VALUE self, VALUE title)
@@ -318,8 +319,8 @@ void init_game(const char *raw_exe_name)
   rb_const_set(game, rb_intern("RAW_EXE_NAME"), rstr(raw_exe_name));
   rb_const_set(game, rb_intern("START_WIDTH"), RB_INT2FIX(START_WIDTH));
   rb_const_set(game, rb_intern("START_HEIGHT"), RB_INT2FIX(START_HEIGHT));
+  module_func(game, "experimental=", game_exp_set, 1);
   module_func(game, "title=", game_set_title, 1);
-  module_func(game, "title", game_get_title, 0);
   module_func(game, "set_internal_values", game_set_internal_values, 0);
   module_func(game, "shot_format=", game_shot_fmt_set, 1);
   module_func(game, "shot_dir=", game_shot_dir_set, 1);

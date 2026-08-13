@@ -19,6 +19,7 @@ struct PcmWav {
   uint16_t bpf;
   uint32_t rate;
   uint32_t brate;
+  uint32_t data_end;
   uint32_t data_size;
   uint32_t data_offset;
   uint32_t fmt_offset;

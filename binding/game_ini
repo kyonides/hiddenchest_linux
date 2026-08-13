@@ -106,6 +106,7 @@ module Game
   attr_reader :shot_path, :save_dir, :save_path, :show_splash
   attr_reader :soundfont, :soundfonts, :env_dir, :user_dir, :user_path
   attr_reader :movie_dir, :movie_path, :bind_dir, :bind_path
+  attr_reader :title, :experimental
   attr_accessor :save_filename, :setup_screen
   def clear
     @shot_formats = ["jpg", "png"]
@@ -121,6 +122,7 @@ module Game
     @user_dir = ""
     @soundfont = ""
     @show_splash = false
+    @experimental = false
   end
 
   def make_path(*args)

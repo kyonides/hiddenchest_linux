@@ -106,7 +106,10 @@ struct WaveSource : ALDataSource
       }
       // EOF
       if (res == 0) {
-        Debug() << "EOF?";
+        Debug() << "EOF?" << (int) SDL_RWtell(&src);
+        Debug() << "Data End:" << wav.data_end;
+        int end = wav.data_end - wav.data_offset;
+        Debug() << "End of file" << (int) (wav.data_size - end);
         if (loop.requested) {
           retStatus = ALDataSource::WrapAround;
           seek_to_loop_start();

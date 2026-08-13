@@ -107,6 +107,7 @@ bool wav_read(SDL_RWops &ops, void *header, PcmWav &wav)
   wav.data = new unsigned char[wav.data_size];
   if (!wav_read_chunk(ops, wav.data, wav.data_size, "Failed to read data."))
     return false;
+  wav.data_end = (uint32_t) SDL_RWtell(&ops) - 4;
   return true;
 }
 
@@ -117,18 +118,22 @@ bool wav_get_loop(SDL_RWops &ops, void *header, PcmWav &wav, WavLoop &loop)
   loop.end = wav.data_size;
   loop.valid = false;
   uint32_t chunk_size = 0;
+  bool found = false;
   while (true) {
-    if (!wav_read_chunk(ops, header, 4, "EOF reached."))
+    if (!wav_read_chunk(ops, header, 4, ""))
       break;
     if (chunk_size % 2 != 0)
       chunk_size += 1;
     SDL_RWseek(&ops, chunk_size, RW_SEEK_CUR);
     if (!strcmp((const char*)header, "smpl")) {
-      SDL_RWseek(&ops, 48, RW_SEEK_CUR);
-      wav_read_chunk(ops, &loop.start, 4, "");
-      wav_read_chunk(ops, &loop.end, 4, "");
+      found = true;
       break;
     }
+  }
+  if (found) {
+    SDL_RWseek(&ops, 48, RW_SEEK_CUR);
+    wav_read_chunk(ops, &loop.start, 4, "");
+    wav_read_chunk(ops, &loop.end, 4, "");
   }
   if (loop.end < loop.offset)
     loop.end = loop.offset + wav.data_size;
