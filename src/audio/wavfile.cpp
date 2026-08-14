@@ -104,10 +104,7 @@ bool wav_read(SDL_RWops &ops, void *header, PcmWav &wav)
   if (!wav_read_chunk(ops, &wav.data_size, 4, "No data size chunk."))
     return false;
   wav.data_offset = (uint32_t) SDL_RWseek(&ops, 0, RW_SEEK_CUR);
-  wav.data = new unsigned char[wav.data_size];
-  if (!wav_read_chunk(ops, wav.data, wav.data_size, "Failed to read data."))
-    return false;
-  wav.data_end = (uint32_t) SDL_RWtell(&ops) - 4;
+  wav.data_end = wav.data_offset + wav.data_size;
   return true;
 }
 
