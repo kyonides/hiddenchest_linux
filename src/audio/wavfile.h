@@ -37,4 +37,3 @@ struct WavLoop {
 void set_format(PcmWav &wav);
 bool wav_read_header(SDL_RWops &ops, void *header, PcmWav &wav);
 bool wav_read(SDL_RWops &ops, void *header, PcmWav &wav);
-bool wav_get_loop(SDL_RWops &ops, void *header, PcmWav &wav, WavLoop &loop);

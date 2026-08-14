@@ -277,10 +277,9 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
       char *tag2 = sig + 8;
       if (!strncmp(tag2, "WAVE", 4)) {
         filetype = "wave";
-        if (shState->experimental) {
+        //if (shState->experimental) {
           source = create_wave_source(*srcOps, looped);
-          return true;
-        }
+          return true;//}
       }
       if (!filetype.size())
         filetype = "unknown";

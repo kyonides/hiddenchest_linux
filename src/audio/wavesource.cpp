@@ -33,9 +33,6 @@ struct WaveSource : ALDataSource
       return;
     smpls = wav.data_size / wav.bpf;
     sec = smpls / wav.rate * 1.0f;
-    if (loop.requested)
-      wav_get_loop(src, header, wav, loop);
-    seek_to_loop_start();
   }
 
   ~WaveSource()

@@ -8,6 +8,12 @@
 
 #include "wavfile.h"
 
+#define RIFF 0x46464952 // "RIFF"
+#define WAVE 0x45564157 // "WAVE"
+#define FMT  0x20746D66 // "fmt "
+#define DATA 0x61746164 // "data"
+#define SMPL 0x6c706d73 // "smpl"
+
 void set_format(PcmWav &wav)
 {
   if (wav.channels == 1) {
@@ -105,37 +111,5 @@ bool wav_read(SDL_RWops &ops, void *header, PcmWav &wav)
     return false;
   wav.data_offset = (uint32_t) SDL_RWseek(&ops, 0, RW_SEEK_CUR);
   wav.data_end = wav.data_offset + wav.data_size;
-  return true;
-}
-
-bool wav_get_loop(SDL_RWops &ops, void *header, PcmWav &wav, WavLoop &loop)
-{
-  SDL_RWseek(&ops, wav.fmt_offset, RW_SEEK_SET);
-  loop.start = 0;
-  loop.end = wav.data_size;
-  loop.valid = false;
-  uint32_t chunk_size = 0;
-  bool found = false;
-  while (true) {
-    if (!wav_read_chunk(ops, header, 4, ""))
-      break;
-    if (chunk_size % 2 != 0)
-      chunk_size += 1;
-    SDL_RWseek(&ops, chunk_size, RW_SEEK_CUR);
-    if (!strcmp((const char*)header, "smpl")) {
-      found = true;
-      break;
-    }
-  }
-  if (found) {
-    SDL_RWseek(&ops, 48, RW_SEEK_CUR);
-    wav_read_chunk(ops, &loop.start, 4, "");
-    wav_read_chunk(ops, &loop.end, 4, "");
-  }
-  if (loop.end < loop.offset)
-    loop.end = loop.offset + wav.data_size;
-  if (loop.start > loop.end)
-    loop.start = loop.offset;
-  loop.valid = (loop.start && loop.end);
   return true;
 }
